@@ -2,7 +2,7 @@
   "scripts": {
     "test": "elm-format --validate . && elm-test",
     "dev": "parcel index.html",
-    "build": "parcel build index.html"
+    "build": "parcel build index.html --public-url ./"
   },
   "devDependencies": {
     "elm": "^0.19.1-3",
