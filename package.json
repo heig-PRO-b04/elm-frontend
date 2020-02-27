@@ -1,5 +1,6 @@
 {
   "scripts": {
+    "test": "elm-format --validate . && elm-test",
     "dev": "parcel index.html",
     "build": "parcel build index.html"
   },
