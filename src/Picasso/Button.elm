@@ -12,7 +12,7 @@ import Html.Attributes exposing (class)
 base : List (Html.Attribute msg)
 base =
     [ class "px-6 py-2"
-    , class "font-manrope font-semibold"
+    , class "font-archivo font-semibold"
     , class "rounded-md"
     ]
 
