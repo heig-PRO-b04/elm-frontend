@@ -2,8 +2,11 @@ module Main exposing (main)
 
 import Browser
 import Browser.Navigation as Nav
+import Cmd exposing (updateWith, withNoCmd)
 import Html
+import Page.Home
 import Page.Login
+import Session exposing (Session)
 import Url
 
 
@@ -15,6 +18,22 @@ type Message
     = ChangedUrl Url.Url
     | ClickedLink Browser.UrlRequest
     | LoginMessage Page.Login.Message
+    | HomeMessage Page.Home.Message
+
+
+{-| Returns the Session associated with the current model. This information
+will be passed around the different sub-models and acts as the shared
+information for the lifetime of the application.
+-}
+toSession : Model -> Session
+toSession model =
+    case model of
+        LoginModel m ->
+            m.session
+
+
+
+-- TEA
 
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Message )
@@ -32,11 +51,17 @@ update msg model =
     case ( msg, model ) of
         -- TODO : Factorize sub-updates based on the rest of the app.
         ( LoginMessage loginMsg, LoginModel loginModel ) ->
-            ( LoginModel <| Page.Login.update loginMsg loginModel, Cmd.none )
+            updateWith
+                LoginMessage
+                LoginModel
+                Page.Login.update
+                loginMsg
+                loginModel
 
         -- TODO : Handle url changes and more.
         ( _, _ ) ->
-            ( model, Cmd.none )
+            model
+                |> withNoCmd
 
 
 view : Model -> Browser.Document Message

@@ -1,13 +1,21 @@
 module Api exposing
-    ( Credentials, username
+    ( Endpoint, rootEndpoint
+    , Credentials, username
     , login, LoginError(..)
     )
 
 {-| A module that provides interactions with the outside world, and in
 particular with whatever backend powers the web application.
 
-TODO : Use some endpoints to protect which URLs we're contacting.
 TODO : Define if we want to let users post arbitrary content to the API or not.
+
+
+# Endpoints
+
+It's easy to compose endpoints from the root endpoint, and not possible to
+move outside of the base domain.
+
+@docs Endpoint, rootEndpoint
 
 
 # Authentication
@@ -25,11 +33,29 @@ token and expose it to the outside world !
 
 -}
 
+import Http
 import Json.Decode
 import Json.Encode
 import Process
 import Task exposing (Task)
 import Username exposing (Username)
+
+
+
+-- ENDPOINTS
+
+
+{-| TODO : Use some Urls directly instead =
+-}
+type Endpoint
+    = FromUrl String
+
+
+{-| TODO : Provide more choices for endpoints ?
+-}
+rootEndpoint : Endpoint
+rootEndpoint =
+    FromUrl "https://api.example.org"
 
 
 
@@ -58,9 +84,8 @@ username (Token name _) =
 the application.
 -}
 type LoginError
-    = InvalidUsername
-    | InvalidPassword
-    | ConnectionError
+    = BadCredentials
+    | NetworkError
 
 
 {-| A command that will try to log the user in to the app, and tell what the
@@ -85,7 +110,7 @@ login user pwd transform =
                             Json.Decode.decodeValue
                                 Username.decoder
                                 (Json.Encode.string "hello@email.org")
-                                |> Result.mapError (always InvalidPassword)
+                                |> Result.mapError (always BadCredentials)
                                 |> Result.map transform
                         of
                             Ok v ->
@@ -95,5 +120,22 @@ login user pwd transform =
                                 Task.fail e
 
                     _ ->
-                        Task.fail ConnectionError
+                        Task.fail NetworkError
             )
+
+
+
+-- REQUESTS
+
+
+request :
+    { method : String
+    , headers : List Http.Header
+    , url : String
+    , body : Http.Body
+    , resolver : Http.Resolver x a
+    , timeout : Maybe Float
+    }
+    -> Task a x
+request =
+    Debug.todo "Not implemented yet."

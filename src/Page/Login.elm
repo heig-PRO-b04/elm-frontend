@@ -14,10 +14,11 @@ module Page.Login exposing
 -}
 
 import Browser.Navigation as Nav
+import Cmd exposing (withNoCmd)
 import Html exposing (Html, div, p, text)
 import Html.Attributes exposing (class, placeholder, type_)
 import Html.Events exposing (onClick, onInput)
-import Picasso.Button exposing (button, elevated, filled, outlined)
+import Picasso.Button exposing (button, elevated, filled)
 import Picasso.Input as Input
 import Picasso.Text exposing (styledH2)
 import Session exposing (Session, guest)
@@ -44,36 +45,39 @@ init key =
     }
 
 
-update : Message -> Model -> Model
+update : Message -> Model -> ( Model, Cmd Message )
 update message model =
     case message of
         WriteNewUsername username ->
             { model | username = username }
+                |> withNoCmd
 
         WriteNewPassword password ->
             { model | password = password }
+                |> withNoCmd
 
         -- TODO : Side-effects and navigation.
         ClickLogin ->
             model
+                |> withNoCmd
 
 
 view : Model -> Html Message
 view model =
     div
-        [ class "flex flex-col items-center justify-center"
+        [ class "flex flex-col md:items-center md:justify-center"
         , class "h-screen w-screen"
-        , class "bg-cactus-050"
+        , class "bg-white md:bg-cactus-050"
         ]
         [ div
             [ class "flex flex-col"
 
             -- Card appearance
             , class "bg-white"
-            , class "shadow"
+            , class "md:shadow"
             , class "p-8"
-            , class "rounded-lg"
-            , class "max-w-lg"
+            , class "md:rounded-lg"
+            , class "md:max-w-lg"
             ]
             [ Html.map never <| styledH2 "Sign-in to Polls"
             , desc
@@ -89,7 +93,7 @@ desc =
     p
         [ class "font-archivo text-gray-700"
         ]
-        [ text """Live polls is an application that lets you submit
+        [ text """Polls is an application that lets you submit
         multiple-choice questions to some participants and get answers in
         real-time.""" ]
         |> withMargin
