@@ -150,16 +150,3 @@ login user pwd transform =
 
 
 -- REQUESTS
-
-
-request :
-    { method : String
-    , headers : List Http.Header
-    , endpoint : Endpoint
-    , body : Http.Body
-    , resolver : Http.Resolver x a
-    , timeout : Maybe Float
-    }
-    -> Task a x
-request =
-    Debug.todo "Not implemented yet."
