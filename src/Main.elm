@@ -12,6 +12,7 @@ import Url
 
 type Model
     = LoginModel Page.Login.Model
+    | HomeModel Page.Home.Model
 
 
 type Message
@@ -29,6 +30,9 @@ toSession : Model -> Session
 toSession model =
     case model of
         LoginModel m ->
+            m.session
+
+        HomeModel m ->
             m.session
 
 
@@ -59,17 +63,31 @@ update msg model =
                 loginModel
 
         -- TODO : Handle url changes and more.
+        ( HomeMessage homeMsg, HomeModel homeModel ) ->
+            updateWith
+                HomeMessage
+                HomeModel
+                Page.Home.update
+                homeMsg
+                homeModel
+
         ( _, _ ) ->
             model
                 |> withNoCmd
 
 
 view : Model -> Browser.Document Message
-view (LoginModel model) =
-    { title = "heig-PRO-b04"
+view model =
+    { title = "heig-PRO-b04 | Live polls"
     , body =
-        [ Page.Login.view model
-            |> Html.map LoginMessage
+        [ case model of
+            LoginModel loginModel ->
+                Page.Login.view loginModel
+                    |> Html.map LoginMessage
+
+            HomeModel homeModel ->
+                Page.Home.view homeModel
+                    |> Html.map HomeMessage
         ]
     }
 

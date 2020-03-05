@@ -1,7 +1,8 @@
 module Api exposing
-    ( Endpoint, rootEndpoint
+    ( Endpoint
     , Credentials, username
     , login, LoginError(..)
+    , endpoint
     )
 
 {-| A module that provides interactions with the outside world, and in
@@ -38,6 +39,7 @@ import Json.Decode
 import Json.Encode
 import Process
 import Task exposing (Task)
+import Url exposing (Url)
 import Username exposing (Username)
 
 
@@ -45,17 +47,32 @@ import Username exposing (Username)
 -- ENDPOINTS
 
 
-{-| TODO : Use some Urls directly instead =
+{-| An opaque type representing the endpoints that will be available throughout
+the application. The general idea is that an endpoint will necessarily point to
+one of the API endpoints that are defined for the app, and that if you obtain
+an instance of endpoint, you're guaranteed to point to a location where it's
+safe to send your data.
+
+This guarantees that you can't send any credentials to an unexpected endpoint,
+and leak the credentials contents by mistake.
+
 -}
 type Endpoint
-    = FromUrl String
+    = FromUrl Url
 
 
-{-| TODO : Provide more choices for endpoints ?
+{-| TODO : Provide more choices for endpoints
 -}
-rootEndpoint : Endpoint
-rootEndpoint =
-    FromUrl "https://api.example.org"
+endpoint : Endpoint
+endpoint =
+    FromUrl
+        { protocol = Url.Https
+        , host = "api.example.org"
+        , port_ = Nothing
+        , path = "/"
+        , query = Nothing
+        , fragment = Nothing
+        }
 
 
 
@@ -76,6 +93,11 @@ username (Token name _) =
     name
 
 
+credentialsDecoder : Json.Decode.Decoder Credentials
+credentialsDecoder =
+    Json.Decode.fail "Not implemented."
+
+
 
 -- LOGIN
 
@@ -92,6 +114,8 @@ type LoginError
 issue was if it did not work.
 
 TODO : Connect to an actual endpoint.
+TODO : Issue a command instead ?
+TODO : Provide a better testing Api.
 
     -- Usage
     login "hello@email.org" "password" identity
@@ -108,7 +132,7 @@ login user pwd transform =
                     ( "hello@email.org", "password" ) ->
                         case
                             Json.Decode.decodeValue
-                                Username.decoder
+                                credentialsDecoder
                                 (Json.Encode.string "hello@email.org")
                                 |> Result.mapError (always BadCredentials)
                                 |> Result.map transform
@@ -131,7 +155,7 @@ login user pwd transform =
 request :
     { method : String
     , headers : List Http.Header
-    , url : String
+    , endpoint : Endpoint
     , body : Http.Body
     , resolver : Http.Resolver x a
     , timeout : Maybe Float

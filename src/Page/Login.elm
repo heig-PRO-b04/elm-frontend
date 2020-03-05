@@ -13,8 +13,9 @@ module Page.Login exposing
 
 -}
 
+import Api
 import Browser.Navigation as Nav
-import Cmd exposing (withNoCmd)
+import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, p, text)
 import Html.Attributes exposing (class, placeholder, type_)
 import Html.Events exposing (onClick, onInput)
@@ -22,18 +23,35 @@ import Picasso.Button exposing (button, elevated, filled)
 import Picasso.Input as Input
 import Picasso.Text exposing (styledH2)
 import Session exposing (Session, guest)
+import Task
 
 
 type Message
     = WriteNewUsername String
     | WriteNewPassword String
     | ClickLogin
+    | GotGoodLogin
+    | GotBadNetwork
+    | GotBadPassword
+    | GotBadUsername
+
+
+{-| A union type representing the different kind of error states that the login
+subsystem screen might currently be in. If there is no error, no associated
+message will be displayed.
+-}
+type LoginError
+    = NoError
+    | BadUsername
+    | BadPassword
+    | BadNetwork
 
 
 type alias Model =
     { session : Session
     , username : String
     , password : String
+    , error : LoginError
     }
 
 
@@ -42,6 +60,7 @@ init key =
     { session = guest key
     , username = ""
     , password = ""
+    , error = NoError
     }
 
 
@@ -56,9 +75,48 @@ update message model =
             { model | password = password }
                 |> withNoCmd
 
-        -- TODO : Side-effects and navigation.
-        ClickLogin ->
+        -- TODO : Navigation.
+        -- TODO : Retrieve credentials.
+        GotGoodLogin ->
             model
+                |> withNoCmd
+
+        ClickLogin ->
+            let
+                apiResult : Task.Task Api.LoginError Api.Credentials
+                apiResult =
+                    Api.login model.username model.password identity
+
+                apiMapper result =
+                    case result of
+                        Ok _ ->
+                            GotGoodLogin
+
+                        Err error ->
+                            case error of
+                                Api.BadCredentials ->
+                                    GotBadPassword
+
+                                Api.NetworkError ->
+                                    GotBadNetwork
+
+                loginResult : Cmd Message
+                loginResult =
+                    Task.attempt apiMapper apiResult
+            in
+            model
+                |> withCmd [ loginResult ]
+
+        GotBadPassword ->
+            { model | error = BadPassword }
+                |> withNoCmd
+
+        GotBadUsername ->
+            { model | error = BadUsername }
+                |> withNoCmd
+
+        GotBadNetwork ->
+            { model | error = BadNetwork }
                 |> withNoCmd
 
 
@@ -84,6 +142,7 @@ view model =
             , inputEmail
             , inputPassword
             , buttonSignIn
+            , Html.map never <| errorView model.error
             ]
         ]
 
@@ -138,3 +197,35 @@ buttonSignIn =
     button
         (filled ++ elevated ++ [ class "mt-8", onClick ClickLogin ])
         [ text "Sign-in" ]
+
+
+errorView : LoginError -> Html Never
+errorView error =
+    let
+        isError =
+            error /= NoError
+
+        attrs =
+            if isError then
+                [ class "mt-2"
+                , class "text-red-500"
+                ]
+
+            else
+                [ class "hidden" ]
+
+        message =
+            case error of
+                BadNetwork ->
+                    "There was a network issue. Try again later ?"
+
+                BadUsername ->
+                    "This username is not known."
+
+                BadPassword ->
+                    "This password is not valid, sorry !"
+
+                NoError ->
+                    ""
+    in
+    div attrs [ text message ]
