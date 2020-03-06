@@ -1,6 +1,7 @@
 module Session exposing
     ( Session
     , guest
+    , isLoggedIn
     , navKey
     )
 
@@ -26,3 +27,13 @@ navKey session =
 guest : Nav.Key -> Session
 guest =
     Guest
+
+
+isLoggedIn : Session -> Bool
+isLoggedIn session =
+    case session of
+        LoggedIn _ _ ->
+            True
+
+        _ ->
+            False

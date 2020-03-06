@@ -19,7 +19,7 @@ import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, p, text)
 import Html.Attributes exposing (class, placeholder, type_)
 import Html.Events exposing (onClick, onInput)
-import Picasso.Button exposing (button, elevated, filled)
+import Picasso.Button exposing (button, elevated, filled, filledDisabled)
 import Picasso.Input as Input
 import Picasso.Text exposing (styledH2)
 import Session exposing (Session, guest)
@@ -32,26 +32,44 @@ type Message
     | ClickLogin
     | GotGoodLogin
     | GotBadNetwork
-    | GotBadPassword
-    | GotBadUsername
+    | GotBadCredentials
 
 
 {-| A union type representing the different kind of error states that the login
 subsystem screen might currently be in. If there is no error, no associated
 message will be displayed.
 -}
-type LoginError
+type LoginState
     = NoError
-    | BadUsername
-    | BadPassword
+    | Pending
+    | Success
+    | BadCredentials
     | BadNetwork
+
+
+isError : LoginState -> Bool
+isError state =
+    List.member state [ BadCredentials, BadNetwork ]
+
+
+loginMessage : LoginState -> Maybe String
+loginMessage state =
+    case state of
+        BadCredentials ->
+            Just "These credentials are not valid, sorry !"
+
+        BadNetwork ->
+            Just "There was a network issue. Try again later ?"
+
+        _ ->
+            Nothing
 
 
 type alias Model =
     { session : Session
     , username : String
     , password : String
-    , error : LoginError
+    , state : LoginState
     }
 
 
@@ -60,7 +78,7 @@ init key =
     { session = guest key
     , username = ""
     , password = ""
-    , error = NoError
+    , state = NoError
     }
 
 
@@ -78,7 +96,7 @@ update message model =
         -- TODO : Navigation.
         -- TODO : Retrieve credentials.
         GotGoodLogin ->
-            model
+            { model | state = Success }
                 |> withNoCmd
 
         ClickLogin ->
@@ -95,7 +113,7 @@ update message model =
                         Err error ->
                             case error of
                                 Api.BadCredentials ->
-                                    GotBadPassword
+                                    GotBadCredentials
 
                                 Api.NetworkError ->
                                     GotBadNetwork
@@ -104,19 +122,15 @@ update message model =
                 loginResult =
                     Task.attempt apiMapper apiResult
             in
-            model
+            { model | state = Pending }
                 |> withCmd [ loginResult ]
 
-        GotBadPassword ->
-            { model | error = BadPassword }
-                |> withNoCmd
-
-        GotBadUsername ->
-            { model | error = BadUsername }
+        GotBadCredentials ->
+            { model | state = BadCredentials }
                 |> withNoCmd
 
         GotBadNetwork ->
-            { model | error = BadNetwork }
+            { model | state = BadNetwork }
                 |> withNoCmd
 
 
@@ -141,8 +155,8 @@ view model =
             , desc
             , inputEmail
             , inputPassword
-            , buttonSignIn
-            , Html.map never <| errorView model.error
+            , buttonSignIn <| model.state
+            , Html.map never <| errorView model.state
             ]
         ]
 
@@ -192,21 +206,37 @@ inputPassword =
         |> withMargin
 
 
-buttonSignIn : Html Message
-buttonSignIn =
-    button
-        (filled ++ elevated ++ [ class "mt-8", onClick ClickLogin ])
-        [ text "Sign-in" ]
-
-
-errorView : LoginError -> Html Never
-errorView error =
+buttonSignIn : LoginState -> Html Message
+buttonSignIn state =
     let
-        isError =
-            error /= NoError
+        fillIn =
+            if state == Pending || state == Success then
+                filledDisabled
 
+            else
+                filled ++ elevated ++ [ onClick ClickLogin ]
+
+        message =
+            case state of
+                Pending ->
+                    "Signing in..."
+
+                Success ->
+                    "Success !"
+
+                _ ->
+                    "Sign-in"
+    in
+    button
+        (fillIn ++ [ class "mt-8" ])
+        [ text message ]
+
+
+errorView : LoginState -> Html Never
+errorView state =
+    let
         attrs =
-            if isError then
+            if isError state then
                 [ class "mt-2"
                 , class "text-red-500"
                 ]
@@ -215,17 +245,7 @@ errorView error =
                 [ class "hidden" ]
 
         message =
-            case error of
-                BadNetwork ->
-                    "There was a network issue. Try again later ?"
-
-                BadUsername ->
-                    "This username is not known."
-
-                BadPassword ->
-                    "This password is not valid, sorry !"
-
-                NoError ->
-                    ""
+            loginMessage state
+                |> Maybe.withDefault ""
     in
     div attrs [ text message ]

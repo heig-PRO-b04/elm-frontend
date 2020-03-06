@@ -10,6 +10,7 @@ import Session exposing (Session)
 import Url
 
 
+{-| -}
 type Model
     = LoginModel Page.Login.Model
     | HomeModel Page.Home.Model
@@ -53,7 +54,9 @@ subscriptions _ =
 update : Message -> Model -> ( Model, Cmd Message )
 update msg model =
     case ( msg, model ) of
-        -- TODO : Factorize sub-updates based on the rest of the app.
+        ( ChangedUrl url, _ ) ->
+            model |> withNoCmd
+
         ( LoginMessage loginMsg, LoginModel loginModel ) ->
             updateWith
                 LoginMessage
@@ -62,7 +65,6 @@ update msg model =
                 loginMsg
                 loginModel
 
-        -- TODO : Handle url changes and more.
         ( HomeMessage homeMsg, HomeModel homeModel ) ->
             updateWith
                 HomeMessage
