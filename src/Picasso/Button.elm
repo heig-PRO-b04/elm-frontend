@@ -2,6 +2,7 @@ module Picasso.Button exposing
     ( button
     , elevated
     , filled
+    , filledDisabled
     , outlined
     )
 
@@ -37,6 +38,15 @@ filled =
     [ class "bg-cactus-500 hover:bg-cactus-400"
     , class "text-cactus-050 hover:text-white"
     , class "border-2 border-cactus-500"
+    ]
+
+
+filledDisabled : List (Html.Attribute msg)
+filledDisabled =
+    [ class "bg-gray-100"
+    , class "text-gray-400"
+    , class "border-2 border-gray-300"
+    , class "cursor-not-allowed"
     ]
 
 

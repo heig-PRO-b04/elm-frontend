@@ -34,7 +34,6 @@ token and expose it to the outside world !
 
 -}
 
-import Http
 import Json.Decode
 import Json.Encode
 import Process
@@ -93,11 +92,6 @@ username (Token name _) =
     name
 
 
-credentialsDecoder : Json.Decode.Decoder Credentials
-credentialsDecoder =
-    Json.Decode.fail "Not implemented."
-
-
 
 -- LOGIN
 
@@ -129,12 +123,16 @@ login user pwd transform =
         |> Task.andThen
             (\_ ->
                 case ( user, pwd ) of
-                    ( "hello@email.org", "password" ) ->
+                    ( "nonetwork", _ ) ->
+                        Task.fail NetworkError
+
+                    ( "username", "password" ) ->
                         case
                             Json.Decode.decodeValue
-                                credentialsDecoder
-                                (Json.Encode.string "hello@email.org")
-                                |> Result.mapError (always BadCredentials)
+                                Username.decoder
+                                (Json.Encode.string user)
+                                |> Result.mapError (always NetworkError)
+                                |> Result.map (\u -> Token u "token")
                                 |> Result.map transform
                         of
                             Ok v ->
@@ -143,8 +141,8 @@ login user pwd transform =
                             Err e ->
                                 Task.fail e
 
-                    _ ->
-                        Task.fail NetworkError
+                    ( _, _ ) ->
+                        Task.fail BadCredentials
             )
 
 
