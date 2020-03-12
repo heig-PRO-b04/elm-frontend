@@ -4,7 +4,7 @@ node_js:
   - 8
 
 after_success:
-  - yarn build
+  - yarn build && cp CNAME dist/CNAME
 
 deploy:
   provider: pages
