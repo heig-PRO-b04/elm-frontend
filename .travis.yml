@@ -13,3 +13,4 @@ deploy:
   local_dir: dist
   on:
     branch: master
+    repo: heig-PRO-b04/elm-frontend
