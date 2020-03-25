@@ -73,9 +73,9 @@ type alias Model =
     }
 
 
-init : Nav.Key -> Model
-init key =
-    { session = guest key
+init : Session -> Model
+init session =
+    { session = session
     , username = ""
     , password = ""
     , state = NoError
