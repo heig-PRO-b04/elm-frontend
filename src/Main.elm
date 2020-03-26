@@ -2,25 +2,26 @@ module Main exposing (main)
 
 import Browser
 import Browser.Navigation as Nav
-import Cmd exposing (updateWith, withNoCmd)
+import Cmd exposing (updateWith, withCmd, withNoCmd)
 import Html
-import Page.Home
-import Page.Login
+import Page.Home as Home
+import Page.Login as Login
+import Route exposing (Route)
 import Session exposing (Session)
 import Url
 
 
-{-| -}
+
+-- MODEL
+
+
 type Model
-    = LoginModel Page.Login.Model
-    | HomeModel Page.Home.Model
+    = LoginModel Login.Model
+    | HomeModel Home.Model
 
 
-type Message
-    = ChangedUrl Url.Url
-    | ClickedLink Browser.UrlRequest
-    | LoginMessage Page.Login.Message
-    | HomeMessage Page.Home.Message
+
+-- TODO : Start from a blank page.
 
 
 {-| Returns the Session associated with the current model. This information
@@ -37,45 +38,13 @@ toSession model =
             m.session
 
 
-
--- TEA
-
-
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Message )
 init _ url key =
-    ( LoginModel <| Page.Login.init key, Cmd.none )
+    ( LoginModel <| Login.init <| Session.guest key, Cmd.none )
 
 
-subscriptions : Model -> Sub Message
-subscriptions _ =
-    Sub.none
 
-
-update : Message -> Model -> ( Model, Cmd Message )
-update msg model =
-    case ( msg, model ) of
-        ( ChangedUrl url, _ ) ->
-            model |> withNoCmd
-
-        ( LoginMessage loginMsg, LoginModel loginModel ) ->
-            updateWith
-                LoginMessage
-                LoginModel
-                Page.Login.update
-                loginMsg
-                loginModel
-
-        ( HomeMessage homeMsg, HomeModel homeModel ) ->
-            updateWith
-                HomeMessage
-                HomeModel
-                Page.Home.update
-                homeMsg
-                homeModel
-
-        ( _, _ ) ->
-            model
-                |> withNoCmd
+-- VIEW
 
 
 view : Model -> Browser.Document Message
@@ -84,14 +53,87 @@ view model =
     , body =
         [ case model of
             LoginModel loginModel ->
-                Page.Login.view loginModel
+                Login.view loginModel
                     |> Html.map LoginMessage
 
             HomeModel homeModel ->
-                Page.Home.view homeModel
+                Home.view homeModel
                     |> Html.map HomeMessage
         ]
     }
+
+
+
+-- UPDATE
+
+
+type Message
+    = ChangedUrl Url.Url
+    | ClickedLink Browser.UrlRequest
+    | HomeMessage Home.Message
+    | LoginMessage Login.Message
+
+
+update : Message -> Model -> ( Model, Cmd Message )
+update msg model =
+    case ( msg, model ) of
+        ( ChangedUrl url, _ ) ->
+            changeRouteTo (Route.fromUrl url) model
+
+        ( ClickedLink request, _ ) ->
+            case request of
+                Browser.Internal url ->
+                    model
+                        |> withCmd
+                            [ Nav.pushUrl
+                                (Session.navKey (toSession model))
+                                (Url.toString url)
+                            ]
+
+                Browser.External href ->
+                    model |> withCmd [ Nav.load href ]
+
+        ( LoginMessage loginMsg, LoginModel loginModel ) ->
+            updateWith
+                LoginMessage
+                LoginModel
+                Login.update
+                loginMsg
+                loginModel
+
+        ( HomeMessage homeMsg, HomeModel homeModel ) ->
+            updateWith
+                HomeMessage
+                HomeModel
+                Home.update
+                homeMsg
+                homeModel
+
+        ( _, _ ) ->
+            model
+                |> withNoCmd
+
+
+subscriptions : Model -> Sub Message
+subscriptions _ =
+    Sub.none
+
+
+changeRouteTo : Maybe Route -> Model -> ( Model, Cmd msg )
+changeRouteTo route model =
+    let
+        session =
+            toSession model
+    in
+    case route of
+        Nothing ->
+            HomeModel (Home.init session) |> withNoCmd
+
+        Just Route.Home ->
+            HomeModel (Home.init session) |> withNoCmd
+
+        Just Route.Login ->
+            LoginModel (Login.init session) |> withNoCmd
 
 
 
