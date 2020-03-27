@@ -16,7 +16,7 @@ module Page.Login exposing
 import Api
 import Browser.Navigation as Nav
 import Cmd exposing (withCmd, withNoCmd)
-import Html exposing (Html, div, p, text)
+import Html exposing (Html, div, form, p, text)
 import Html.Attributes exposing (class, placeholder, type_)
 import Html.Events exposing (onClick, onInput)
 import Picasso.Button exposing (button, elevated, filled, filledDisabled)
@@ -141,7 +141,7 @@ view model =
         , class "h-screen w-screen"
         , class "bg-white md:bg-cactus-050"
         ]
-        [ div
+        [ form
             [ class "flex flex-col"
 
             -- Card appearance
