@@ -1,14 +1,11 @@
 module Api exposing
-    ( Endpoint
+    ( Endpoint, root, withPath
     , Credentials, username
     , login, LoginError(..)
-    , endpoint
     )
 
 {-| A module that provides interactions with the outside world, and in
 particular with whatever backend powers the web application.
-
-TODO : Define if we want to let users post arbitrary content to the API or not.
 
 
 # Endpoints
@@ -16,7 +13,7 @@ TODO : Define if we want to let users post arbitrary content to the API or not.
 It's easy to compose endpoints from the root endpoint, and not possible to
 move outside of the base domain.
 
-@docs Endpoint, rootEndpoint
+@docs Endpoint, root, withPath
 
 
 # Authentication
@@ -32,14 +29,20 @@ token and expose it to the outside world !
 @docs Credentials, username
 @docs login, LoginError
 
+
+# Requests
+
+To perform some requests, you must use one of the different methods that are
+offered in this API.
+
+@docs post
+
 -}
 
-import Json.Decode
+import Http
+import Json.Decode exposing (Decoder)
 import Json.Encode
-import Process
 import Task exposing (Task)
-import Url exposing (Url)
-import Username exposing (Username)
 
 
 
@@ -57,21 +60,24 @@ and leak the credentials contents by mistake.
 
 -}
 type Endpoint
-    = FromUrl Url
+    = RelativePath String
 
 
-{-| TODO : Provide more choices for endpoints
+root : Endpoint
+root =
+    RelativePath "/"
+
+
+unwrap : Endpoint -> String
+unwrap (RelativePath path) =
+    "https://api.rockin.app" ++ path
+
+
+{-| Appends a certain path to the root endpoint of the application.
 -}
-endpoint : Endpoint
-endpoint =
-    FromUrl
-        { protocol = Url.Https
-        , host = "api.example.org"
-        , port_ = Nothing
-        , path = "/"
-        , query = Nothing
-        , fragment = Nothing
-        }
+withPath : String -> Endpoint -> Endpoint
+withPath path (RelativePath url) =
+    RelativePath <| url ++ path
 
 
 
@@ -82,12 +88,20 @@ endpoint =
 of the application.
 -}
 type Credentials
-    = Token Username String
+    = Token String String
+
+
+credentialsDecoder : String -> Json.Decode.Decoder Credentials
+credentialsDecoder forName =
+    Json.Decode.map2
+        Token
+        (Json.Decode.succeed forName)
+        (Json.Decode.field "token" Json.Decode.string)
 
 
 {-| Returns the username of some credentials.
 -}
-username : Credentials -> Username
+username : Credentials -> String
 username (Token name _) =
     name
 
@@ -107,10 +121,6 @@ type LoginError
 {-| A command that will try to log the user in to the app, and tell what the
 issue was if it did not work.
 
-TODO : Connect to an actual endpoint.
-TODO : Issue a command instead ?
-TODO : Provide a better testing Api.
-
     -- Usage
     login "hello@email.org" "password" identity
         |> Task.attempt
@@ -119,32 +129,77 @@ TODO : Provide a better testing Api.
 -}
 login : String -> String -> (Credentials -> a) -> Task LoginError a
 login user pwd transform =
-    Process.sleep 1000
-        |> Task.andThen
-            (\_ ->
-                case ( user, pwd ) of
-                    ( "nonetwork", _ ) ->
-                        Task.fail NetworkError
+    post
+        { body =
+            Json.Encode.object
+                [ ( "username", Json.Encode.string user )
+                , ( "password", Json.Encode.string pwd )
+                ]
+        , endpoint = root |> withPath "/auth"
+        , decoder = credentialsDecoder user
+        }
+        |> Task.mapError
+            (\error ->
+                case error of
+                    Http.BadStatus 403 ->
+                        BadCredentials
 
-                    ( "username", "password" ) ->
-                        case
-                            Json.Decode.decodeValue
-                                Username.decoder
-                                (Json.Encode.string user)
-                                |> Result.mapError (always NetworkError)
-                                |> Result.map (\u -> Token u "token")
-                                |> Result.map transform
-                        of
-                            Ok v ->
-                                Task.succeed v
-
-                            Err e ->
-                                Task.fail e
-
-                    ( _, _ ) ->
-                        Task.fail BadCredentials
+                    _ ->
+                        NetworkError
             )
+        |> Task.map transform
 
 
 
 -- REQUESTS
+
+
+{-| Exposes the possibility to perform some POST Http requests to the
+application. A request always happens on a valid endpoint, with a Json body and
+returns a value that can be decoded.
+-}
+post :
+    { body : Json.Encode.Value
+    , endpoint : Endpoint
+    , decoder : Decoder a
+    }
+    -> Task Http.Error a
+post elements =
+    Http.task
+        { method = "POST"
+        , headers = []
+        , url = unwrap elements.endpoint
+        , body = Http.jsonBody elements.body
+        , resolver =
+            Http.stringResolver <|
+                handleJsonResponse <|
+                    elements.decoder
+        , timeout = Nothing
+        }
+
+
+{-| Handles an Http.Response with a certain Decoder, and transforms it into
+an Http.Error.
+-}
+handleJsonResponse : Decoder a -> Http.Response String -> Result Http.Error a
+handleJsonResponse decoder response =
+    case response of
+        Http.BadUrl_ url ->
+            Err (Http.BadUrl url)
+
+        Http.Timeout_ ->
+            Err Http.Timeout
+
+        Http.BadStatus_ { statusCode } _ ->
+            Err (Http.BadStatus statusCode)
+
+        Http.NetworkError_ ->
+            Err Http.NetworkError
+
+        Http.GoodStatus_ _ body ->
+            case Json.Decode.decodeString decoder body of
+                Err _ ->
+                    Err (Http.BadBody body)
+
+                Ok result ->
+                    Ok result
