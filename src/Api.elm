@@ -1,5 +1,5 @@
 module Api exposing
-    ( Endpoint, root, withPath
+    ( Endpoint, authenticated, withCredentials, withPath
     , Credentials, username
     , login, LoginError(..)
     )
@@ -10,10 +10,12 @@ particular with whatever backend powers the web application.
 
 # Endpoints
 
-It's easy to compose endpoints from the root endpoint, and not possible to
-move outside of the base domain.
+It's easy to compose endpoints from the root authenticated endpoint, and not
+possible to move outside of the base domain. Enforcing authentication means that
+user-composable endpoints logically require a credentials instance, and that
+can therefore enforces better defined application state.
 
-@docs Endpoint, root, withPath
+@docs Endpoint, authenticated, withCredentials, withPath
 
 
 # Authentication
@@ -43,6 +45,7 @@ import Http
 import Json.Decode exposing (Decoder)
 import Json.Encode
 import Task exposing (Task)
+import Url
 
 
 
@@ -60,24 +63,98 @@ and leak the credentials contents by mistake.
 
 -}
 type Endpoint
-    = RelativePath String
+    = NonAuthenticated String
+    | Authenticated Credentials String
 
 
-root : Endpoint
-root =
-    RelativePath "/"
+{-| Returns a root endpoint that is authenticated. By default, all of the
+endpoints that can be composed outside of the Api module are authenticated, and
+the only unauthenticated endpoint is the login.
+
+This measure ensures that it's not possible to make requests that would be
+authenticated without possessing a credentials instance.
+
+-}
+authenticated : Credentials -> Endpoint
+authenticated credentials =
+    root |> withCredentials credentials
 
 
-unwrap : Endpoint -> String
-unwrap (RelativePath path) =
-    "https://api.rockin.app" ++ path
+{-| Set the credentials for the provided endpoint. The previously set
+credentials are replaced if they were previously set.
+-}
+withCredentials : Credentials -> Endpoint -> Endpoint
+withCredentials credentials endpoint =
+    case endpoint of
+        NonAuthenticated path ->
+            Authenticated credentials path
+
+        Authenticated _ path ->
+            Authenticated credentials path
 
 
 {-| Appends a certain path to the root endpoint of the application.
 -}
 withPath : String -> Endpoint -> Endpoint
-withPath path (RelativePath url) =
-    RelativePath <| url ++ path
+withPath path endpoint =
+    case endpoint of
+        Authenticated credentials url ->
+            Authenticated credentials (url ++ path)
+
+        NonAuthenticated url ->
+            NonAuthenticated (url ++ path)
+
+
+
+-- ENDPOINTS INTERNAL
+
+
+{-| Returns the root endpoint of the application.
+-}
+root : Endpoint
+root =
+    NonAuthenticated "/"
+
+
+{-| Unwraps the token string to be used for authentication, if it exists for the
+provided endpoint.
+-}
+unwrapToken : Endpoint -> Maybe String
+unwrapToken endpoint =
+    case endpoint of
+        NonAuthenticated _ ->
+            Nothing
+
+        Authenticated (Token _ token) _ ->
+            Just token
+
+
+{-| Unwraps the path part of the endpoint. This acts as the resource identifier
+for the API.
+-}
+unwrapPath : Endpoint -> String
+unwrapPath endpoint =
+    case endpoint of
+        NonAuthenticated path ->
+            path
+
+        Authenticated _ path ->
+            path
+
+
+{-| Unwraps an endpoint to a specific url, and includes authentication
+information.
+-}
+unwrap : Endpoint -> String
+unwrap endpoint =
+    { protocol = Url.Https
+    , host = "api.rockin.app"
+    , port_ = Nothing
+    , path = unwrapPath endpoint
+    , query = unwrapToken endpoint |> Maybe.map (\p -> "token=" ++ p)
+    , fragment = Nothing
+    }
+        |> Url.toString
 
 
 
