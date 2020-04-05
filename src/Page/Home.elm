@@ -122,7 +122,7 @@ content =
         [ class "flex flex-row"
         , class "flex-grow"
         , class "items-center"
-        , class "bg-gray-200"
+        , class "bg-seaside-050"
         ]
         [ div
             [ class "flex flex-grow flex-col"
@@ -166,6 +166,7 @@ footer =
         -- Footer
         [ class "flex flex-row"
         , class "bg-gray-600"
+        , class "hover:bg-seaside-400"
         , class "items-center justify-center"
         ]
         [ a

@@ -193,7 +193,7 @@ view model =
     div
         [ class "flex flex-col md:items-center md:justify-center"
         , class "h-screen w-screen"
-        , class "bg-white md:bg-cactus-050"
+        , class "bg-white md:bg-seaside-050"
         ]
         [ div
             [ class "flex flex-col"
