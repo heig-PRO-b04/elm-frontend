@@ -3,6 +3,7 @@ module Session exposing
     , guest
     , isLoggedIn
     , navKey
+    , withCredentials
     )
 
 import Api exposing (Credentials)
@@ -27,6 +28,16 @@ navKey session =
 guest : Nav.Key -> Session
 guest =
     Guest
+
+
+withCredentials : Credentials -> Session -> Session
+withCredentials credentials session =
+    case session of
+        Guest key ->
+            LoggedIn key credentials
+
+        LoggedIn key _ ->
+            LoggedIn key credentials
 
 
 isLoggedIn : Session -> Bool

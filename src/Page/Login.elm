@@ -14,15 +14,14 @@ module Page.Login exposing
 -}
 
 import Api
-import Browser.Navigation as Nav
 import Cmd exposing (withCmd, withNoCmd)
-import Html exposing (Html, div, form, p, text)
+import Html exposing (Html, div, p, text)
 import Html.Attributes exposing (class, placeholder, type_)
 import Html.Events exposing (onClick, onInput)
 import Picasso.Button exposing (button, elevated, filled, filledDisabled)
 import Picasso.Input as Input
 import Picasso.Text exposing (styledH2)
-import Session exposing (Session, guest)
+import Session exposing (Session)
 import Task
 
 
@@ -30,7 +29,7 @@ type Message
     = WriteNewUsername String
     | WriteNewPassword String
     | ClickLogin
-    | GotGoodLogin
+    | GotGoodLogin Api.Credentials
     | GotBadNetwork
     | GotBadCredentials
 
@@ -94,9 +93,13 @@ update message model =
                 |> withNoCmd
 
         -- TODO : Navigation.
-        -- TODO : Retrieve credentials.
-        GotGoodLogin ->
-            { model | state = Success }
+        GotGoodLogin credentials ->
+            { model
+                | state = Success
+                , session =
+                    model.session
+                        |> Session.withCredentials credentials
+            }
                 |> withNoCmd
 
         ClickLogin ->
@@ -107,8 +110,8 @@ update message model =
 
                 apiMapper result =
                     case result of
-                        Ok _ ->
-                            GotGoodLogin
+                        Ok credentials ->
+                            GotGoodLogin credentials
 
                         Err error ->
                             case error of
