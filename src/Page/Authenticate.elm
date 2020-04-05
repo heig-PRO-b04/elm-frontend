@@ -243,7 +243,7 @@ desc mode =
                     ]
 
                 Register ->
-                    [ text "⚡️ Registration in 8 seconds"
+                    [ text "⚡️ Register in 8 seconds"
                     , br [] []
                     , text "🏗 Craft the poll of your dreams"
                     , br [] []
