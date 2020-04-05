@@ -75,7 +75,7 @@ navBar =
             -- Title and logo
             []
             [ a
-                [ href "#"
+                [ Route.href Route.Home
                 , class "flex flex-row items-center"
                 , class "m-3"
                 ]
@@ -94,7 +94,15 @@ navBar =
             [ class "flex-grow"
             ]
             []
-        , button (outlined ++ elevated ++ [ class "m-3 mr-1", class "p-3" ]) [ text "Sign in" ]
+        , Picasso.Button.a
+            (outlined
+                ++ elevated
+                ++ [ class "m-3 mr-1"
+                   , class "p-3"
+                   , Route.href Route.Login
+                   ]
+            )
+            [ text "Sign in" ]
         , button (filled ++ elevated ++ [ class "m-3 ml-2", class "p-3" ]) [ text "Sign up" ]
         ]
 

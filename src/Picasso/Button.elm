@@ -1,5 +1,6 @@
 module Picasso.Button exposing
-    ( button
+    ( a
+    , button
     , elevated
     , filled
     , filledDisabled
@@ -56,3 +57,11 @@ button :
     -> Html msg
 button attrs html =
     Html.button (base ++ attrs) html
+
+
+a :
+    List (Html.Attribute msg)
+    -> List (Html msg)
+    -> Html msg
+a attrs html =
+    Html.a (base ++ attrs) html
