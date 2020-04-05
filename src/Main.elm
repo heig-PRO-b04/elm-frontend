@@ -40,11 +40,11 @@ toSession model =
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Message )
 init _ url key =
-    (HomeModel <| Home.init <| Session.guest key, Cmd.none )
-    --( LoginModel <| Login.init <| Session.guest key, Cmd.none )
+    ( HomeModel <| Home.init <| Session.guest key, Cmd.none )
 
 
 
+--( LoginModel <| Login.init <| Session.guest key, Cmd.none )
 -- VIEW
 
 
