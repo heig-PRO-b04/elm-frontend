@@ -1,16 +1,36 @@
 module Picasso.Button exposing
-    ( a
-    , button
-    , elevated
-    , filled
-    , filledDisabled
-    , outlined
+    ( a, button
+    , filled, filledDisabled, outlined, elevated
     )
+
+{-| A module that provides basic button elements, with varying styling options.
+
+
+# Constructors
+
+If you want to use Route-based hrefs for navigation, it is highly recommended
+that you use an `a` based button.
+
+@docs a, button
+
+
+# Styling
+
+@docs filled, filledDisabled, outlined, elevated
+
+-}
 
 import Html exposing (Html)
 import Html.Attributes exposing (class)
 
 
+
+-- BASE STYLING
+
+
+{-| The base style for the buttons, that will be applied for all the types of
+buttons of the application.
+-}
 base : List (Html.Attribute msg)
 base =
     [ class "px-6 py-2"
@@ -19,6 +39,12 @@ base =
     ]
 
 
+
+-- CUSTOM STYLING
+
+
+{-| Some attributes that will outline a button.
+-}
 outlined : List (Html.Attribute msg)
 outlined =
     [ class "bg-white hover:bg-cactus-100"
@@ -27,6 +53,8 @@ outlined =
     ]
 
 
+{-| Some attributes that will elevate a button.
+-}
 elevated : List (Html.Attribute msg)
 elevated =
     [ class "rounded-md"
@@ -34,6 +62,8 @@ elevated =
     ]
 
 
+{-| Some attributes that will fill a button.
+-}
 filled : List (Html.Attribute msg)
 filled =
     [ class "bg-cactus-500 hover:bg-cactus-400"
@@ -42,6 +72,8 @@ filled =
     ]
 
 
+{-| Some attributes that will fill a button and make it look disabled.
+-}
 filledDisabled : List (Html.Attribute msg)
 filledDisabled =
     [ class "bg-gray-100"
@@ -51,6 +83,12 @@ filledDisabled =
     ]
 
 
+
+-- HTML TAGS
+
+
+{-| Builds a new button element with base styling.
+-}
 button :
     List (Html.Attribute msg)
     -> List (Html msg)
@@ -59,6 +97,8 @@ button attrs html =
     Html.button (base ++ attrs) html
 
 
+{-| Builds a new link-based button element with base styling.
+-}
 a :
     List (Html.Attribute msg)
     -> List (Html msg)
