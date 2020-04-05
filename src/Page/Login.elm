@@ -141,7 +141,7 @@ view model =
         , class "h-screen w-screen"
         , class "bg-white md:bg-cactus-050"
         ]
-        [ form
+        [ div
             [ class "flex flex-col"
 
             -- Card appearance
