@@ -210,9 +210,9 @@ view model =
             , desc model.mode
             , inputEmail
             , inputPassword
+            , Html.map never <| errorView model.state
             , buttonSignIn model.mode model.state
             , buttonSwitchModes model.mode
-            , Html.map never <| errorView model.state
             ]
         ]
 
