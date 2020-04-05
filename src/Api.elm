@@ -1,7 +1,7 @@
 module Api exposing
     ( Endpoint, authenticated, withCredentials, withPath
     , Credentials, username
-    , login, LoginError(..)
+    , login, register, AuthError(..)
     )
 
 {-| A module that provides interactions with the outside world, and in
@@ -29,7 +29,7 @@ managed only in this module, and it is not possible to extract the value of the
 token and expose it to the outside world !
 
 @docs Credentials, username
-@docs login, LoginError
+@docs login, register, AuthError
 
 
 # Requests
@@ -184,13 +184,13 @@ username (Token name _) =
 
 
 
--- LOGIN
+-- AUTHENTICATION
 
 
-{-| The different types of errors that might arise when one tries to login into
-the application.
+{-| The different types of errors that might arise when one tries to
+authenticate into the application.
 -}
-type LoginError
+type AuthError
     = BadCredentials
     | NetworkError
 
@@ -204,7 +204,7 @@ issue was if it did not work.
         |> Result.toMaybe
 
 -}
-login : String -> String -> (Credentials -> a) -> Task LoginError a
+login : String -> String -> (Credentials -> a) -> Task AuthError a
 login user pwd transform =
     post
         { body =
@@ -213,6 +213,38 @@ login user pwd transform =
                 , ( "password", Json.Encode.string pwd )
                 ]
         , endpoint = root |> withPath "/auth"
+        , decoder = credentialsDecoder user
+        }
+        |> Task.mapError
+            (\error ->
+                case error of
+                    Http.BadStatus 403 ->
+                        BadCredentials
+
+                    _ ->
+                        NetworkError
+            )
+        |> Task.map transform
+
+
+{-| A command that will try to register the user in to the app, and tell what
+the issue was if it did not work.
+
+    -- Usage
+    register "hello@email.org" "password" identity
+        |> Task.attempt
+        |> Result.toMaybe
+
+-}
+register : String -> String -> (Credentials -> a) -> Task AuthError a
+register user pwd transform =
+    post
+        { body =
+            Json.Encode.object
+                [ ( "username", Json.Encode.string user )
+                , ( "password", Json.Encode.string pwd )
+                ]
+        , endpoint = root |> withPath "/register"
         , decoder = credentialsDecoder user
         }
         |> Task.mapError

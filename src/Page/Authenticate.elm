@@ -1,6 +1,7 @@
-module Page.Login exposing
+module Page.Authenticate exposing
     ( Model, Message
-    , init, update, view
+    , update, view
+    , initLogin, initRegistration
     )
 
 {-|
@@ -9,18 +10,24 @@ module Page.Login exposing
 # TEA
 
 @docs Model, Message
-@docs init, update, view
+@docs update, view
+
+
+# Modes
+
+@docs initLogin, initRegistration
 
 -}
 
 import Api
 import Cmd exposing (withCmd, withNoCmd)
-import Html exposing (Html, div, p, text)
+import Html exposing (Html, br, div, p, text)
 import Html.Attributes exposing (class, placeholder, type_)
 import Html.Events exposing (onClick, onInput)
 import Picasso.Button exposing (button, elevated, filled, filledDisabled)
 import Picasso.Input as Input
 import Picasso.Text exposing (styledH2)
+import Route
 import Session exposing (Session)
 import Task
 
@@ -28,8 +35,9 @@ import Task
 type Message
     = WriteNewUsername String
     | WriteNewPassword String
-    | ClickLogin
-    | GotGoodLogin Api.Credentials
+    | ClickPerform
+    | ClickSwitchModes
+    | GotGoodCredentials Api.Credentials
     | GotBadNetwork
     | GotBadCredentials
 
@@ -38,7 +46,7 @@ type Message
 subsystem screen might currently be in. If there is no error, no associated
 message will be displayed.
 -}
-type LoginState
+type AuthState
     = NoError
     | Pending
     | Success
@@ -46,12 +54,20 @@ type LoginState
     | BadNetwork
 
 
-isError : LoginState -> Bool
+{-| The two modes that this component might be in. Depending on the mode,
+the user interface components will be slightly different.
+-}
+type AuthMode
+    = Login
+    | Register
+
+
+isError : AuthState -> Bool
 isError state =
     List.member state [ BadCredentials, BadNetwork ]
 
 
-loginMessage : LoginState -> Maybe String
+loginMessage : AuthState -> Maybe String
 loginMessage state =
     case state of
         BadCredentials ->
@@ -68,16 +84,28 @@ type alias Model =
     { session : Session
     , username : String
     , password : String
-    , state : LoginState
+    , state : AuthState
+    , mode : AuthMode
     }
 
 
-init : Session -> Model
-init session =
+initLogin : Session -> Model
+initLogin session =
     { session = session
     , username = ""
     , password = ""
     , state = NoError
+    , mode = Login
+    }
+
+
+initRegistration : Session -> Model
+initRegistration session =
+    { session = session
+    , username = ""
+    , password = ""
+    , state = NoError
+    , mode = Register
     }
 
 
@@ -92,26 +120,36 @@ update message model =
             { model | password = password }
                 |> withNoCmd
 
-        -- TODO : Navigation.
-        GotGoodLogin credentials ->
+        GotGoodCredentials credentials ->
             { model
                 | state = Success
                 , session =
                     model.session
                         |> Session.withCredentials credentials
             }
-                |> withNoCmd
+                |> withCmd
+                    [ Route.replaceUrl
+                        (Session.navKey model.session)
+                        Route.Home
+                    ]
 
-        ClickLogin ->
+        ClickPerform ->
             let
-                apiResult : Task.Task Api.LoginError Api.Credentials
+                api =
+                    case model.mode of
+                        Login ->
+                            Api.login
+
+                        Register ->
+                            Api.register
+
                 apiResult =
-                    Api.login model.username model.password identity
+                    api model.username model.password identity
 
                 apiMapper result =
                     case result of
                         Ok credentials ->
-                            GotGoodLogin credentials
+                            GotGoodCredentials credentials
 
                         Err error ->
                             case error of
@@ -120,13 +158,26 @@ update message model =
 
                                 Api.NetworkError ->
                                     GotBadNetwork
-
-                loginResult : Cmd Message
-                loginResult =
-                    Task.attempt apiMapper apiResult
             in
             { model | state = Pending }
-                |> withCmd [ loginResult ]
+                |> withCmd [ Task.attempt apiMapper apiResult ]
+
+        ClickSwitchModes ->
+            let
+                destination =
+                    case model.mode of
+                        Login ->
+                            Route.Registration
+
+                        Register ->
+                            Route.Login
+            in
+            model
+                |> withCmd
+                    [ Route.replaceUrl
+                        (Session.navKey model.session)
+                        destination
+                    ]
 
         GotBadCredentials ->
             { model | state = BadCredentials }
@@ -152,26 +203,61 @@ view model =
             , class "md:shadow"
             , class "p-8"
             , class "md:rounded-lg"
+            , class "md:w-1/2"
             , class "md:max-w-lg"
             ]
-            [ Html.map never <| styledH2 "Sign-in to Polls"
-            , desc
+            [ title model.mode
+            , desc model.mode
             , inputEmail
             , inputPassword
-            , buttonSignIn <| model.state
+            , buttonSignIn model.mode model.state
+            , buttonSwitchModes model.mode
             , Html.map never <| errorView model.state
             ]
         ]
 
 
-desc : Html Message
-desc =
+title : AuthMode -> Html msg
+title mode =
+    let
+        message =
+            case mode of
+                Login ->
+                    "Sign-in to Polls"
+
+                Register ->
+                    "New account"
+    in
+    Html.map never <| styledH2 message
+
+
+desc : AuthMode -> Html Message
+desc mode =
+    let
+        message =
+            case mode of
+                Login ->
+                    [ text "Welcome back to rockin.app 👊"
+                    , br [] []
+                    , text "Our 👀 can't wait to see what you'll be polling about today \u{1F984}"
+                    ]
+
+                Register ->
+                    [ text "⚡️ Registration in 8 seconds"
+                    , br [] []
+                    , text "🏗 Craft the poll of your dreams"
+                    , br [] []
+                    , text "🌈 Share it with your audience"
+                    ]
+
+        --""" Polls is an application that lets you submit
+        --    multiple-choice questions to some participants and get
+        --    answers in real-time."""
+    in
     p
         [ class "font-archivo text-gray-700"
         ]
-        [ text """Polls is an application that lets you submit
-        multiple-choice questions to some participants and get answers in
-        real-time.""" ]
+        message
         |> withMargin
 
 
@@ -189,10 +275,9 @@ withHalfMargin html =
 
 inputEmail : Html Message
 inputEmail =
-    Input.inputWithTitle "Email address:"
+    Input.inputWithTitle "Username:"
         [ onInput WriteNewUsername
-        , type_ "email"
-        , placeholder "john.appleseed@example.org"
+        , placeholder "i-am-ironman"
         ]
         []
         |> withMargin
@@ -209,33 +294,60 @@ inputPassword =
         |> withMargin
 
 
-buttonSignIn : LoginState -> Html Message
-buttonSignIn state =
+buttonSignIn : AuthMode -> AuthState -> Html Message
+buttonSignIn mode state =
     let
         fillIn =
             if state == Pending || state == Success then
                 filledDisabled
 
             else
-                filled ++ elevated ++ [ onClick ClickLogin ]
+                filled ++ elevated ++ [ onClick ClickPerform ]
 
         message =
             case state of
                 Pending ->
-                    "Signing in..."
+                    "Loading..."
 
                 Success ->
                     "Success !"
 
                 _ ->
-                    "Sign-in"
+                    case
+                        mode
+                    of
+                        Login ->
+                            "Sign-in"
+
+                        Register ->
+                            "Create account"
     in
     button
         (fillIn ++ [ class "mt-8" ])
         [ text message ]
 
 
-errorView : LoginState -> Html Never
+buttonSwitchModes : AuthMode -> Html Message
+buttonSwitchModes mode =
+    let
+        buttonText =
+            case mode of
+                Login ->
+                    "Don't have an account ?"
+
+                Register ->
+                    "Already got an account ?"
+    in
+    button
+        (elevated
+            ++ [ class "mt-4"
+               , onClick ClickSwitchModes
+               ]
+        )
+        [ text buttonText ]
+
+
+errorView : AuthState -> Html Never
 errorView state =
     let
         attrs =
