@@ -1,5 +1,6 @@
 module Session exposing
     ( Session
+    , extractCredentials
     , guest
     , isLoggedIn
     , navKey
@@ -28,6 +29,16 @@ navKey session =
 guest : Nav.Key -> Session
 guest =
     Guest
+
+
+extractCredentials : Session -> Maybe Credentials
+extractCredentials session =
+    case session of
+        Guest _ ->
+            Nothing
+
+        LoggedIn _ cred ->
+            Just cred
 
 
 withCredentials : Credentials -> Session -> Session

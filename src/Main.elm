@@ -20,10 +20,6 @@ type Model
     | HomeModel Home.Model
 
 
-
--- TODO : Start from a blank page.
-
-
 {-| Returns the Session associated with the current model. This information
 will be passed around the different sub-models and acts as the shared
 information for the lifetime of the application.
@@ -52,15 +48,14 @@ view : Model -> Browser.Document Message
 view model =
     { title = "heig-PRO-b04 | Live polls"
     , body =
-        [ case model of
+        case model of
             AuthModel authModel ->
                 Auth.view authModel
-                    |> Html.map AuthMessage
+                    |> List.map (Html.map AuthMessage)
 
             HomeModel homeModel ->
                 Home.view homeModel
-                    |> Html.map HomeMessage
-        ]
+                    |> List.map (Html.map HomeMessage)
     }
 
 

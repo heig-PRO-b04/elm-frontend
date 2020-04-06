@@ -24,8 +24,9 @@ import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, br, div, p, text)
 import Html.Attributes exposing (class, placeholder, type_)
 import Html.Events exposing (onClick, onInput)
-import Picasso.Button exposing (button, elevated, filled, filledDisabled)
+import Picasso.Button exposing (button, elevated, filled, filledDisabled, outlinedLight)
 import Picasso.Input as Input
+import Picasso.Navigation as Navigation
 import Picasso.Text exposing (styledH2)
 import Route
 import Session exposing (Session)
@@ -188,33 +189,30 @@ update message model =
                 |> withNoCmd
 
 
-view : Model -> Html Message
+view : Model -> List (Html Message)
 view model =
-    div
-        [ class "flex flex-col md:items-center md:justify-center"
-        , class "h-screen w-screen"
-        , class "bg-white md:bg-cactus-050"
-        ]
-        [ div
-            [ class "flex flex-col"
+    [ Navigation.bar <| Navigation.noInfo
+    , div
+        [ class "flex flex-col"
+        , class "m-auto mt-4 md:mt-16 mb-4 md:mb-16"
 
-            -- Card appearance
-            , class "bg-white"
-            , class "md:shadow"
-            , class "p-8"
-            , class "md:rounded-lg"
-            , class "md:w-1/2"
-            , class "md:max-w-lg"
-            ]
-            [ title model.mode
-            , desc model.mode
-            , inputEmail
-            , inputPassword
-            , Html.map never <| errorView model.state
-            , buttonSignIn model.mode model.state
-            , buttonSwitchModes model.mode
-            ]
+        -- Card appearance
+        , class "bg-white"
+        , class "shadow"
+        , class "p-8"
+        , class "md:rounded-lg"
+        , class "md:w-1/2"
+        , class "md:max-w-lg"
         ]
+        [ title model.mode
+        , desc model.mode
+        , inputEmail
+        , inputPassword
+        , Html.map never <| errorView model.state
+        , buttonSignIn model.mode model.state
+        , buttonSwitchModes model.mode
+        ]
+    ]
 
 
 title : AuthMode -> Html msg
@@ -249,10 +247,6 @@ desc mode =
                     , br [] []
                     , text "🌈 Share it with your audience"
                     ]
-
-        --""" Polls is an application that lets you submit
-        --    multiple-choice questions to some participants and get
-        --    answers in real-time."""
     in
     p
         [ class "font-archivo text-gray-700"
@@ -340,6 +334,7 @@ buttonSwitchModes mode =
     in
     button
         (elevated
+            ++ outlinedLight
             ++ [ class "mt-4"
                , onClick ClickSwitchModes
                ]
