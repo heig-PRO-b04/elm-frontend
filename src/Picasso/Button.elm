@@ -1,6 +1,6 @@
 module Picasso.Button exposing
     ( a, button
-    , filled, filledDisabled, outlined, elevated
+    , filled, filledDisabled, outlined, outlinedLight, elevated
     )
 
 {-| A module that provides basic button elements, with varying styling options.
@@ -16,7 +16,7 @@ that you use an `a` based button.
 
 # Styling
 
-@docs filled, filledDisabled, outlined, elevated
+@docs filled, filledDisabled, outlined, outlinedLight, elevated
 
 -}
 
@@ -50,6 +50,14 @@ outlined =
     [ class "bg-white hover:bg-seaside-100"
     , class "text-seaside-500 hover:text-seaside-600"
     , class "border-2 border-seaside-500"
+    ]
+
+
+outlinedLight : List (Html.Attribute msg)
+outlinedLight =
+    [ class "bg-white hover:bg-seaside-100"
+    , class "text-seaside-500 hover:text-seaside-600"
+    , class "border-2 border-seaside-100"
     ]
 
 

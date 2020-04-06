@@ -1,8 +1,8 @@
 {
   "scripts": {
-    "test": "elm-format --validate . && elm-test && parcel build index.html --public-url ./",
-    "dev": "parcel index.html",
-    "build": "parcel build index.html --public-url ./"
+    "test": "elm-format --validate . && elm-test && parcel build index.html --no-cache --public-url ./",
+    "dev": "parcel index.html --no-cache",
+    "build": "parcel build index.html --no-cache --public-url ./"
   },
   "devDependencies": {
     "autoprefixer": "^9.7.4",
