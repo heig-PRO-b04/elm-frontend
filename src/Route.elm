@@ -16,6 +16,7 @@ type Route
     = Home
     | Login
     | Registration
+    | Logout
 
 
 
@@ -48,6 +49,7 @@ parser =
         , Parser.map Login (s "login")
         , Parser.map Home (s "home")
         , Parser.map Registration (s "register")
+        , Parser.map Login (s "logout")
         ]
 
 
@@ -71,3 +73,6 @@ routeToPieces page =
 
         Registration ->
             [ "register" ]
+
+        Logout ->
+            [ "logout" ]
