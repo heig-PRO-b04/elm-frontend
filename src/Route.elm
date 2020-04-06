@@ -2,6 +2,7 @@ module Route exposing
     ( Route(..)
     , fromUrl
     , href
+    , replaceUrl
     )
 
 import Browser.Navigation as Nav
@@ -14,6 +15,7 @@ import Url.Parser as Parser exposing (Parser, oneOf, s)
 type Route
     = Home
     | Login
+    | Registration
 
 
 
@@ -30,6 +32,11 @@ fromUrl url =
     Parser.parse parser url
 
 
+replaceUrl : Nav.Key -> Route -> Cmd msg
+replaceUrl key route =
+    Nav.replaceUrl key (routeToString route)
+
+
 
 -- PARSER
 
@@ -40,6 +47,7 @@ parser =
         [ Parser.map Home Parser.top
         , Parser.map Login (s "login")
         , Parser.map Home (s "home")
+        , Parser.map Registration (s "register")
         ]
 
 
@@ -60,3 +68,6 @@ routeToPieces page =
 
         Login ->
             [ "login" ]
+
+        Registration ->
+            [ "register" ]

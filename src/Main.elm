@@ -4,8 +4,8 @@ import Browser
 import Browser.Navigation as Nav
 import Cmd exposing (updateWith, withCmd, withNoCmd)
 import Html
+import Page.Authenticate as Auth
 import Page.Home as Home
-import Page.Login as Login
 import Route exposing (Route)
 import Session exposing (Session)
 import Url
@@ -16,7 +16,7 @@ import Url
 
 
 type Model
-    = LoginModel Login.Model
+    = AuthModel Auth.Model
     | HomeModel Home.Model
 
 
@@ -31,7 +31,7 @@ information for the lifetime of the application.
 toSession : Model -> Session
 toSession model =
     case model of
-        LoginModel m ->
+        AuthModel m ->
             m.session
 
         HomeModel m ->
@@ -53,9 +53,9 @@ view model =
     { title = "heig-PRO-b04 | Live polls"
     , body =
         [ case model of
-            LoginModel loginModel ->
-                Login.view loginModel
-                    |> Html.map LoginMessage
+            AuthModel authModel ->
+                Auth.view authModel
+                    |> Html.map AuthMessage
 
             HomeModel homeModel ->
                 Home.view homeModel
@@ -72,7 +72,7 @@ type Message
     = ChangedUrl Url.Url
     | ClickedLink Browser.UrlRequest
     | HomeMessage Home.Message
-    | LoginMessage Login.Message
+    | AuthMessage Auth.Message
 
 
 update : Message -> Model -> ( Model, Cmd Message )
@@ -94,13 +94,13 @@ update msg model =
                 Browser.External href ->
                     model |> withCmd [ Nav.load href ]
 
-        ( LoginMessage loginMsg, LoginModel loginModel ) ->
+        ( AuthMessage authMsg, AuthModel authModel ) ->
             updateWith
-                LoginMessage
-                LoginModel
-                Login.update
-                loginMsg
-                loginModel
+                AuthMessage
+                AuthModel
+                Auth.update
+                authMsg
+                authModel
 
         ( HomeMessage homeMsg, HomeModel homeModel ) ->
             updateWith
@@ -134,7 +134,10 @@ changeRouteTo route model =
             HomeModel (Home.init session) |> withNoCmd
 
         Just Route.Login ->
-            LoginModel (Login.init session) |> withNoCmd
+            AuthModel (Auth.initLogin session) |> withNoCmd
+
+        Just Route.Registration ->
+            AuthModel (Auth.initRegistration session) |> withNoCmd
 
 
 

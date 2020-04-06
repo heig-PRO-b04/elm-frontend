@@ -103,7 +103,15 @@ navBar =
                    ]
             )
             [ text "Sign in" ]
-        , button (filled ++ elevated ++ [ class "m-3 ml-2", class "p-3" ]) [ text "Sign up" ]
+        , Picasso.Button.a
+            (filled
+                ++ elevated
+                ++ [ class "m-3 ml-2"
+                   , class "p-3"
+                   , Route.href Route.Registration
+                   ]
+            )
+            [ text "Sign up" ]
         ]
 
 
