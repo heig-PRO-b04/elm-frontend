@@ -26,7 +26,7 @@ methods from various objects, in particular application sessions.
 import Api
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class)
-import Picasso.Button as Button exposing (filled, outlined)
+import Picasso.Button as Button exposing (filled, outlined, outlinedLight)
 import Picasso.Text exposing (styledH1)
 import Route
 import Session exposing (Session)
@@ -89,15 +89,17 @@ filler =
 
 tailAuthenticated : { username : String } -> List (Html a)
 tailAuthenticated data =
-    [ text "Logged in as"
-
-    --, div [ class "ml-2" ] [ text "•" ]
-    , div
-        [ class "content-center px-4 py-2 ml-2"
-        , class "text-seaside-500 border-2 border-seaside-500 rounded-full items-center"
-        ]
-        [ text <| data.username ]
-    ]
+    List.singleton <|
+        Button.a
+            (outlinedLight
+                ++ [ class "flex flex-row items-center"
+                   , Route.href Route.Logout
+                   ]
+            )
+            [ text <| data.username
+            , div [ class "px-2" ] [ text "•" ]
+            , text "log out"
+            ]
 
 
 tailUnauthenticated : List (Html a)

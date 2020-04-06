@@ -49,7 +49,7 @@ parser =
         , Parser.map Login (s "login")
         , Parser.map Home (s "home")
         , Parser.map Registration (s "register")
-        , Parser.map Login (s "logout")
+        , Parser.map Logout (s "logout")
         ]
 
 
