@@ -1,5 +1,6 @@
 module Cmd exposing
     ( withCmd, withNoCmd
+    , initWith
     , updateWith
     )
 
@@ -10,6 +11,11 @@ everything that works with commands essentially.
 # Commands
 
 @docs withCmd, withNoCmd
+
+
+# Init
+
+@docs initWith
 
 
 # Update
@@ -33,6 +39,26 @@ withCmd msg m =
 withNoCmd : a -> ( a, Cmd msg )
 withNoCmd m =
     ( m, Cmd.none )
+
+
+
+-- INIT
+
+
+{-| A helper function that is helpful to init parts of a sub-model and propagate
+the changes into a parent model.
+-}
+initWith :
+    (subMessage -> message)
+    -> (subModel -> model)
+    -> ( subModel, Cmd subMessage )
+    -> ( model, Cmd message )
+initWith toMessage toModel subInit =
+    let
+        ( m, c ) =
+            subInit
+    in
+    ( toModel m, Cmd.map toMessage c )
 
 
 

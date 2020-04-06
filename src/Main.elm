@@ -2,7 +2,7 @@ module Main exposing (main)
 
 import Browser
 import Browser.Navigation as Nav
-import Cmd exposing (updateWith, withCmd, withNoCmd)
+import Cmd exposing (initWith, updateWith, withCmd, withNoCmd)
 import Html
 import Page.Authenticate as Auth
 import Page.Home as Home
@@ -36,7 +36,10 @@ toSession model =
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Message )
 init _ url key =
-    ( HomeModel <| Home.init <| Session.guest key, Cmd.none )
+    initWith
+        HomeMessage
+        HomeModel
+        (Home.init (Session.guest key))
 
 
 
@@ -115,7 +118,7 @@ subscriptions _ =
     Sub.none
 
 
-changeRouteTo : Maybe Route -> Model -> ( Model, Cmd msg )
+changeRouteTo : Maybe Route -> Model -> ( Model, Cmd Message )
 changeRouteTo route model =
     let
         session =
@@ -123,16 +126,28 @@ changeRouteTo route model =
     in
     case route of
         Nothing ->
-            HomeModel (Home.init session) |> withNoCmd
+            initWith
+                HomeMessage
+                HomeModel
+                (Home.init session)
 
         Just Route.Home ->
-            HomeModel (Home.init session) |> withNoCmd
+            initWith
+                HomeMessage
+                HomeModel
+                (Home.init session)
 
         Just Route.Login ->
-            AuthModel (Auth.initLogin session) |> withNoCmd
+            initWith
+                AuthMessage
+                AuthModel
+                (Auth.initLogin session)
 
         Just Route.Registration ->
-            AuthModel (Auth.initRegistration session) |> withNoCmd
+            initWith
+                AuthMessage
+                AuthModel
+                (Auth.initRegistration session)
 
 
 
