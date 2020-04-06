@@ -250,9 +250,9 @@ desc mode =
     in
     p
         [ class "font-archivo text-gray-700"
+        , class "mt-4"
         ]
         message
-        |> withMargin
 
 
 withMargin : Html msg -> Html msg
