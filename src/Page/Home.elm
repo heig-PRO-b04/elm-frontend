@@ -21,9 +21,10 @@ type alias Model =
     { session : Session }
 
 
-init : Session -> Model
+init : Session -> ( Model, Cmd Message )
 init session =
     { session = session }
+        |> withNoCmd
 
 
 update : Message -> Model -> ( Model, Cmd Message )

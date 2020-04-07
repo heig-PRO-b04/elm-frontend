@@ -90,7 +90,7 @@ type alias Model =
     }
 
 
-initLogin : Session -> Model
+initLogin : Session -> ( Model, Cmd Message )
 initLogin session =
     { session = session
     , username = ""
@@ -98,9 +98,10 @@ initLogin session =
     , state = NoError
     , mode = Login
     }
+        |> withNoCmd
 
 
-initRegistration : Session -> Model
+initRegistration : Session -> ( Model, Cmd Message )
 initRegistration session =
     { session = session
     , username = ""
@@ -108,6 +109,7 @@ initRegistration session =
     , state = NoError
     , mode = Register
     }
+        |> withNoCmd
 
 
 update : Message -> Model -> ( Model, Cmd Message )
