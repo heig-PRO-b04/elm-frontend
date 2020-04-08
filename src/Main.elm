@@ -6,6 +6,7 @@ import Cmd exposing (initWith, updateWith, withCmd, withNoCmd)
 import Html
 import Page.Authenticate as Auth
 import Page.Home as Home
+import Page.Logout as Quit
 import Route exposing (Route)
 import Session exposing (Session)
 import Url
@@ -18,6 +19,7 @@ import Url
 type Model
     = AuthModel Auth.Model
     | HomeModel Home.Model
+    | QuitModel Quit.Model
 
 
 {-| Returns the Session associated with the current model. This information
@@ -31,6 +33,9 @@ toSession model =
             m.session
 
         HomeModel m ->
+            m.session
+
+        QuitModel m ->
             m.session
 
 
@@ -59,6 +64,10 @@ view model =
             HomeModel homeModel ->
                 Home.view homeModel
                     |> List.map (Html.map HomeMessage)
+
+            QuitModel quitModel ->
+                Quit.view quitModel
+                    |> List.map (Html.map never)
     }
 
 
@@ -148,6 +157,12 @@ changeRouteTo route model =
                 AuthMessage
                 AuthModel
                 (Auth.initRegistration session)
+
+        Just Route.Logout ->
+            initWith
+                never
+                QuitModel
+                (Quit.init session)
 
 
 
