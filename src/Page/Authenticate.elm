@@ -26,7 +26,6 @@ import Html.Attributes exposing (class, placeholder, type_)
 import Html.Events exposing (onClick, onInput)
 import Picasso.Button exposing (button, elevated, filled, filledDisabled, outlinedLight)
 import Picasso.Input as Input
-import Picasso.Navigation as Navigation
 import Picasso.Text exposing (styledH2)
 import Route
 import Session exposing (Session)
@@ -193,8 +192,7 @@ update message model =
 
 view : Model -> List (Html Message)
 view model =
-    [ Navigation.bar <| Navigation.noInfo
-    , div
+    [ div
         [ class "flex flex-col"
         , class "m-auto mt-4 md:mt-16 mb-4 md:mb-16"
 

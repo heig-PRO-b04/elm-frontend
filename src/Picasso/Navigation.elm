@@ -1,6 +1,7 @@
 module Picasso.Navigation exposing
-    ( Info, fromSession, noInfo
-    , bar
+    ( Model, init
+    , withRoute, withSession
+    , Message, update, view
     )
 
 {-| A module in charge of providing some utilities to display a navigation bar.
@@ -14,7 +15,8 @@ To populate a bar, you need to provide it with some information about what
 contents it should display. This content can be created through designated
 methods from various objects, in particular application sessions.
 
-@docs Info, fromSession, noInfo
+@docs Model, init
+@docs withRoute, withSession
 
 
 # View
@@ -24,41 +26,79 @@ methods from various objects, in particular application sessions.
 -}
 
 import Api
+import Cmd exposing (withNoCmd)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class)
 import Picasso.Button as Button exposing (filled, outlined, outlinedLight)
 import Picasso.Text exposing (styledH1)
-import Route
+import Route exposing (Route)
 import Session exposing (Session)
 
 
-type Info
+
+-- MODEL
+
+
+type Model
+    = Model Route Session
+
+
+type alias Message =
+    Never
+
+
+type Display
     = NoInfo
     | NoAuthentication
     | Authenticated { username : String }
 
 
-
--- TODO : Create an Info from credentials.
--- TODO : Create an Info from nothing.
--- TODO : Create an Info with route information.
-
-
-fromSession : Session -> Info
-fromSession session =
-    Session.extractCredentials session
-        |> Maybe.map (\cred -> { username = Api.username cred })
-        |> Maybe.map Authenticated
-        |> Maybe.withDefault NoAuthentication
+init : Route -> Session -> Model
+init route session =
+    Model route session
 
 
-noInfo : Info
-noInfo =
-    NoInfo
+withRoute : Route -> Model -> Model
+withRoute route (Model _ session) =
+    Model route session
 
 
-bar : Info -> Html a
-bar info =
+withSession : Session -> Model -> Model
+withSession session (Model route _) =
+    Model route session
+
+
+
+-- UPDATE
+
+
+update : Message -> Model -> ( Model, Cmd Message )
+update _ model =
+    model |> withNoCmd
+
+
+
+-- VIEW
+
+
+display : Model -> Display
+display (Model route session) =
+    if route == Route.Login then
+        NoInfo
+
+    else
+        Session.extractCredentials session
+            |> Maybe.map (\cred -> { username = Api.username cred })
+            |> Maybe.map Authenticated
+            |> Maybe.withDefault NoAuthentication
+
+
+view : Model -> Html Message
+view model =
+    let
+        info =
+            display model
+    in
     Html.header
         [ class "flex flex-col md:flex-row bg-white shadow"
         , class "sticky top-0"
