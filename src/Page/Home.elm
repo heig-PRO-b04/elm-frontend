@@ -9,7 +9,6 @@ module Page.Home exposing
 import Cmd exposing (withNoCmd)
 import Html exposing (Html, a, br, div, img, text)
 import Html.Attributes exposing (class, href, src)
-import Picasso.Navigation as Navigation
 import Session exposing (Session)
 
 
@@ -35,8 +34,7 @@ update _ model =
 
 view : Model -> List (Html Message)
 view model =
-    [ Navigation.bar <| Navigation.fromSession model.session
-    , footer
+    [ footer
     ]
 
 

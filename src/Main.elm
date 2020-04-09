@@ -7,6 +7,7 @@ import Html
 import Page.Authenticate as Auth
 import Page.Home as Home
 import Page.Logout as Quit
+import Picasso.Navigation as NavUI
 import Route exposing (Route)
 import Session exposing (Session)
 import Url
@@ -54,20 +55,28 @@ init _ url key =
 
 view : Model -> Browser.Document Message
 view model =
+    let
+        header =
+            toSession model
+                |> NavUI.fromSession
+                |> NavUI.bar
+
+        contents =
+            case model of
+                AuthModel authModel ->
+                    Auth.view authModel
+                        |> List.map (Html.map AuthMessage)
+
+                HomeModel homeModel ->
+                    Home.view homeModel
+                        |> List.map (Html.map HomeMessage)
+
+                QuitModel quitModel ->
+                    Quit.view quitModel
+                        |> List.map (Html.map never)
+    in
     { title = "heig-PRO-b04 | Live polls"
-    , body =
-        case model of
-            AuthModel authModel ->
-                Auth.view authModel
-                    |> List.map (Html.map AuthMessage)
-
-            HomeModel homeModel ->
-                Home.view homeModel
-                    |> List.map (Html.map HomeMessage)
-
-            QuitModel quitModel ->
-                Quit.view quitModel
-                    |> List.map (Html.map never)
+    , body = header :: contents
     }
 
 

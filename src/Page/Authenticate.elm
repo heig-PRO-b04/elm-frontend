@@ -193,8 +193,7 @@ update message model =
 
 view : Model -> List (Html Message)
 view model =
-    [ Navigation.bar <| Navigation.noInfo
-    , div
+    [ div
         [ class "flex flex-col"
         , class "m-auto mt-4 md:mt-16 mb-4 md:mb-16"
 
