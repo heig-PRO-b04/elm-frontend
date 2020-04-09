@@ -29,12 +29,18 @@ type PageModel
     | QuitModel Quit.Model
 
 
-embed : Session -> (a -> PageModel) -> (a -> Model)
-embed session toModel =
+{-| Given a certain model that displays a page, and a mapping from a model to
+a page, produces a function that makes it possible to update the page of the
+tuple as needed.
+
+This is in essence like a function to partially map a record and keep its
+untouched values.
+
+-}
+embed : { model | page : page } -> (a -> page) -> a -> { model | page : page }
+embed model toModel =
     \m ->
-        { page = toModel m
-        , bar = NavUI.fromSession session
-        }
+        { model | page = toModel m }
 
 
 {-| Returns the Session associated with the current model. This information
@@ -59,10 +65,16 @@ init _ url key =
     let
         session =
             Session.guest key
+
+        start =
+            \model ->
+                { page = HomeModel model
+                , bar = NavUI.init Route.Home session
+                }
     in
     initWith
         HomeMessage
-        (embed session HomeModel)
+        start
         (Home.init session)
 
 
@@ -132,7 +144,7 @@ update msg model =
         ( AuthMessage authMsg, AuthModel authModel ) ->
             updateWith
                 AuthMessage
-                (embed session AuthModel)
+                (embed model AuthModel)
                 Auth.update
                 authMsg
                 authModel
@@ -140,7 +152,7 @@ update msg model =
         ( HomeMessage homeMsg, HomeModel homeModel ) ->
             updateWith
                 HomeMessage
-                (embed session HomeModel)
+                (embed model HomeModel)
                 Home.update
                 homeMsg
                 homeModel
@@ -158,6 +170,12 @@ subscriptions _ =
 changeRouteTo : Maybe Route -> Model -> ( Model, Cmd Message )
 changeRouteTo route model =
     let
+        newRoute =
+            route |> Maybe.withDefault Route.Home
+
+        newModel =
+            { model | bar = model.bar |> NavUI.withRoute newRoute }
+
         session =
             toSession model.page
     in
@@ -165,31 +183,31 @@ changeRouteTo route model =
         Nothing ->
             initWith
                 HomeMessage
-                (embed session HomeModel)
+                (embed newModel HomeModel)
                 (Home.init session)
 
         Just Route.Home ->
             initWith
                 HomeMessage
-                (embed session HomeModel)
+                (embed newModel HomeModel)
                 (Home.init session)
 
         Just Route.Login ->
             initWith
                 AuthMessage
-                (embed session AuthModel)
+                (embed newModel AuthModel)
                 (Auth.initLogin session)
 
         Just Route.Registration ->
             initWith
                 AuthMessage
-                (embed session AuthModel)
+                (embed newModel AuthModel)
                 (Auth.initRegistration session)
 
         Just Route.Logout ->
             initWith
                 never
-                (embed session QuitModel)
+                (embed newModel QuitModel)
                 (Quit.init session)
 
 
