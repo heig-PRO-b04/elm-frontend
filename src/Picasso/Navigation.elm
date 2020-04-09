@@ -1,6 +1,7 @@
 module Picasso.Navigation exposing
-    ( Info, fromSession, noInfo
+    ( fromSession, noInfo
     , bar
+    , Model
     )
 
 {-| A module in charge of providing some utilities to display a navigation bar.
@@ -32,7 +33,7 @@ import Route
 import Session exposing (Session)
 
 
-type Info
+type Model
     = NoInfo
     | NoAuthentication
     | Authenticated { username : String }
@@ -44,7 +45,7 @@ type Info
 -- TODO : Create an Info with route information.
 
 
-fromSession : Session -> Info
+fromSession : Session -> Model
 fromSession session =
     Session.extractCredentials session
         |> Maybe.map (\cred -> { username = Api.username cred })
@@ -52,12 +53,12 @@ fromSession session =
         |> Maybe.withDefault NoAuthentication
 
 
-noInfo : Info
+noInfo : Model
 noInfo =
     NoInfo
 
 
-bar : Info -> Html a
+bar : Model -> Html a
 bar info =
     Html.header
         [ class "flex flex-col md:flex-row bg-white shadow"

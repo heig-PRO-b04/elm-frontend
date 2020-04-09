@@ -17,17 +17,31 @@ import Url
 -- MODEL
 
 
-type Model
+type alias Model =
+    { page : PageModel
+    , bar : NavUI.Model
+    }
+
+
+type PageModel
     = AuthModel Auth.Model
     | HomeModel Home.Model
     | QuitModel Quit.Model
+
+
+embed : Session -> (a -> PageModel) -> (a -> Model)
+embed session toModel =
+    \m ->
+        { page = toModel m
+        , bar = NavUI.fromSession session
+        }
 
 
 {-| Returns the Session associated with the current model. This information
 will be passed around the different sub-models and acts as the shared
 information for the lifetime of the application.
 -}
-toSession : Model -> Session
+toSession : PageModel -> Session
 toSession model =
     case model of
         AuthModel m ->
@@ -42,10 +56,14 @@ toSession model =
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Message )
 init _ url key =
+    let
+        session =
+            Session.guest key
+    in
     initWith
         HomeMessage
-        HomeModel
-        (Home.init (Session.guest key))
+        (embed session HomeModel)
+        (Home.init session)
 
 
 
@@ -57,12 +75,12 @@ view : Model -> Browser.Document Message
 view model =
     let
         header =
-            toSession model
+            toSession model.page
                 |> NavUI.fromSession
                 |> NavUI.bar
 
         contents =
-            case model of
+            case model.page of
                 AuthModel authModel ->
                     Auth.view authModel
                         |> List.map (Html.map AuthMessage)
@@ -93,7 +111,11 @@ type Message
 
 update : Message -> Model -> ( Model, Cmd Message )
 update msg model =
-    case ( msg, model ) of
+    let
+        session =
+            toSession model.page
+    in
+    case ( msg, model.page ) of
         ( ChangedUrl url, _ ) ->
             changeRouteTo (Route.fromUrl url) model
 
@@ -103,7 +125,7 @@ update msg model =
                     model
                         |> withCmd
                             [ Nav.pushUrl
-                                (Session.navKey (toSession model))
+                                (Session.navKey session)
                                 (Url.toString url)
                             ]
 
@@ -113,7 +135,7 @@ update msg model =
         ( AuthMessage authMsg, AuthModel authModel ) ->
             updateWith
                 AuthMessage
-                AuthModel
+                (embed session AuthModel)
                 Auth.update
                 authMsg
                 authModel
@@ -121,7 +143,7 @@ update msg model =
         ( HomeMessage homeMsg, HomeModel homeModel ) ->
             updateWith
                 HomeMessage
-                HomeModel
+                (embed session HomeModel)
                 Home.update
                 homeMsg
                 homeModel
@@ -140,37 +162,37 @@ changeRouteTo : Maybe Route -> Model -> ( Model, Cmd Message )
 changeRouteTo route model =
     let
         session =
-            toSession model
+            toSession model.page
     in
     case route of
         Nothing ->
             initWith
                 HomeMessage
-                HomeModel
+                (embed session HomeModel)
                 (Home.init session)
 
         Just Route.Home ->
             initWith
                 HomeMessage
-                HomeModel
+                (embed session HomeModel)
                 (Home.init session)
 
         Just Route.Login ->
             initWith
                 AuthMessage
-                AuthModel
+                (embed session AuthModel)
                 (Auth.initLogin session)
 
         Just Route.Registration ->
             initWith
                 AuthMessage
-                AuthModel
+                (embed session AuthModel)
                 (Auth.initRegistration session)
 
         Just Route.Logout ->
             initWith
                 never
-                QuitModel
+                (embed session QuitModel)
                 (Quit.init session)
 
 
