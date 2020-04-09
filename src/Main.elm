@@ -19,7 +19,7 @@ import Url
 
 type alias Model =
     { page : PageModel
-    , bar : NavUI.Model
+    , navi : NavUI.Model
     }
 
 
@@ -27,6 +27,10 @@ type PageModel
     = AuthModel Auth.Model
     | HomeModel Home.Model
     | QuitModel Quit.Model
+
+
+
+-- MODEL EMBEDDING
 
 
 {-| Given a certain model that displays a page, and a mapping from a model to
@@ -46,8 +50,20 @@ embed model toModel =
         in
         { model
             | page = pageModel
-            , bar = model.bar |> NavUI.withSession (toSession pageModel)
+            , navi = model.navi |> NavUI.withSession (toSession pageModel)
         }
+
+
+{-| Embeds navigation model changes into an existing model instance.
+-}
+embedNav : Model -> (a -> NavUI.Model) -> a -> Model
+embedNav model toModel =
+    \m ->
+        let
+            navModel =
+                toModel m
+        in
+        { model | navi = navModel }
 
 
 {-| Returns the Session associated with the current model. This information
@@ -76,7 +92,7 @@ init _ url key =
         start =
             \model ->
                 { page = HomeModel model
-                , bar = NavUI.init Route.Home session
+                , navi = NavUI.init Route.Home session
                 }
     in
     initWith
@@ -93,7 +109,8 @@ view : Model -> Browser.Document Message
 view model =
     let
         header =
-            NavUI.bar model.bar
+            NavUI.view model.navi
+                |> Html.map NavUIMessage
 
         contents =
             case model.page of
@@ -121,6 +138,7 @@ view model =
 type Message
     = ChangedUrl Url.Url
     | ClickedLink Browser.UrlRequest
+    | NavUIMessage NavUI.Message
     | HomeMessage Home.Message
     | AuthMessage Auth.Message
 
@@ -132,6 +150,14 @@ update msg model =
             toSession model.page
     in
     case ( msg, model.page ) of
+        ( NavUIMessage navMsg, _ ) ->
+            updateWith
+                NavUIMessage
+                (embedNav model identity)
+                NavUI.update
+                navMsg
+                model.navi
+
         ( ChangedUrl url, _ ) ->
             changeRouteTo (Route.fromUrl url) model
 
@@ -181,7 +207,7 @@ changeRouteTo route model =
             route |> Maybe.withDefault Route.Home
 
         newModel =
-            { model | bar = model.bar |> NavUI.withRoute newRoute }
+            { model | navi = model.navi |> NavUI.withRoute newRoute }
 
         session =
             toSession model.page

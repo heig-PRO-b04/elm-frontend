@@ -1,7 +1,7 @@
 module Picasso.Navigation exposing
     ( Model, init
     , withRoute, withSession
-    , bar
+    , Message, update, view
     )
 
 {-| A module in charge of providing some utilities to display a navigation bar.
@@ -26,6 +26,7 @@ methods from various objects, in particular application sessions.
 -}
 
 import Api
+import Cmd exposing (withNoCmd)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class)
 import Picasso.Button as Button exposing (filled, outlined, outlinedLight)
@@ -34,8 +35,16 @@ import Route exposing (Route)
 import Session exposing (Session)
 
 
+
+-- MODEL
+
+
 type Model
     = Model Route Session
+
+
+type alias Message =
+    Never
 
 
 type Display
@@ -44,15 +53,32 @@ type Display
     | Authenticated { username : String }
 
 
-
--- TODO : Create an Info from credentials.
--- TODO : Create an Info from nothing.
--- TODO : Create an Info with route information.
-
-
 init : Route -> Session -> Model
 init route session =
     Model route session
+
+
+withRoute : Route -> Model -> Model
+withRoute route (Model _ session) =
+    Model route session
+
+
+withSession : Session -> Model -> Model
+withSession session (Model route _) =
+    Model route session
+
+
+
+-- UPDATE
+
+
+update : Message -> Model -> ( Model, Cmd Message )
+update _ model =
+    model |> withNoCmd
+
+
+
+-- VIEW
 
 
 display : Model -> Display
@@ -67,18 +93,8 @@ display (Model route session) =
             |> Maybe.withDefault NoAuthentication
 
 
-withRoute : Route -> Model -> Model
-withRoute route (Model _ session) =
-    Model route session
-
-
-withSession : Session -> Model -> Model
-withSession session (Model route _) =
-    Model route session
-
-
-bar : Model -> Html a
-bar model =
+view : Model -> Html Message
+view model =
     let
         info =
             display model
