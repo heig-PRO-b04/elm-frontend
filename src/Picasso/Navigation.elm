@@ -83,7 +83,7 @@ update _ model =
 
 display : Model -> Display
 display (Model route session) =
-    if route == Route.Login then
+    if route == Route.Login || route == Route.Registration then
         NoInfo
 
     else
