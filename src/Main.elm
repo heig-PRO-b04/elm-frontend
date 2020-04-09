@@ -67,7 +67,6 @@ init _ url key =
 
 
 
---( LoginModel <| Login.init <| Session.guest key, Cmd.none )
 -- VIEW
 
 
