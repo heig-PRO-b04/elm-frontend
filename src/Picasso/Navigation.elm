@@ -1,7 +1,7 @@
 module Picasso.Navigation exposing
-    ( noInfo
+    ( Model, init
+    , withRoute, withSession
     , bar
-    , Model, init, withRoute
     )
 
 {-| A module in charge of providing some utilities to display a navigation bar.
@@ -15,7 +15,8 @@ To populate a bar, you need to provide it with some information about what
 contents it should display. This content can be created through designated
 methods from various objects, in particular application sessions.
 
-@docs Info, fromSession, noInfo
+@docs Model, init
+@docs withRoute, withSession
 
 
 # View
@@ -34,6 +35,10 @@ import Session exposing (Session)
 
 
 type Model
+    = Model Route Session
+
+
+type Display
     = NoInfo
     | NoAuthentication
     | Authenticated { username : String }
@@ -46,25 +51,38 @@ type Model
 
 
 init : Route -> Session -> Model
-init _ session =
-    Session.extractCredentials session
-        |> Maybe.map (\cred -> { username = Api.username cred })
-        |> Maybe.map Authenticated
-        |> Maybe.withDefault NoAuthentication
+init route session =
+    Model route session
+
+
+display : Model -> Display
+display (Model route session) =
+    if route == Route.Login then
+        NoInfo
+
+    else
+        Session.extractCredentials session
+            |> Maybe.map (\cred -> { username = Api.username cred })
+            |> Maybe.map Authenticated
+            |> Maybe.withDefault NoAuthentication
 
 
 withRoute : Route -> Model -> Model
-withRoute _ =
-    identity
+withRoute route (Model _ session) =
+    Model route session
 
 
-noInfo : Model
-noInfo =
-    NoInfo
+withSession : Session -> Model -> Model
+withSession session (Model route _) =
+    Model route session
 
 
 bar : Model -> Html a
-bar info =
+bar model =
+    let
+        info =
+            display model
+    in
     Html.header
         [ class "flex flex-col md:flex-row bg-white shadow"
         , class "sticky top-0"

@@ -37,10 +37,17 @@ This is in essence like a function to partially map a record and keep its
 untouched values.
 
 -}
-embed : { model | page : page } -> (a -> page) -> a -> { model | page : page }
+embed : Model -> (a -> PageModel) -> a -> Model
 embed model toModel =
     \m ->
-        { model | page = toModel m }
+        let
+            pageModel =
+                toModel m
+        in
+        { model
+            | page = pageModel
+            , bar = model.bar |> NavUI.withSession (toSession pageModel)
+        }
 
 
 {-| Returns the Session associated with the current model. This information
