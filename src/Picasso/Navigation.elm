@@ -28,8 +28,9 @@ methods from various objects, in particular application sessions.
 import Api
 import Cmd exposing (withNoCmd)
 import Html exposing (Html, div, text)
-import Html.Attributes exposing (class)
-import Picasso.Button as Button exposing (filled, outlined, outlinedLight)
+import Html.Attributes exposing (class, src)
+import Html.Events exposing (onClick)
+import Picasso.Button as Button exposing (filled, filledLight, outlined, outlinedLight)
 import Picasso.Text exposing (styledH1)
 import Route exposing (Route)
 import Session exposing (Session)
@@ -40,32 +41,38 @@ import Session exposing (Session)
 
 
 type Model
-    = Model Route Session
+    = Model Route Session MenuState
 
 
-type alias Message =
-    Never
+type Message
+    = Toggle
+
+
+type MenuState
+    = MenuOpen
+    | MenuClosed
 
 
 type Display
     = NoInfo
-    | NoAuthentication
-    | Authenticated { username : String }
+    | ReadyToLogin
+    | LoggedInClosed { username : String }
+    | LoggedInOpen { username : String }
 
 
 init : Route -> Session -> Model
 init route session =
-    Model route session
+    Model route session MenuClosed
 
 
 withRoute : Route -> Model -> Model
-withRoute route (Model _ session) =
-    Model route session
+withRoute route (Model _ session state) =
+    Model route session state
 
 
 withSession : Session -> Model -> Model
-withSession session (Model route _) =
-    Model route session
+withSession session (Model route _ state) =
+    Model route session state
 
 
 
@@ -73,8 +80,15 @@ withSession session (Model route _) =
 
 
 update : Message -> Model -> ( Model, Cmd Message )
-update _ model =
-    model |> withNoCmd
+update message (Model route session state) =
+    case message of
+        Toggle ->
+            case state of
+                MenuOpen ->
+                    Model route session MenuClosed |> withNoCmd
+
+                MenuClosed ->
+                    Model route session MenuOpen |> withNoCmd
 
 
 
@@ -82,15 +96,22 @@ update _ model =
 
 
 display : Model -> Display
-display (Model route session) =
+display (Model route session state) =
     if route == Route.Login || route == Route.Registration then
         NoInfo
 
     else
-        Session.extractCredentials session
-            |> Maybe.map (\cred -> { username = Api.username cred })
-            |> Maybe.map Authenticated
-            |> Maybe.withDefault NoAuthentication
+        case Session.extractCredentials session of
+            Just credentials ->
+                case state of
+                    MenuClosed ->
+                        LoggedInClosed { username = Api.username credentials }
+
+                    MenuOpen ->
+                        LoggedInOpen { username = Api.username credentials }
+
+            Nothing ->
+                ReadyToLogin
 
 
 view : Model -> Html Message
@@ -100,20 +121,21 @@ view model =
             display model
     in
     Html.header
-        [ class "flex flex-col md:flex-row bg-white shadow"
+        [ class "flex flex-col md:flex-row bg-white shadow relative"
         , class "sticky top-0"
         , class "px-8 py-4"
         ]
-        ([ Html.a
-            [ Route.href Route.Home, class "self-center md:text-start py-2" ]
-            [ styledH1 "✌️ rockin • app" ]
+        ([ title [ class "self-center md:text-start" ]
          , filler
          ]
             ++ (case info of
-                    Authenticated username ->
+                    LoggedInOpen username ->
                         tailAuthenticated username
 
-                    NoAuthentication ->
+                    LoggedInClosed username ->
+                        tailAuthenticated username
+
+                    ReadyToLogin ->
                         tailUnauthenticated
 
                     NoInfo ->
@@ -122,24 +144,43 @@ view model =
         )
 
 
+title : List (Html.Attribute a) -> Html a
+title attributes =
+    Html.a
+        ([ Route.href Route.Home, class "py-2" ]
+            ++ attributes
+        )
+        [ styledH1 "✌️ rockin • app" ]
+
+
+icon : Html Message
+icon =
+    Html.img [ onClick Toggle, src "/icon/navigation-account-circle-outline.svg" ] []
+
+
 filler : Html a
 filler =
     div [ class "flex-grow" ] []
 
 
-tailAuthenticated : { username : String } -> List (Html a)
+tailAuthenticated : { username : String } -> List (Html Message)
 tailAuthenticated data =
-    List.singleton <|
-        Button.a
-            (outlinedLight
-                ++ [ class "flex flex-row items-center"
-                   , Route.href Route.Logout
-                   ]
-            )
-            [ text <| data.username
-            , div [ class "px-2" ] [ text "•" ]
-            , text "log out"
-            ]
+    [ Button.a
+        (filledLight
+            ++ [ class "flex flex-row items-center"
+               , class "absolute right-0 top-0 bottom-0 mt-4 mb-4 mr-4"
+
+               --, class "text-center"
+               , Route.href Route.Logout
+               ]
+        )
+        [ div
+            [ class "hidden md:block" ]
+            [ text <| data.username ]
+        , div [ class "hidden md:block px-2" ] []
+        , icon
+        ]
+    ]
 
 
 tailUnauthenticated : List (Html a)
