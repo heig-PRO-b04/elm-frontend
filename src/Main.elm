@@ -75,9 +75,7 @@ view : Model -> Browser.Document Message
 view model =
     let
         header =
-            toSession model.page
-                |> NavUI.fromSession
-                |> NavUI.bar
+            NavUI.bar model.bar
 
         contents =
             case model.page of
