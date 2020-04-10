@@ -27,11 +27,11 @@ methods from various objects, in particular application sessions.
 
 import Api
 import Cmd exposing (withNoCmd)
-import Html exposing (Html, div, text)
+import Html exposing (Html, div, p, text)
 import Html.Attributes exposing (class, src)
 import Html.Events exposing (onClick)
 import Picasso.Button as Button exposing (filled, filledLight, outlined, outlinedLight)
-import Picasso.Text exposing (styledH1)
+import Picasso.Text exposing (styledH1, styledH2)
 import Route exposing (Route)
 import Session exposing (Session)
 
@@ -122,7 +122,7 @@ view model =
     in
     Html.header
         [ class "flex flex-col md:flex-row bg-white shadow relative"
-        , class "sticky top-0"
+        , class "fixed top-0"
         , class "px-8 py-4"
         ]
         ([ title [ class "self-center md:text-start" ]
@@ -130,10 +130,10 @@ view model =
          ]
             ++ (case info of
                     LoggedInOpen username ->
-                        tailAuthenticated username
+                        tailAuthenticated True username
 
                     LoggedInClosed username ->
-                        tailAuthenticated username
+                        tailAuthenticated False username
 
                     ReadyToLogin ->
                         tailUnauthenticated
@@ -155,7 +155,7 @@ title attributes =
 
 icon : Html Message
 icon =
-    Html.img [ onClick Toggle, src "/icon/navigation-account-circle-outline.svg" ] []
+    Html.img [ src "/icon/navigation-account-circle-outline.svg" ] []
 
 
 filler : Html a
@@ -163,24 +163,50 @@ filler =
     div [ class "flex-grow" ] []
 
 
-tailAuthenticated : { username : String } -> List (Html Message)
-tailAuthenticated data =
-    [ Button.a
-        (filledLight
-            ++ [ class "flex flex-row items-center"
-               , class "absolute right-0 top-0 bottom-0 mt-4 mb-4 mr-4"
-
-               --, class "text-center"
-               , Route.href Route.Logout
-               ]
-        )
-        [ div
-            [ class "hidden md:block" ]
-            [ text <| data.username ]
-        , div [ class "hidden md:block px-2" ] []
-        , icon
+tailAuthenticated : Bool -> { username : String } -> List (Html Message)
+tailAuthenticated open data =
+    let
+        button =
+            Button.button
+                (filledLight
+                    ++ [ class "flex flex-row items-center"
+                       , onClick Toggle
+                       ]
+                )
+                [ div
+                    [ class "hidden md:block" ]
+                    [ text <| data.username ]
+                , div [ class "hidden md:block px-2" ] []
+                , icon
+                ]
+    in
+    [ div
+        [ class "absolute right-0 top-0 bottom-0 h-12"
+        , class "mr-4 mb-4 mt-4 md:mr-4 md:mb-0 md:mt-4"
+        , class "flex flex-row items-center"
         ]
+        ([ button ]
+            ++ (if open then
+                    [ div
+                        [ class "absolute mt-16 mr-4 top-0 right-0"
+                        , class "rounded-md bg-white shadow px-0 border-4 border-seaside-300"
+                        , class "flex flex-col"
+                        ]
+                        [ Button.a [ Route.href Route.Home ] [ text "Home" ]
+                        , Button.a [ Route.href Route.Logout ] [ text "Log out" ]
+                        ]
+                    ]
+
+                else
+                    []
+               )
+        )
     ]
+
+
+menuItem : Route -> String -> Html a
+menuItem route content =
+    Button.a [ Route.href Route.Home ] [ text "Home" ]
 
 
 tailUnauthenticated : List (Html a)
