@@ -264,9 +264,7 @@ register user pwd transform =
 the issue was if it did not work.
 
 -- Usage
-register "hello@email.org" "password" identity
-|> Task.attempt
-|> Result.toMaybe
+TODO
 
 -}
 getPolls : Session -> (Poll -> a) -> Task GetError a
