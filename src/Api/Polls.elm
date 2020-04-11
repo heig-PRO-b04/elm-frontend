@@ -1,10 +1,14 @@
-module Api.Polls exposing (..)
+module Api.Polls exposing
+    ( GetError(..)
+    , Poll
+    , getPolls
+    )
 
-{-| A command that will try to register the user in to the app, and tell what
-the issue was if it did not work.
+{-| A module that provides ways to manipulate and to communicate with the backend about everything polls
 
--- Usage
-TODO
+@docs GetError
+@docs Poll
+@docs getPolls
 
 -}
 
@@ -15,6 +19,23 @@ import Json.Encode
 import Task exposing (Task)
 
 
+type
+    GetError
+    -- TODO: is this where this belongs?
+    = NotFoundError
+    | NetworkError
+
+
+type alias Poll =
+    { idModerator : Int
+    , idPoll : Int
+    , title : String
+    }
+
+
+{-| A command that will try to request the list of polls existing for a logged in moderator, and tell what
+the issue was if it did not work.
+-}
 getPolls : Credentials -> (List Poll -> a) -> Task GetError a
 getPolls credentials transform =
     get
@@ -33,18 +54,6 @@ getPolls credentials transform =
                         NetworkError
             )
         |> Task.map transform
-
-
-type GetError
-    = NotFoundError
-    | NetworkError
-
-
-type alias Poll =
-    { idModerator : Int
-    , idPoll : Int
-    , title : String
-    }
 
 
 pollDecoder : Decoder (List Poll)
