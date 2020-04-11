@@ -8,7 +8,7 @@ TODO
 
 -}
 
-import Api exposing (Credentials, authenticated, get, withPath)
+import Api exposing (Credentials, authenticated, get, moderatorId, withPath)
 import Http
 import Json.Decode exposing (Decoder, field)
 import Json.Encode
@@ -20,7 +20,7 @@ getPolls credentials transform =
     get
         { body =
             Json.Encode.null
-        , endpoint = authenticated credentials |> withPath "/mod/{idModerator}/poll"
+        , endpoint = authenticated credentials |> withPath ("/mod/" ++ String.fromInt (moderatorId credentials) ++ "/poll")
         , decoder = pollDecoder
         }
         |> Task.mapError

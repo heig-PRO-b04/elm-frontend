@@ -1,6 +1,6 @@
 module Api exposing
     ( Endpoint, authenticated, withCredentials, withPath
-    , Credentials, username
+    , Credentials, username, moderatorId
     , login, register, AuthError(..)
     , post, get
     )
@@ -29,7 +29,7 @@ To avoid these problems, access to the value of the authentication tokens is
 managed only in this module, and it is not possible to extract the value of the
 token and expose it to the outside world !
 
-@docs Credentials, username
+@docs Credentials, username, moderatorId
 @docs login, register, AuthError
 
 
@@ -197,7 +197,7 @@ username (Token name _ _) =
     name
 
 
-{-| Returns the moderator id of some credentials. TODO: Keep?
+{-| Returns the moderator id of some credentials.
 -}
 moderatorId : Credentials -> Int
 moderatorId (Token _ _ id) =
