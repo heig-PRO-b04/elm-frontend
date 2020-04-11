@@ -271,7 +271,7 @@ register "hello@email.org" "password" identity
 -}
 getPolls : Session -> (Poll -> a) -> Task GetError a
 getPolls session transform =
-    post
+    get
         { body =
             Json.Encode.object
                 []
