@@ -287,6 +287,30 @@ post elements =
         }
 
 
+{-| Exposes the possibility to perform some GET Http requests to the
+application. A request always happens on a valid endpoint, with a Json body and
+returns a value that can be decoded.
+-}
+get :
+    { body : Json.Encode.Value
+    , endpoint : Endpoint
+    , decoder : Decoder a
+    }
+    -> Task Http.Error a
+get elements =
+    Http.task
+        { method = "GET"
+        , headers = []
+        , url = unwrap elements.endpoint
+        , body = Http.jsonBody elements.body
+        , resolver =
+            Http.stringResolver <|
+                handleJsonResponse <|
+                    elements.decoder
+        , timeout = Nothing
+        }
+
+
 {-| Handles an Http.Response with a certain Decoder, and transforms it into
 an Http.Error.
 -}
