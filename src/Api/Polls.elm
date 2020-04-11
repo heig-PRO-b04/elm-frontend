@@ -15,12 +15,11 @@ import Json.Encode
 import Task exposing (Task)
 
 
-getPolls : Credentials -> (Poll -> a) -> Task GetError a
+getPolls : Credentials -> (List Poll -> a) -> Task GetError a
 getPolls credentials transform =
     get
         { body =
-            Json.Encode.object
-                []
+            Json.Encode.null
         , endpoint = authenticated credentials |> withPath "/mod/{idModerator}/poll"
         , decoder = pollDecoder
         }
@@ -31,14 +30,14 @@ getPolls credentials transform =
                         NotFoundError
 
                     _ ->
-                        GetNetworkError
+                        NetworkError
             )
         |> Task.map transform
 
 
 type GetError
     = NotFoundError
-    | GetNetworkError
+    | NetworkError
 
 
 type alias Poll =
@@ -48,14 +47,10 @@ type alias Poll =
     }
 
 
-type alias PollList =
-    { polls : List Poll
-    }
-
-
-pollDecoder : Decoder Poll
+pollDecoder : Decoder (List Poll)
 pollDecoder =
-    Json.Decode.map3 Poll
-        (field "idModerator" Json.Decode.int)
-        (field "idPoll" Json.Decode.int)
-        (field "title" Json.Decode.string)
+    Json.Decode.list <|
+        Json.Decode.map3 Poll
+            (field "idModerator" Json.Decode.int)
+            (field "idPoll" Json.Decode.int)
+            (field "title" Json.Decode.string)

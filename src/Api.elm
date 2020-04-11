@@ -126,7 +126,7 @@ unwrapToken endpoint =
         NonAuthenticated _ ->
             Nothing
 
-        Authenticated (Token _ token) _ ->
+        Authenticated (Token _ token _) _ ->
             Just token
 
 
@@ -162,26 +162,46 @@ unwrap endpoint =
 -- AUTHENTICATION
 
 
+type alias ModeratorIdentifier =
+    Int
+
+
+type alias Username =
+    String
+
+
+type alias Token =
+    String
+
+
 {-| A type defining the credentials that will be used to connect to the backend
 of the application.
 -}
 type Credentials
-    = Token String String
+    = Token String String ModeratorIdentifier
 
 
 credentialsDecoder : String -> Json.Decode.Decoder Credentials
 credentialsDecoder forName =
-    Json.Decode.map2
+    Json.Decode.map3
         Token
         (Json.Decode.succeed forName)
         (Json.Decode.field "token" Json.Decode.string)
+        (Json.Decode.field "idModerator" Json.Decode.int)
 
 
 {-| Returns the username of some credentials.
 -}
 username : Credentials -> String
-username (Token name _) =
+username (Token name _ _) =
     name
+
+
+{-| Returns the moderator id of some credentials. TODO: Keep?
+-}
+moderatorId : Credentials -> Int
+moderatorId (Token _ _ id) =
+    id
 
 
 
