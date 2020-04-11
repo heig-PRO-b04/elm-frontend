@@ -183,12 +183,12 @@ tailAuthenticated open data =
     [ div
         [ class "absolute right-0 top-0 bottom-0 h-12"
         , class "mr-4 mb-4 mt-4 md:mr-4 md:mb-0 md:mt-4"
-        , class "flex flex-row items-center"
+        , class "flex flex-col items-center"
         ]
         ([ button ]
             ++ (if open then
                     [ div
-                        [ class "absolute mt-16 mr-4 top-0 right-0"
+                        [ class "relative mt-4 mr-4 top-0 right-0"
                         , class "rounded-md bg-white shadow px-0 border-4 border-seaside-300"
                         , class "flex flex-col"
                         ]
