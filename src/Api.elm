@@ -2,6 +2,7 @@ module Api exposing
     ( Endpoint, authenticated, withCredentials, withPath
     , Credentials, username
     , login, register, AuthError(..)
+    , post, get
     )
 
 {-| A module that provides interactions with the outside world, and in
@@ -37,14 +38,13 @@ token and expose it to the outside world !
 To perform some requests, you must use one of the different methods that are
 offered in this API.
 
-@docs post
+@docs post, get
 
 -}
 
 import Http
-import Json.Decode exposing (Decoder, field)
+import Json.Decode exposing (Decoder)
 import Json.Encode
-import Session exposing (Session)
 import Task exposing (Task)
 import Url
 
@@ -258,59 +258,6 @@ register user pwd transform =
                         NetworkError
             )
         |> Task.map transform
-
-
-{-| A command that will try to register the user in to the app, and tell what
-the issue was if it did not work.
-
--- Usage
-TODO
-
--}
-getPolls : Session -> (Poll -> a) -> Task GetError a
-getPolls session transform =
-    get
-        { body =
-            Json.Encode.object
-                []
-        , endpoint = Authenticated (Session.extractCredentials session) "/mod/{idModerator}/poll"
-        , decoder = pollDecoder
-        }
-        |> Task.mapError
-            (\error ->
-                case error of
-                    Http.BadStatus 404 ->
-                        NotFoundError
-
-                    _ ->
-                        GetNetworkError
-            )
-        |> Task.map transform
-
-
-type GetError
-    = NotFoundError
-    | GetNetworkError
-
-
-type alias Poll =
-    { idModerator : Int
-    , idPoll : Int
-    , title : String
-    }
-
-
-type alias PollList =
-    { polls : List Poll
-    }
-
-
-pollDecoder : Decoder Poll
-pollDecoder =
-    Json.Decode.map3 Poll
-        (field "idModerator" Json.Decode.int)
-        (field "idPoll" Json.Decode.int)
-        (field "title" Json.Decode.string)
 
 
 
