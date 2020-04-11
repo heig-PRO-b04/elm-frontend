@@ -1,7 +1,8 @@
 module Api exposing
     ( Endpoint, authenticated, withCredentials, withPath
-    , Credentials, username
+    , Credentials, username, moderatorId
     , login, register, AuthError(..)
+    , post, get
     )
 
 {-| A module that provides interactions with the outside world, and in
@@ -28,7 +29,7 @@ To avoid these problems, access to the value of the authentication tokens is
 managed only in this module, and it is not possible to extract the value of the
 token and expose it to the outside world !
 
-@docs Credentials, username
+@docs Credentials, username, moderatorId
 @docs login, register, AuthError
 
 
@@ -37,7 +38,7 @@ token and expose it to the outside world !
 To perform some requests, you must use one of the different methods that are
 offered in this API.
 
-@docs post
+@docs post, get
 
 -}
 
@@ -125,7 +126,7 @@ unwrapToken endpoint =
         NonAuthenticated _ ->
             Nothing
 
-        Authenticated (Token _ token) _ ->
+        Authenticated (Token _ token _) _ ->
             Just token
 
 
@@ -161,26 +162,46 @@ unwrap endpoint =
 -- AUTHENTICATION
 
 
+type alias ModeratorIdentifier =
+    Int
+
+
+type alias Username =
+    String
+
+
+type alias Token =
+    String
+
+
 {-| A type defining the credentials that will be used to connect to the backend
 of the application.
 -}
 type Credentials
-    = Token String String
+    = Token String String ModeratorIdentifier
 
 
 credentialsDecoder : String -> Json.Decode.Decoder Credentials
 credentialsDecoder forName =
-    Json.Decode.map2
+    Json.Decode.map3
         Token
         (Json.Decode.succeed forName)
         (Json.Decode.field "token" Json.Decode.string)
+        (Json.Decode.field "idModerator" Json.Decode.int)
 
 
 {-| Returns the username of some credentials.
 -}
 username : Credentials -> String
-username (Token name _) =
+username (Token name _ _) =
     name
+
+
+{-| Returns the moderator id of some credentials.
+-}
+moderatorId : Credentials -> Int
+moderatorId (Token _ _ id) =
+    id
 
 
 
@@ -276,6 +297,30 @@ post :
 post elements =
     Http.task
         { method = "POST"
+        , headers = []
+        , url = unwrap elements.endpoint
+        , body = Http.jsonBody elements.body
+        , resolver =
+            Http.stringResolver <|
+                handleJsonResponse <|
+                    elements.decoder
+        , timeout = Nothing
+        }
+
+
+{-| Exposes the possibility to perform some GET Http requests to the
+application. A request always happens on a valid endpoint, with a Json body and
+returns a value that can be decoded.
+-}
+get :
+    { body : Json.Encode.Value
+    , endpoint : Endpoint
+    , decoder : Decoder a
+    }
+    -> Task Http.Error a
+get elements =
+    Http.task
+        { method = "GET"
         , headers = []
         , url = unwrap elements.endpoint
         , body = Http.jsonBody elements.body
