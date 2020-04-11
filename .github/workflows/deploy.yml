@@ -1,0 +1,27 @@
+name: Deploy to GitHub Pages
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: '8.x'
+      - run: yarn install
+      - run: yarn build
+      - run: cp CNAME dist/CNAME
+      - run: |
+          cd dist/
+          git init .
+          git config user.name "${{github.actor}}"
+          git config user.email "${{github.actor}}@users.noreply.github.com"
+          git add .
+          git commit -m "Deployed 🚀"
+          git remote add origin https://${{secrets.GH_PERSONAL_ACCESS_TOKEN}}@github.com/${{github.repository}}.git
+          git checkout -b gh-pages
+          git push -u origin gh-pages --force
