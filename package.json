@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "test": "elm-format --validate . && elm-test && parcel build index.html --no-cache --public-url ./",
+    "test": "elm-test",
+    "format": "elm-format --validate .",
     "dev": "parcel index.html --no-cache",
     "build": "parcel build index.html --no-cache --public-url ./"
   },
