@@ -1,14 +1,20 @@
 module Api.Polls exposing
-    ( GetError(..)
-    , Poll
-    , getPolls
+    ( Poll, PollError(..)
+    , getAllPolls
     )
 
-{-| A module that provides ways to manipulate and to communicate with the backend about everything polls
+{-| A module that provides ways to manipulate and to communicate with the
+backend about everything polls
 
-@docs GetError
-@docs Poll
-@docs getPolls
+
+# Types
+
+@docs Poll, PollError
+
+
+# Endpoints
+
+@docs getAllPolls
 
 -}
 
@@ -19,11 +25,10 @@ import Json.Encode
 import Task exposing (Task)
 
 
-type
-    GetError
-    -- TODO: is this where this belongs?
-    = NotFoundError
-    | NetworkError
+type PollError
+    = GotNotFound
+    | GotBadCredentials
+    | GotBadNetwork
 
 
 type alias Poll =
@@ -33,25 +38,35 @@ type alias Poll =
     }
 
 
-{-| A command that will try to request the list of polls existing for a logged in moderator, and tell what
+{-| A command that will try to request the list of polls existing for a logged
+in moderator, and tell what
 the issue was if it did not work.
 -}
-getPolls : Credentials -> (List Poll -> a) -> Task GetError a
-getPolls credentials transform =
+getAllPolls : Credentials -> (List Poll -> a) -> Task PollError a
+getAllPolls credentials transform =
+    let
+        path =
+            "/mod/" ++ String.fromInt (moderatorId credentials) ++ "/poll"
+    in
     get
         { body =
             Json.Encode.null
-        , endpoint = authenticated credentials |> withPath ("/mod/" ++ String.fromInt (moderatorId credentials) ++ "/poll")
+        , endpoint =
+            authenticated credentials
+                |> withPath path
         , decoder = pollDecoder
         }
         |> Task.mapError
             (\error ->
                 case error of
                     Http.BadStatus 404 ->
-                        NotFoundError
+                        GotNotFound
+
+                    Http.BadStatus 403 ->
+                        GotBadCredentials
 
                     _ ->
-                        NetworkError
+                        GotBadNetwork
             )
         |> Task.map transform
 
