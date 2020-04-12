@@ -1,6 +1,8 @@
 # heig-PRO-b04/elm-frontend
 
-[![Build Status](https://travis-ci.com/heig-PRO-b04/elm-frontend.svg?branch=master)](https://travis-ci.com/heig-PRO-b04/elm-frontend)
+![Deploy to GitHub Pages](https://github.com/heig-PRO-b04/elm-frontend/workflows/Deploy%20to%20GitHub%20Pages/badge.svg?branch=master)
+![Elm Unit Tests](https://github.com/heig-PRO-b04/elm-frontend/workflows/Elm%20Unit%20Tests/badge.svg?branch=master)
+![Elm Format](https://github.com/heig-PRO-b04/elm-frontend/workflows/Elm%20Format/badge.svg?branch=master)
 
 An application to create, edit and delete polls that can be answered in real
 time. In this repository, you'll find the codebase of the web client of the
