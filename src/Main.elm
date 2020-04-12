@@ -7,6 +7,7 @@ import Html
 import Page.Authenticate as Auth
 import Page.Home as Home
 import Page.Logout as Quit
+import Page.Polls as Poll
 import Picasso.Navigation as NavUI
 import Route exposing (Route)
 import Session exposing (Session)
@@ -27,6 +28,7 @@ type PageModel
     = AuthModel Auth.Model
     | HomeModel Home.Model
     | QuitModel Quit.Model
+    | PollModel Poll.Model
 
 
 
@@ -82,6 +84,9 @@ toSession model =
         QuitModel m ->
             m.session
 
+        PollModel m ->
+            m.session
+
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Message )
 init _ url key =
@@ -125,6 +130,10 @@ view model =
                 QuitModel quitModel ->
                     Quit.view quitModel
                         |> List.map (Html.map never)
+
+                PollModel pollModel ->
+                    Poll.view pollModel
+                        |> List.map (Html.map PollMessage)
     in
     { title = "heig-PRO-b04 | Live polls"
     , body = header :: contents
@@ -141,6 +150,7 @@ type Message
     | NavUIMessage NavUI.Message
     | HomeMessage Home.Message
     | AuthMessage Auth.Message
+    | PollMessage Poll.Message
 
 
 update : Message -> Model -> ( Model, Cmd Message )
@@ -189,6 +199,14 @@ update msg model =
                 Home.update
                 homeMsg
                 homeModel
+
+        ( PollMessage pollMsg, PollModel pollModel ) ->
+            updateWith
+                PollMessage
+                (embed model PollModel)
+                Poll.update
+                pollMsg
+                pollModel
 
         ( _, _ ) ->
             model
@@ -242,6 +260,12 @@ changeRouteTo route model =
                 never
                 (embed newModel QuitModel)
                 (Quit.init session)
+
+        Just Route.Polls ->
+            initWith
+                PollMessage
+                (embed newModel PollModel)
+                (Poll.init session)
 
 
 
