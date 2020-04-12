@@ -30,6 +30,7 @@ import Picasso.Text exposing (styledH2)
 import Route
 import Session exposing (Session)
 import Task
+import Task.Extra
 
 
 type Message
@@ -145,24 +146,20 @@ update message model =
                         Register ->
                             Api.register
 
+                errorMapper error =
+                    case error of
+                        Api.BadCredentials ->
+                            GotBadCredentials
+
+                        Api.NetworkError ->
+                            GotBadNetwork
+
                 apiResult =
-                    api model.username model.password identity
-
-                apiMapper result =
-                    case result of
-                        Ok credentials ->
-                            GotGoodCredentials credentials
-
-                        Err error ->
-                            case error of
-                                Api.BadCredentials ->
-                                    GotBadCredentials
-
-                                Api.NetworkError ->
-                                    GotBadNetwork
+                    api model.username model.password GotGoodCredentials
+                        |> Task.mapError errorMapper
             in
             { model | state = Pending }
-                |> withCmd [ Task.attempt apiMapper apiResult ]
+                |> withCmd [ Task.Extra.execute apiResult ]
 
         ClickSwitchModes ->
             let
