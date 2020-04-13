@@ -193,6 +193,7 @@ tailAuthenticated open data =
                         , class "flex flex-col"
                         ]
                         [ Button.a [ Route.href Route.Home ] [ text "Home" ]
+                        , Button.a [ Route.href Route.Polls ] [ text "My Polls" ]
                         , Button.a [ Route.href Route.Logout ] [ text "Log out" ]
                         ]
                     ]
