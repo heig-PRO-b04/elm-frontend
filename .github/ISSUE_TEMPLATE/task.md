@@ -7,7 +7,7 @@ assignees: ''
 
 ---
 
-**Current situation **:
+**Current situation :**
 
 1. A first element.
 2. A second element.
@@ -16,6 +16,6 @@ assignees: ''
 **Sub-tasks that need to be performed :**
 
 - [ ] A first checkable item.
-- [ ] A second checkable item.
+- [ ] A second checkable item.
 - [ ] If you have more than 5 checkable items, you might want to split your
       task in some supplementary sub-tasks.
