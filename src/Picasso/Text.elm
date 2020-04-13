@@ -1,6 +1,10 @@
-module Picasso.Text exposing (..)
+module Picasso.Text exposing
+    ( styledH1
+    , styledH2
+    , styledH3
+    )
 
-import Html exposing (Html, h1, h2, text)
+import Html exposing (Html, h1, h2, h3, text)
 import Html.Attributes exposing (class)
 
 
@@ -12,3 +16,8 @@ styledH1 contents =
 styledH2 : String -> Html msg
 styledH2 contents =
     h2 [ class "font-archivo text-2xl font-extrabold" ] [ text contents ]
+
+
+styledH3 : String -> Html msg
+styledH3 contents =
+    h3 [ class "font-archivo text-md font-extrabold" ] [ text contents ]
