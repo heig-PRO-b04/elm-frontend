@@ -133,7 +133,7 @@ update message model =
                 |> withCmd
                     [ Route.replaceUrl
                         (Session.navKey model.session)
-                        Route.Home
+                        Route.Polls
                     ]
 
         ClickPerform ->
