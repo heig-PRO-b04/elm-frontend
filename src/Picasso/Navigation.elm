@@ -31,7 +31,7 @@ import Html exposing (Html, div, p, text)
 import Html.Attributes exposing (class, src)
 import Html.Events exposing (onClick)
 import Picasso.Button as Button exposing (filled, filledLight, outlined, outlinedLight)
-import Picasso.Text exposing (styledH1, styledH2)
+import Picasso.Text exposing (styledH1, styledH2, styledH3)
 import Route exposing (Route)
 import Session exposing (Session)
 
@@ -132,11 +132,13 @@ view model =
             display model
     in
     Html.header
-        [ class "flex flex-col md:flex-row bg-white shadow relative"
-        , class "fixed top-0"
+        [ class "bg-white shadow w-full"
+        , class "flex flex-col md:flex-row items-stretch md:items-center"
+        , class "relative"
+        , class "sticky top-0"
         , class "px-8 py-4"
         ]
-        ([ title [ class "self-center md:text-start" ]
+        ([ title [ class "md:text-start" ]
          , filler
          ]
             ++ (case info of
@@ -178,47 +180,58 @@ tailAuthenticated : Bool -> { username : String } -> List (Html Message)
 tailAuthenticated open data =
     let
         button =
-            Button.button
-                (filledLight
-                    ++ [ class "flex flex-row items-center"
-                       , onClick Toggle
-                       ]
-                )
-                [ div
-                    [ class "hidden md:block" ]
-                    [ text <| data.username ]
-                , div [ class "hidden md:block px-2" ] []
-                , icon
-                ]
+            menuButton data.username open [ class "self-stretch md:self-center" ]
     in
-    [ div
-        [ class "absolute right-0 top-0 bottom-0 h-12"
-        , class "mr-4 mb-4 mt-4 md:mr-4 md:mb-0 md:mt-4"
-        , class "flex flex-col items-center"
-        ]
-        ([ button ]
-            ++ (if open then
-                    [ div
-                        [ class "relative mt-4 mr-4 top-0 right-0"
-                        , class "rounded-md bg-white shadow px-0 border-4 border-seaside-300"
-                        , class "flex flex-col"
-                        ]
-                        [ Button.button [ onClick <| Request Route.Home ] [ text "Home" ]
-                        , Button.button [ onClick <| Request Route.Polls ] [ text "My Polls" ]
-                        , Button.button [ onClick <| Request Route.Logout ] [ text "Log out" ]
-                        ]
-                    ]
+    [ button ]
 
-                else
-                    []
-               )
+
+menuButton :
+    String
+    -> Bool
+    -> List (Html.Attribute Message)
+    -> Html Message
+menuButton username open attributes =
+    let
+        listItem route message =
+            Html.button
+                [ class <|
+                    if open then
+                        "block"
+
+                    else
+                        "hidden"
+                , class "w-full px-4 py-2"
+                , class "hover:bg-seaside-400 hover:text-white"
+                , onClick <| Request route
+                ]
+                [ styledH3 message ]
+    in
+    div
+        ([ class "relative"
+         ]
+            ++ attributes
         )
-    ]
-
-
-menuItem : Route -> String -> Html a
-menuItem route content =
-    Button.a [ Route.href Route.Home ] [ text "Home" ]
+        [ Button.button
+            (filledLight
+                ++ [ class "flex flex-row items-center"
+                   , onClick Toggle
+                   ]
+            )
+            [ div [ class "hidden md:block" ] [ text username ]
+            , div [ class "hidden md:block px-2" ] []
+            , icon
+            ]
+        , div
+            [ class "absolute mt-2 right-0"
+            , class "rounded-md bg-white shadow-2xl"
+            , class "border-2 border-seaside-050"
+            , class "overflow-hidden"
+            ]
+            [ listItem Route.Home "Home"
+            , listItem Route.Polls "My Polls"
+            , listItem Route.Logout "Sign out"
+            ]
+        ]
 
 
 tailUnauthenticated : List (Html a)
