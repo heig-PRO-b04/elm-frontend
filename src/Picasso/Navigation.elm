@@ -26,7 +26,7 @@ methods from various objects, in particular application sessions.
 -}
 
 import Api
-import Cmd exposing (withNoCmd)
+import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, p, text)
 import Html.Attributes exposing (class, src)
 import Html.Events exposing (onClick)
@@ -46,6 +46,7 @@ type Model
 
 type Message
     = Toggle
+    | Request Route
 
 
 type MenuState
@@ -85,10 +86,20 @@ update message (Model route session state) =
         Toggle ->
             case state of
                 MenuOpen ->
-                    Model route session MenuClosed |> withNoCmd
+                    Model route session MenuClosed
+                        |> withNoCmd
 
                 MenuClosed ->
-                    Model route session MenuOpen |> withNoCmd
+                    Model route session MenuOpen
+                        |> withNoCmd
+
+        Request toRoute ->
+            Model toRoute session MenuClosed
+                |> withCmd
+                    [ Route.replaceUrl
+                        (Session.navKey session)
+                        toRoute
+                    ]
 
 
 
@@ -144,10 +155,10 @@ view model =
         )
 
 
-title : List (Html.Attribute a) -> Html a
+title : List (Html.Attribute Message) -> Html Message
 title attributes =
-    Html.a
-        ([ Route.href Route.Home, class "py-2" ]
+    Html.button
+        ([ onClick <| Request Route.Home, class "py-2" ]
             ++ attributes
         )
         [ styledH1 "✌️ rockin • app" ]
@@ -192,9 +203,9 @@ tailAuthenticated open data =
                         , class "rounded-md bg-white shadow px-0 border-4 border-seaside-300"
                         , class "flex flex-col"
                         ]
-                        [ Button.a [ Route.href Route.Home ] [ text "Home" ]
-                        , Button.a [ Route.href Route.Polls ] [ text "My Polls" ]
-                        , Button.a [ Route.href Route.Logout ] [ text "Log out" ]
+                        [ Button.button [ onClick <| Request Route.Home ] [ text "Home" ]
+                        , Button.button [ onClick <| Request Route.Polls ] [ text "My Polls" ]
+                        , Button.button [ onClick <| Request Route.Logout ] [ text "Log out" ]
                         ]
                     ]
 
