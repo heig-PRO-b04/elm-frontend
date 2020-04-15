@@ -15,6 +15,7 @@ jobs:
       - run: yarn install
       - run: yarn build
       - run: cp CNAME dist/CNAME
+        if : github.repository == 'heig-PRO-b04/elm-frontend'
       - run: |
           cd dist/
           git init .
