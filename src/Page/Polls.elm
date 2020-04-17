@@ -33,31 +33,8 @@ init session =
             Just credentials ->
                 [ Poll 1 1 "This is a poll"
                 , Poll 1 1 "This is another poll"
-                , Poll 1 1 "This is yet another poll"
-                , Poll 1 1 "This is yet another poll"
-                , Poll 1 1 "This is yet another poll"
-                , Poll 1 1 "This is yet another poll"
-                , Poll 1 1 "This is yet another poll"
-                , Poll 1 1 "This is yet another poll"
-                , Poll 1 1 "This is yet another poll"
-                , Poll 1 1 "This is yet another poll"
-                , Poll 1 1 "This is yet another poll"
-                , Poll 1 1 "This is yet another poll"
-                , Poll 1 1 "This is yet another poll"
-                , Poll 1 1 "This is yet another poll"
-                , Poll 1 1 "This is yet another poll"
-                , Poll 1 1 "This is yet another poll"
-                , Poll 1 1 "This is yet another poll"
-                , Poll 1 1 "This is yet another poll"
-                , Poll 1 1 "This is yet another poll"
-                , Poll 1 1 "This is yet another poll"
-                , Poll 1 1 "This is yet another poll"
-                , Poll 1 1 "This is yet another poll"
-                , Poll 1 1 "This is yet another poll"
-                , Poll 1 1 "This is yet another poll"
-                , Poll 1 1 "This is yet another poll"
-                , Poll 1 1 "This is yet another poll"
                 ]
+                    ++ List.repeat 40 (Poll 2 2 "This is yet another poll")
 
             Nothing ->
                 []
