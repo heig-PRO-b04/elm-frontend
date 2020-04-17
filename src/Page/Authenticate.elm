@@ -22,7 +22,7 @@ module Page.Authenticate exposing
 import Api
 import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, br, div, p, text)
-import Html.Attributes exposing (class, placeholder, type_)
+import Html.Attributes exposing (class, placeholder, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Picasso.Button exposing (button, elevated, filled, filledDisabled, outlinedLight)
 import Picasso.Input as Input
@@ -203,8 +203,8 @@ view model =
         ]
         [ title model.mode
         , desc model.mode
-        , inputEmail
-        , inputPassword
+        , inputEmail <| model.username
+        , inputPassword <| model.password
         , Html.map never <| errorView model.state
         , buttonSignIn model.mode model.state
         , buttonSwitchModes model.mode
@@ -264,22 +264,24 @@ withHalfMargin html =
         [ html ]
 
 
-inputEmail : Html Message
-inputEmail =
+inputEmail : String -> Html Message
+inputEmail content =
     Input.inputWithTitle "Username:"
         [ onInput WriteNewUsername
         , placeholder "i-am-ironman"
+        , value content
         ]
         []
         |> withMargin
 
 
-inputPassword : Html Message
-inputPassword =
+inputPassword : String -> Html Message
+inputPassword content =
     Input.inputWithTitle "Password:"
         [ onInput WriteNewPassword
         , type_ "password"
         , placeholder "g3n3r4l_k4n0b1"
+        , value content
         ]
         []
         |> withMargin
