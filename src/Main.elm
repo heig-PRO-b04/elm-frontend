@@ -187,7 +187,7 @@ update msg model =
                     model
                         |> withCmd
                             [ Nav.pushUrl
-                                (Session.navKey session)
+                                (Session.sessionNavKey session)
                                 (Url.toString url)
                             ]
 

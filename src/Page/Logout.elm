@@ -17,8 +17,8 @@ type alias Model =
 
 init : Session -> ( Model, Cmd Never )
 init session =
-    { session = Session.guest <| Session.navKey session }
-        |> withCmd [ Route.replaceUrl (Session.navKey session) Route.Home ]
+    { session = Session.guest <| Session.sessionNavKey session }
+        |> withCmd [ Route.replaceUrl (Session.sessionNavKey session) Route.Home ]
 
 
 update : msg -> Model -> ( Model, Cmd Never )

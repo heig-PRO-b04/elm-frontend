@@ -43,7 +43,7 @@ update message model =
             { model | polls = polls } |> withNoCmd
 
         RequestPolls ->
-            case Session.extractCredentials model.session of
+            case Session.sessionCredentials model.session of
                 Nothing ->
                     model |> withNoCmd
 
