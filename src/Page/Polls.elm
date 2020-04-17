@@ -6,6 +6,7 @@ module Page.Polls exposing
     , view
     )
 
+import Api.Polls exposing (Poll)
 import Cmd exposing (withNoCmd)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class)
@@ -19,12 +20,48 @@ type alias Message =
 
 
 type alias Model =
-    { session : Session }
+    { session : Session
+    , polls : List Poll
+    }
 
 
 init : Session -> ( Model, Cmd Message )
 init session =
-    { session = session }
+    { session = session
+    , polls =
+        case Session.extractCredentials session of
+            Just credentials ->
+                [ Poll 1 1 "This is a poll"
+                , Poll 1 1 "This is another poll"
+                , Poll 1 1 "This is yet another poll"
+                , Poll 1 1 "This is yet another poll"
+                , Poll 1 1 "This is yet another poll"
+                , Poll 1 1 "This is yet another poll"
+                , Poll 1 1 "This is yet another poll"
+                , Poll 1 1 "This is yet another poll"
+                , Poll 1 1 "This is yet another poll"
+                , Poll 1 1 "This is yet another poll"
+                , Poll 1 1 "This is yet another poll"
+                , Poll 1 1 "This is yet another poll"
+                , Poll 1 1 "This is yet another poll"
+                , Poll 1 1 "This is yet another poll"
+                , Poll 1 1 "This is yet another poll"
+                , Poll 1 1 "This is yet another poll"
+                , Poll 1 1 "This is yet another poll"
+                , Poll 1 1 "This is yet another poll"
+                , Poll 1 1 "This is yet another poll"
+                , Poll 1 1 "This is yet another poll"
+                , Poll 1 1 "This is yet another poll"
+                , Poll 1 1 "This is yet another poll"
+                , Poll 1 1 "This is yet another poll"
+                , Poll 1 1 "This is yet another poll"
+                , Poll 1 1 "This is yet another poll"
+                , Poll 1 1 "This is yet another poll"
+                ]
+
+            Nothing ->
+                []
+    }
         |> withNoCmd
 
 
@@ -38,38 +75,29 @@ view : Model -> List (Html Message)
 view model =
     [ div
         [ class "flex flex-col" ]
-        [ div
+        ([ div
             [ class "flex flex-row justify-center" ]
             [ actionButton "Create a new poll"
             , actionButton "See your archived polls"
             ]
-        , div [ class "px-3 pb-3" ] [ styledH2 "Your polls:" ]
-        , pollButton "This is a poll title"
-        , pollButton "This is another poll title"
-        , pollButton "This is another poll title"
-        , pollButton "This is another poll title"
-        , pollButton "This is another poll title"
-        , pollButton "This is another poll title"
-        , pollButton "This is another poll title"
-        , pollButton "This is another poll title"
-        , pollButton "This is another poll title"
-        , pollButton "This is another poll title"
-        , pollButton "This is another poll title"
-        , pollButton "This is another poll title"
-        ]
+         , div
+            [ class "flex flex-row justify-center"
+            , class "px-3 pb-3"
+            ]
+            [ styledH2 "Your polls:" ]
+         ]
+            ++ displayPolls model.polls
+        )
     ]
 
 
-actionButton content =
-    button
-        (filled
-            ++ [ class "m-4"
-               ]
-        )
-        [ text content ]
+displayPolls : List Poll -> List (Html msg)
+displayPolls polls =
+    List.map (\poll -> displayPoll poll) polls
 
 
-pollButton content =
+displayPoll : Poll -> Html msg
+displayPoll poll =
     div
         [ class "flex flex-row" ]
         [ button
@@ -78,7 +106,7 @@ pollButton content =
                    , class "mb-2 mx-2"
                    ]
             )
-            [ text content ]
+            [ text poll.title ]
         , button
             (filled
                 ++ [ class "flex-shrink"
@@ -94,3 +122,12 @@ pollButton content =
             )
             [ text "del" ]
         ]
+
+
+actionButton content =
+    button
+        (filled
+            ++ [ class "m-4"
+               ]
+        )
+        [ text content ]
