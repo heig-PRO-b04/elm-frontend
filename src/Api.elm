@@ -2,7 +2,7 @@ module Api exposing
     ( Endpoint, authenticated, withCredentials, withPath
     , Credentials, username, moderatorId
     , login, register, AuthError(..)
-    , post, get
+    , delete, get, post, put
     )
 
 {-| A module that provides interactions with the outside world, and in
@@ -38,7 +38,7 @@ token and expose it to the outside world !
 To perform some requests, you must use one of the different methods that are
 offered in this API.
 
-@docs post, get
+@docs delete, get, post, put
 
 -}
 
@@ -295,17 +295,7 @@ post :
     }
     -> Task Http.Error a
 post elements =
-    Http.task
-        { method = "POST"
-        , headers = []
-        , url = unwrap elements.endpoint
-        , body = Http.jsonBody elements.body
-        , resolver =
-            Http.stringResolver <|
-                handleJsonResponse <|
-                    elements.decoder
-        , timeout = Nothing
-        }
+    method "POST" elements
 
 
 {-| Exposes the possibility to perform some GET Http requests to the
@@ -319,8 +309,54 @@ get :
     }
     -> Task Http.Error a
 get elements =
+    method "GET" elements
+
+
+{-| Exposes the possibility to perform some DELETE Http requests to the
+application. A request always happens on a valid endpoint, with a Json body and
+returns a value that can be decoded.
+-}
+delete :
+    { body : Json.Encode.Value
+    , endpoint : Endpoint
+    , decoder : Decoder a
+    }
+    -> Task Http.Error a
+delete elements =
+    method "DELETE" elements
+
+
+{-| Exposes the possibility to perform some PUT Http requests to the
+application. A request always happens on a valid endpoint, with a Json body and
+returns a value that can be decoded.
+-}
+put :
+    { body : Json.Encode.Value
+    , endpoint : Endpoint
+    , decoder : Decoder a
+    }
+    -> Task Http.Error a
+put elements =
+    method "PUT" elements
+
+
+
+-- REQUESTS INTERNAL
+
+
+{-| A helper method that abstracts the connection to the server through Http by using a Task.
+-}
+method :
+    String
+    ->
+        { body : Json.Encode.Value
+        , endpoint : Endpoint
+        , decoder : Decoder a
+        }
+    -> Task Http.Error a
+method name elements =
     Http.task
-        { method = "GET"
+        { method = name
         , headers = []
         , url = unwrap elements.endpoint
         , body = Http.jsonBody elements.body
