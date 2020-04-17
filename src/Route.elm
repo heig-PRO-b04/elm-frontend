@@ -18,6 +18,7 @@ type Route
     | Registration
     | Logout
     | Polls
+    | NewPoll
 
 
 
@@ -52,6 +53,7 @@ parser =
         , Parser.map Registration (s "register")
         , Parser.map Logout (s "logout")
         , Parser.map Polls (s "polls")
+        , Parser.map NewPoll (s "newpoll")
         ]
 
 
@@ -81,3 +83,6 @@ routeToPieces page =
 
         Polls ->
             [ "polls" ]
+
+        NewPoll ->
+            [ "newpoll" ]
