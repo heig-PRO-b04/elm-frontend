@@ -7,16 +7,19 @@ module Page.Polls exposing
     )
 
 import Api.Polls exposing (Poll)
-import Cmd exposing (withNoCmd)
+import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class)
 import Picasso.Button exposing (button, filled, outlined)
 import Picasso.Text exposing (styledH2)
 import Session exposing (Session)
+import Task
+import Task.Extra
 
 
-type alias Message =
-    Never
+type Message
+    = GotNewPolls (List Poll)
+    | RequestPolls
 
 
 type alias Model =
@@ -28,24 +31,32 @@ type alias Model =
 init : Session -> ( Model, Cmd Message )
 init session =
     { session = session
-    , polls =
-        case Session.extractCredentials session of
-            Just credentials ->
-                [ Poll 1 1 "This is a poll"
-                , Poll 1 1 "This is another poll"
-                ]
-                    ++ List.repeat 40 (Poll 2 2 "This is yet another poll")
-
-            Nothing ->
-                []
+    , polls = []
     }
-        |> withNoCmd
+        |> withCmd [ Task.perform identity <| Task.succeed RequestPolls ]
 
 
 update : Message -> Model -> ( Model, Cmd Message )
-update _ model =
-    model
-        |> withNoCmd
+update message model =
+    case message of
+        GotNewPolls polls ->
+            { model | polls = polls } |> withNoCmd
+
+        RequestPolls ->
+            case Session.extractCredentials model.session of
+                Nothing ->
+                    model |> withNoCmd
+
+                Just credentials ->
+                    let
+                        cmd : Cmd Message
+                        cmd =
+                            Api.Polls.getAllPolls credentials identity
+                                |> Task.mapError (always [])
+                                |> Task.Extra.execute
+                                |> Cmd.map GotNewPolls
+                    in
+                    model |> withCmd [ cmd ]
 
 
 view : Model -> List (Html Message)
