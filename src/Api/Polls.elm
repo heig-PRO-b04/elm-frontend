@@ -1,6 +1,6 @@
 module Api.Polls exposing
     ( Poll, PollError(..)
-    , getAllPolls, delete
+    , getAllPolls, delete, create
     )
 
 {-| A module that provides ways to manipulate and to communicate with the
@@ -14,7 +14,7 @@ backend about everything polls
 
 # Endpoints
 
-@docs getAllPolls, delete
+@docs getAllPolls, delete, create
 
 -}
 
@@ -101,7 +101,7 @@ delete credentials poll return =
 {-| Create a poll with a specified title, and returns the created poll on success
 -}
 create : Credentials -> String -> (Poll -> a) -> Task PollError a
-create credentials title return =
+create credentials title transform =
     let
         path =
             "mod/" ++ String.fromInt (Api.moderatorId credentials) ++ "/poll"
@@ -116,16 +116,13 @@ create credentials title return =
         |> Task.mapError
             (\error ->
                 case error of
-                    Http.BadStatus 404 ->
-                        GotNotFound
-
                     Http.BadStatus 403 ->
                         GotBadCredentials
 
                     _ ->
                         GotBadNetwork
             )
-        |> Task.map return
+        |> Task.map transform
 
 
 pollDecoder : Decoder Poll

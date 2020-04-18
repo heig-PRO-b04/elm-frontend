@@ -7,14 +7,18 @@ module Page.NewPoll exposing
     )
 
 import Api
-import Cmd exposing (withNoCmd)
+import Api.Polls exposing (Poll)
+import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, placeholder, value)
 import Html.Events exposing (onClick, onInput)
 import Picasso.Button exposing (button, elevated, filled, filledDisabled)
 import Picasso.Input as Input
 import Picasso.Text exposing (styledH2)
+import Route
 import Session exposing (Session, Viewer)
+import Task
+import Task.Extra
 
 
 type Message
@@ -22,7 +26,7 @@ type Message
     | CreatePoll
     | UpdateTitle
     | GotCreateError
-    | GotCreateSuccess
+    | GotCreateSuccess Poll
 
 
 type CreationState
@@ -35,7 +39,8 @@ type CreationState
 type alias Model =
     { viewer : Viewer
     , state : CreationState
-    , title : String
+    , titleInput : String
+    , poll : Maybe Poll
     }
 
 
@@ -43,7 +48,8 @@ init : Viewer -> ( Model, Cmd Message )
 init viewer =
     { viewer = viewer
     , state = NotCreated
-    , title = ""
+    , titleInput = ""
+    , poll = Nothing
     }
         |> withNoCmd
 
@@ -52,20 +58,34 @@ update : Message -> Model -> ( Model, Cmd Message )
 update message model =
     case message of
         WriteNewTitle title ->
-            { model | title = title }
+            { model | titleInput = title }
                 |> withNoCmd
 
         CreatePoll ->
-            model
-                |> withNoCmd
+            { model | state = Pending }
+                |> withCmd
+                    [ Api.Polls.create (Session.viewerCredentials model.viewer) model.titleInput GotCreateSuccess
+                        |> Task.mapError (always GotCreateError)
+                        |> Task.Extra.execute
+                    ]
 
         GotCreateError ->
-            model
+            { model
+                | poll = Nothing
+                , state = BadNetwork
+            }
                 |> withNoCmd
 
-        GotCreateSuccess ->
-            model
-                |> withNoCmd
+        GotCreateSuccess poll ->
+            { model
+                | poll = Just poll
+                , state = Created
+            }
+                |> withCmd
+                    [ Route.replaceUrl
+                        (Session.viewerNavKey model.viewer)
+                        Route.Polls
+                    ]
 
         UpdateTitle ->
             model
@@ -87,7 +107,7 @@ view model =
         , class "md:max-w-lg"
         ]
         [ styledH2 "Create a new poll"
-        , inputTitle <| model.title
+        , inputTitle <| model.titleInput
         , buttonCreatePoll model.state
         ]
     ]
