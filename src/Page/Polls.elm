@@ -158,7 +158,7 @@ viewHeaderRow : List (Html.Attribute msg) -> List (Html msg) -> Html msg
 viewHeaderRow attrs html =
     let
         base =
-            [ class "font-archivo text-gray-500 text-left tracking-wider border-gray-200"
+            [ class "font-archivo text-gray-500 text-left tracking-wider border-gray-200 select-none"
             , class "py-3"
             ]
     in
