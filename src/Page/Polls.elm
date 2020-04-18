@@ -12,7 +12,7 @@ import Html exposing (Html, div, text)
 import Html.Attributes exposing (class)
 import Picasso.Button exposing (button, filled, outlined)
 import Picasso.Text exposing (styledH2)
-import Session exposing (Session)
+import Session exposing (Session, Viewer)
 import Task
 import Task.Extra
 
@@ -23,14 +23,14 @@ type Message
 
 
 type alias Model =
-    { session : Session
+    { viewer : Viewer
     , polls : List Poll
     }
 
 
-init : Session -> ( Model, Cmd Message )
-init session =
-    { session = session
+init : Viewer -> ( Model, Cmd Message )
+init viewer =
+    { viewer = viewer
     , polls = []
     }
         |> withCmd [ Task.perform identity <| Task.succeed RequestPolls ]
@@ -43,20 +43,13 @@ update message model =
             { model | polls = polls } |> withNoCmd
 
         RequestPolls ->
-            case Session.extractCredentials model.session of
-                Nothing ->
-                    model |> withNoCmd
-
-                Just credentials ->
-                    let
-                        cmd : Cmd Message
-                        cmd =
-                            Api.Polls.getAllPolls credentials identity
-                                |> Task.mapError (always [])
-                                |> Task.Extra.execute
-                                |> Cmd.map GotNewPolls
-                    in
-                    model |> withCmd [ cmd ]
+            model
+                |> withCmd
+                    [ Api.Polls.getAllPolls (Session.viewerCredentials model.viewer) identity
+                        |> Task.mapError (always [])
+                        |> Task.Extra.execute
+                        |> Cmd.map GotNewPolls
+                    ]
 
 
 view : Model -> List (Html Message)

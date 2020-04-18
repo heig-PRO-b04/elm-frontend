@@ -97,7 +97,7 @@ update message (Model route session state) =
             Model toRoute session MenuClosed
                 |> withCmd
                     [ Route.replaceUrl
-                        (Session.navKey session)
+                        (Session.sessionNavKey session)
                         toRoute
                     ]
 
@@ -112,7 +112,7 @@ display (Model route session state) =
         NoInfo
 
     else
-        case Session.extractCredentials session of
+        case Session.sessionCredentials session of
             Just credentials ->
                 case state of
                     MenuClosed ->

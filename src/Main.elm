@@ -87,7 +87,7 @@ toSession model =
             m.session
 
         PollModel m ->
-            m.session
+            Session.toSession m.viewer
 
         NewPollModel m ->
             m.session
@@ -187,7 +187,7 @@ update msg model =
                     model
                         |> withCmd
                             [ Nav.pushUrl
-                                (Session.navKey session)
+                                (Session.sessionNavKey session)
                                 (Url.toString url)
                             ]
 
@@ -280,10 +280,15 @@ changeRouteTo route model =
                 (Quit.init session)
 
         Just Route.Polls ->
-            initWith
-                PollMessage
-                (embed newModel PollModel)
-                (Poll.init session)
+            case Session.toViewer session of
+                Just viewer ->
+                    initWith
+                        PollMessage
+                        (embed newModel PollModel)
+                        (Poll.init viewer)
+
+                Nothing ->
+                    changeRouteTo (Just Route.Home) model
 
         Just Route.NewPoll ->
             initWith

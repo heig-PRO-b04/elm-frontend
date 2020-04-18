@@ -132,7 +132,7 @@ update message model =
             }
                 |> withCmd
                     [ Route.replaceUrl
-                        (Session.navKey model.session)
+                        (Session.sessionNavKey model.session)
                         Route.Polls
                     ]
 
@@ -174,7 +174,7 @@ update message model =
             model
                 |> withCmd
                     [ Route.replaceUrl
-                        (Session.navKey model.session)
+                        (Session.sessionNavKey model.session)
                         destination
                     ]
 
