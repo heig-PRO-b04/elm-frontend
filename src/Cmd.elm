@@ -2,6 +2,7 @@ module Cmd exposing
     ( withCmd, withNoCmd, succeed
     , initWith
     , updateWith
+    , andThen
     )
 
 {-| A few utilities for the update functions of the applications, documents and
@@ -21,6 +22,11 @@ everything that works with commands essentially.
 # Update
 
 @docs updateWith
+
+
+# Chaining
+
+@docs andThen
 
 -}
 
@@ -144,3 +150,21 @@ updateWith toMessage toModel subUpdate subMessage subModel =
     in
     toModel m
         |> withCmd [ Cmd.map toMessage c ]
+
+
+
+-- CHAINING
+
+
+{-| A function that makes it possible to chain commands on the result of an update or init function.
+-}
+andThen :
+    (subModel -> ( model, Cmd result ))
+    -> ( subModel, Cmd result )
+    -> ( model, Cmd result )
+andThen f ( subModel, subCmd ) =
+    let
+        ( model, cmd ) =
+            f subModel
+    in
+    ( model, Cmd.batch [ subCmd, cmd ] )
