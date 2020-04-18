@@ -24,6 +24,10 @@ everything that works with commands essentially.
 
 -}
 
+import Task
+
+
+
 -- COMMANDS
 
 
@@ -39,6 +43,14 @@ withCmd msg m =
 withNoCmd : a -> ( a, Cmd msg )
 withNoCmd m =
     ( m, Cmd.none )
+
+
+{-| Generates a command that returns a value in a pure fashion.
+-}
+succeed : a -> Cmd a
+succeed value =
+    Task.succeed value
+        |> Task.perform identity
 
 
 

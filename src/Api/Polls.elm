@@ -1,6 +1,6 @@
 module Api.Polls exposing
     ( Poll, PollError(..)
-    , getAllPolls
+    , getAllPolls, delete
     )
 
 {-| A module that provides ways to manipulate and to communicate with the
@@ -14,7 +14,7 @@ backend about everything polls
 
 # Endpoints
 
-@docs getAllPolls
+@docs getAllPolls, delete
 
 -}
 
@@ -46,7 +46,7 @@ getAllPolls : Credentials -> (List Poll -> a) -> Task PollError a
 getAllPolls credentials transform =
     let
         path =
-            "/mod/" ++ String.fromInt (moderatorId credentials) ++ "/poll"
+            "mod/" ++ String.fromInt (moderatorId credentials) ++ "/poll"
     in
     get
         { body =
@@ -69,6 +69,33 @@ getAllPolls credentials transform =
                         GotBadNetwork
             )
         |> Task.map transform
+
+
+{-| Deletes a provided poll from the backend, and returns the specified value on success.
+-}
+delete : Credentials -> Poll -> a -> Task PollError a
+delete credentials poll return =
+    let
+        path =
+            "mod/" ++ String.fromInt poll.idModerator ++ "/poll/" ++ String.fromInt poll.idPoll
+    in
+    Api.delete
+        { body = Json.Encode.null
+        , endpoint = authenticated credentials |> withPath path
+        , decoder = Json.Decode.succeed return
+        }
+        |> Task.mapError
+            (\error ->
+                case error of
+                    Http.BadStatus 404 ->
+                        GotNotFound
+
+                    Http.BadStatus 403 ->
+                        GotBadCredentials
+
+                    _ ->
+                        GotBadNetwork
+            )
 
 
 pollDecoder : Decoder (List Poll)
