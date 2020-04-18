@@ -130,10 +130,17 @@ view model =
     let
         info =
             display model
+
+        navigationClass =
+            if info == ReadyToLogin || info == NoInfo then
+                class "flex flex-col md:flex-row items-stretch md:items-center"
+
+            else
+                class "flex flex-row items-center"
     in
     Html.header
         [ class "bg-white shadow w-full"
-        , class "flex flex-col md:flex-row items-stretch md:items-center"
+        , navigationClass
         , class "relative"
         , class "sticky top-0"
         , class "px-8 py-4"
@@ -180,7 +187,7 @@ tailAuthenticated : Bool -> { username : String } -> List (Html Message)
 tailAuthenticated open data =
     let
         button =
-            menuButton data.username open [ class "self-stretch md:self-center" ]
+            menuButton data.username open []
     in
     [ button ]
 
@@ -192,15 +199,16 @@ menuButton :
     -> Html Message
 menuButton username open attributes =
     let
+        visibility =
+            if open then
+                class "block"
+
+            else
+                class "hidden"
+
         listItem route message =
             Html.button
-                [ class <|
-                    if open then
-                        "block"
-
-                    else
-                        "hidden"
-                , class "w-full px-4 py-2"
+                [ class "w-full px-4 py-2"
                 , class "hover:bg-seaside-400 hover:text-white"
                 , onClick <| Request route
                 ]
@@ -226,6 +234,8 @@ menuButton username open attributes =
             , class "rounded-md bg-white shadow-2xl"
             , class "border-2 border-seaside-050"
             , class "overflow-hidden"
+            , visibility
+            , class "w-32"
             ]
             [ listItem Route.Home "Home"
             , listItem Route.Polls "My Polls"

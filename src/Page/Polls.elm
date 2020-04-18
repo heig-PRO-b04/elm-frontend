@@ -77,7 +77,7 @@ view model =
 
 table : List Poll -> Html Message
 table polls =
-    div [ class "align-middle mx-8 my-8" ]
+    div [ class "align-middle mx-2 md:mx-8 mt-8 mb-32" ]
         [ Html.table [ class "min-w-full center border rounded-lg overflow-hidden shadow" ]
             [ Html.thead [] [ viewHeader ]
             , Html.tbody [ class "bg-white" ]
