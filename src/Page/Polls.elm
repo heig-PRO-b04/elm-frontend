@@ -12,6 +12,7 @@ import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, img, text)
 import Html.Attributes exposing (class, src)
 import Html.Events exposing (onClick)
+import Page.Polls.Sorting as Sorting
 import Picasso.FloatingButton
 import Route
 import Session exposing (Session, Viewer)
@@ -27,6 +28,7 @@ import Time
 type alias Model =
     { viewer : Viewer
     , polls : List Poll
+    , order : Sorting.Order
     }
 
 
@@ -34,6 +36,7 @@ init : Viewer -> ( Model, Cmd Message )
 init viewer =
     { viewer = viewer
     , polls = []
+    , order = Sorting.TitleAsc
     }
         |> withCmd [ Cmd.succeed NowRequestPolls ]
 
@@ -46,6 +49,7 @@ type Message
     = GotAllPolls (List Poll)
     | NowRequestPolls
     | NowDeletePoll Poll
+    | NowSetOrder Sorting.Order
 
 
 update : Message -> Model -> ( Model, Cmd Message )
@@ -60,7 +64,6 @@ update message model =
                     [ Api.Polls.getAllPolls (Session.viewerCredentials model.viewer) identity
                         |> Task.mapError (always [])
                         |> Task.Extra.execute
-                        |> Cmd.map (List.sortBy .title)
                         |> Cmd.map GotAllPolls
                     ]
 
@@ -71,6 +74,9 @@ update message model =
                         |> Task.mapError (always NowRequestPolls)
                         |> Task.Extra.execute
                     ]
+
+        NowSetOrder order ->
+            { model | order = order } |> withNoCmd
 
 
 {-| Request polls refresh every 10 seconds.
@@ -89,7 +95,11 @@ that navigates to the poll creation screen.
 -}
 view : Model -> List (Html Message)
 view model =
-    [ viewTable model.polls ] ++ [ fab ]
+    let
+        sorted =
+            List.sortWith (Sorting.ordering model.order) model.polls
+    in
+    [ viewTable model.order sorted ] ++ [ fab ]
 
 
 {-| The floating action button that enables navigation to the new poll screen.
@@ -105,21 +115,40 @@ fab =
         ]
 
 
-viewTable : List Poll -> Html Message
-viewTable polls =
+viewTable : Sorting.Order -> List Poll -> Html Message
+viewTable order polls =
     div [ class "align-middle mx-2 md:mx-8 mt-8 mb-32" ]
         [ Html.table [ class "min-w-full center border rounded-lg overflow-hidden shadow" ]
-            [ Html.thead [] [ viewHeader ]
+            [ Html.thead [] [ viewHeader order ]
             , Html.tbody [ class "bg-white" ]
                 (List.map viewPoll polls)
             ]
         ]
 
 
-viewHeader : Html msg
-viewHeader =
+viewHeader : Sorting.Order -> Html Message
+viewHeader order =
+    let
+        titleNextOrder =
+            case order of
+                Sorting.TitleAsc ->
+                    Sorting.TitleDes
+
+                Sorting.TitleDes ->
+                    Sorting.TitleAsc
+
+        titleSortIcon =
+            case order of
+                Sorting.TitleAsc ->
+                    img [ src "/icon/arrow-down.svg", class "inline-block transform scale-75 ml-1" ] []
+
+                Sorting.TitleDes ->
+                    img [ src "/icon/arrow-up.svg", class "inline-block transform scale-75 ml-1" ] []
+    in
     Html.tr [ class "bg-gray-100 border-b" ]
-        [ viewHeaderRow [ class "px-6" ] [ text "Title" ]
+        [ viewHeaderRow
+            [ class "px-6", onClick <| NowSetOrder titleNextOrder ]
+            [ text "Title", titleSortIcon ]
         , viewHeaderRow [ class "px-2" ] [ text "Status" ]
         , viewHeaderRow [] []
         ]
