@@ -109,6 +109,7 @@ init _ url key =
         HomeMessage
         start
         (Home.init session)
+        |> Cmd.andThen (changeRouteTo <| Route.fromUrl url)
 
 
 
