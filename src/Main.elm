@@ -232,8 +232,15 @@ update msg model =
 
 
 subscriptions : Model -> Sub Message
-subscriptions _ =
-    Sub.none
+subscriptions model =
+    case model.page of
+        PollModel pollModel ->
+            Sub.map
+                PollMessage
+                (Poll.subscriptions pollModel)
+
+        _ ->
+            Sub.none
 
 
 changeRouteTo : Maybe Route -> Model -> ( Model, Cmd Message )

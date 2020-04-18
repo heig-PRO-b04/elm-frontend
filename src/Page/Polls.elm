@@ -2,6 +2,7 @@ module Page.Polls exposing
     ( Message
     , Model
     , init
+    , subscriptions
     , update
     , view
     )
@@ -16,6 +17,7 @@ import Route
 import Session exposing (Session, Viewer)
 import Task
 import Task.Extra
+import Time
 
 
 
@@ -69,6 +71,13 @@ update message model =
                         |> Task.mapError (always NowRequestPolls)
                         |> Task.Extra.execute
                     ]
+
+
+{-| Request polls refresh every 10 seconds.
+-}
+subscriptions : Model -> Sub Message
+subscriptions _ =
+    Time.every (10 * 1000) (always NowRequestPolls)
 
 
 
