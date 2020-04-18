@@ -2,6 +2,7 @@ module Page.Polls exposing
     ( Message
     , Model
     , init
+    , subscriptions
     , update
     , view
     )
@@ -11,22 +12,23 @@ import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, img, text)
 import Html.Attributes exposing (class, src)
 import Html.Events exposing (onClick)
+import Page.Polls.Sorting as Sorting
 import Picasso.FloatingButton
 import Route
 import Session exposing (Session, Viewer)
 import Task
 import Task.Extra
+import Time
 
 
-type Message
-    = GotNewPolls (List Poll)
-    | RequestPolls
-    | DeletePoll Poll
+
+-- MODEL
 
 
 type alias Model =
     { viewer : Viewer
     , polls : List Poll
+    , order : Sorting.Order
     }
 
 
@@ -34,62 +36,119 @@ init : Viewer -> ( Model, Cmd Message )
 init viewer =
     { viewer = viewer
     , polls = []
+    , order = Sorting.TitleAsc
     }
-        |> withCmd [ Task.perform identity <| Task.succeed RequestPolls ]
+        |> withCmd [ Cmd.succeed NowRequestPolls ]
+
+
+
+-- MESSAGE
+
+
+type Message
+    = GotAllPolls (List Poll)
+    | NowRequestPolls
+    | NowDeletePoll Poll
+    | NowSetOrder Sorting.Order
 
 
 update : Message -> Model -> ( Model, Cmd Message )
 update message model =
     case message of
-        GotNewPolls polls ->
+        GotAllPolls polls ->
             { model | polls = polls } |> withNoCmd
 
-        RequestPolls ->
+        NowRequestPolls ->
             model
                 |> withCmd
                     [ Api.Polls.getAllPolls (Session.viewerCredentials model.viewer) identity
                         |> Task.mapError (always [])
                         |> Task.Extra.execute
-                        |> Cmd.map GotNewPolls
+                        |> Cmd.map GotAllPolls
                     ]
 
-        DeletePoll poll ->
+        NowDeletePoll poll ->
             model
                 |> withCmd
-                    [ Api.Polls.delete (Session.viewerCredentials model.viewer) poll RequestPolls
-                        |> Task.mapError (always RequestPolls)
+                    [ Api.Polls.delete (Session.viewerCredentials model.viewer) poll NowRequestPolls
+                        |> Task.mapError (always NowRequestPolls)
                         |> Task.Extra.execute
                     ]
 
+        NowSetOrder order ->
+            { model | order = order } |> withNoCmd
 
+
+{-| Request polls refresh every 10 seconds.
+-}
+subscriptions : Model -> Sub Message
+subscriptions _ =
+    Time.every (10 * 1000) (always NowRequestPolls)
+
+
+
+-- VIEW
+
+
+{-| The main view of the page. Displays the list of polls, as well as the floating action button
+that navigates to the poll creation screen.
+-}
 view : Model -> List (Html Message)
 view model =
-    [ table model.polls ]
-        ++ [ Picasso.FloatingButton.a
-                [ class "fixed right-0 bottom-0 m-8"
-                , Route.href Route.NewPoll
-                ]
-                [ img [ src "icon/action-button-plus.svg" ] []
-                , div [ class "ml-4" ] [ text "New poll" ]
-                ]
-           ]
+    let
+        sorted =
+            List.sortWith (Sorting.ordering model.order) model.polls
+    in
+    [ viewTable model.order sorted ] ++ [ fab ]
 
 
-table : List Poll -> Html Message
-table polls =
+{-| The floating action button that enables navigation to the new poll screen.
+-}
+fab : Html Message
+fab =
+    Picasso.FloatingButton.a
+        [ class "fixed right-0 bottom-0 m-8"
+        , Route.href Route.NewPoll
+        ]
+        [ img [ src "icon/action-button-plus.svg" ] []
+        , div [ class "ml-4" ] [ text "New poll" ]
+        ]
+
+
+viewTable : Sorting.Order -> List Poll -> Html Message
+viewTable order polls =
     div [ class "align-middle mx-2 md:mx-8 mt-8 mb-32" ]
         [ Html.table [ class "min-w-full center border rounded-lg overflow-hidden shadow" ]
-            [ Html.thead [] [ viewHeader ]
+            [ Html.thead [] [ viewHeader order ]
             , Html.tbody [ class "bg-white" ]
                 (List.map viewPoll polls)
             ]
         ]
 
 
-viewHeader : Html msg
-viewHeader =
+viewHeader : Sorting.Order -> Html Message
+viewHeader order =
+    let
+        titleNextOrder =
+            case order of
+                Sorting.TitleAsc ->
+                    Sorting.TitleDes
+
+                Sorting.TitleDes ->
+                    Sorting.TitleAsc
+
+        titleSortIcon =
+            case order of
+                Sorting.TitleAsc ->
+                    img [ src "/icon/arrow-down.svg", class "inline-block transform scale-75 ml-1" ] []
+
+                Sorting.TitleDes ->
+                    img [ src "/icon/arrow-up.svg", class "inline-block transform scale-75 ml-1" ] []
+    in
     Html.tr [ class "bg-gray-100 border-b" ]
-        [ viewHeaderRow [ class "px-6" ] [ text "Title" ]
+        [ viewHeaderRow
+            [ class "px-6", onClick <| NowSetOrder titleNextOrder ]
+            [ text "Title", titleSortIcon ]
         , viewHeaderRow [ class "px-2" ] [ text "Status" ]
         , viewHeaderRow [] []
         ]
@@ -99,7 +158,7 @@ viewHeaderRow : List (Html.Attribute msg) -> List (Html msg) -> Html msg
 viewHeaderRow attrs html =
     let
         base =
-            [ class "font-archivo text-gray-500 text-left tracking-wider border-gray-200"
+            [ class "font-archivo text-gray-500 text-left tracking-wider border-gray-200 select-none"
             , class "py-3"
             ]
     in
@@ -116,15 +175,48 @@ viewPoll poll =
             ]
             [ text poll.title ]
         , Html.td
-            []
-            [ text "Content that is extremely big" ]
+            [ class "py-2" ]
+            [ pill Closed ]
         , Html.td
             [ class "text-right px-8" ]
             [ Html.button
                 [ class "text-gray-500 hover:text-red-500 "
                 , class "capitalize font-archivo"
-                , onClick <| DeletePoll poll
+                , onClick <| NowDeletePoll poll
                 ]
                 [ text "Delete" ]
             ]
         ]
+
+
+type PollStatus
+    = Closed
+    | ClosedToNewcomers
+    | Open
+    | Loading
+
+
+pill : PollStatus -> Html msg
+pill status =
+    let
+        ( contents, color ) =
+            case status of
+                Open ->
+                    ( "Live", class "bg-seaside-500 text-white shadow" )
+
+                Closed ->
+                    ( "Closed", class "bg-seaside-050 text-black" )
+
+                ClosedToNewcomers ->
+                    ( "Closed to newcomers", class "bg-seaside-400 text-white shadow" )
+
+                Loading ->
+                    ( "Loading", class "hidden" )
+    in
+    div
+        [ class "rounded-full py-0 px-4"
+        , class "font-archivo font-semibold capitalize text-sm"
+        , class "inline-block select-none cursor-default"
+        , color
+        ]
+        [ text contents ]

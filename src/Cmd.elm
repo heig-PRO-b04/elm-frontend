@@ -1,5 +1,5 @@
 module Cmd exposing
-    ( withCmd, withNoCmd
+    ( withCmd, withNoCmd, succeed
     , initWith
     , updateWith
     , andThen
@@ -11,7 +11,7 @@ everything that works with commands essentially.
 
 # Commands
 
-@docs withCmd, withNoCmd
+@docs withCmd, withNoCmd, succeed
 
 
 # Init
