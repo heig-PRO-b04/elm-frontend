@@ -1,6 +1,6 @@
 module Api.Polls exposing
     ( Poll, PollError(..)
-    , getAllPolls, delete
+    , getAllPolls, delete, create
     )
 
 {-| A module that provides ways to manipulate and to communicate with the
@@ -14,7 +14,7 @@ backend about everything polls
 
 # Endpoints
 
-@docs getAllPolls, delete
+@docs getAllPolls, delete, create
 
 -}
 
@@ -54,7 +54,7 @@ getAllPolls credentials transform =
         , endpoint =
             authenticated credentials
                 |> withPath path
-        , decoder = pollDecoder
+        , decoder = pollListDecoder
         }
         |> Task.mapError
             (\error ->
@@ -98,10 +98,42 @@ delete credentials poll return =
             )
 
 
-pollDecoder : Decoder (List Poll)
+{-| Create a poll with a specified title, and returns the created poll on success
+-}
+create : Credentials -> String -> (Poll -> a) -> Task PollError a
+create credentials title transform =
+    let
+        path =
+            "mod/" ++ String.fromInt (Api.moderatorId credentials) ++ "/poll"
+    in
+    Api.post
+        { body =
+            Json.Encode.object
+                [ ( "title", Json.Encode.string title ) ]
+        , endpoint = authenticated credentials |> withPath path
+        , decoder = pollDecoder
+        }
+        |> Task.mapError
+            (\error ->
+                case error of
+                    Http.BadStatus 403 ->
+                        GotBadCredentials
+
+                    _ ->
+                        GotBadNetwork
+            )
+        |> Task.map transform
+
+
+pollDecoder : Decoder Poll
 pollDecoder =
+    Json.Decode.map3 Poll
+        (field "idModerator" Json.Decode.int)
+        (field "idPoll" Json.Decode.int)
+        (field "title" Json.Decode.string)
+
+
+pollListDecoder : Decoder (List Poll)
+pollListDecoder =
     Json.Decode.list <|
-        Json.Decode.map3 Poll
-            (field "idModerator" Json.Decode.int)
-            (field "idPoll" Json.Decode.int)
-            (field "title" Json.Decode.string)
+        pollDecoder

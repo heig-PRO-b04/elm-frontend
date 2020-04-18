@@ -90,7 +90,7 @@ toSession model =
             Session.toSession m.viewer
 
         NewPollModel m ->
-            m.session
+            Session.toSession m.viewer
 
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Message )
@@ -291,10 +291,15 @@ changeRouteTo route model =
                     changeRouteTo (Just Route.Home) model
 
         Just Route.NewPoll ->
-            initWith
-                NewPollMessage
-                (embed newModel NewPollModel)
-                (NewPoll.init session)
+            case Session.toViewer session of
+                Just viewer ->
+                    initWith
+                        NewPollMessage
+                        (embed newModel NewPollModel)
+                        (NewPoll.init viewer)
+
+                Nothing ->
+                    changeRouteTo (Just Route.Home) model
 
 
 
