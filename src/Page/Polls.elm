@@ -8,11 +8,13 @@ module Page.Polls exposing
 
 import Api.Polls exposing (Poll)
 import Cmd exposing (withCmd, withNoCmd)
-import Html exposing (Html, div, text)
-import Html.Attributes exposing (class)
+import Html exposing (Html, div, img, text)
+import Html.Attributes exposing (class, href, src)
 import Html.Events exposing (onClick)
 import Picasso.Button exposing (button, filled, outlined)
+import Picasso.FloatingButton
 import Picasso.Text exposing (styledH2)
+import Route
 import Session exposing (Session, Viewer)
 import Task
 import Task.Extra
@@ -79,6 +81,13 @@ view model =
          ]
             ++ displayPolls model.polls
         )
+    , Picasso.FloatingButton.a
+        [ class "fixed right-0 bottom-0 m-8"
+        , Route.href Route.NewPoll
+        ]
+        [ img [ src "icon/action-button-plus.svg" ] []
+        , div [ class "ml-4" ] [ text "New poll" ]
+        ]
     ]
 
 
