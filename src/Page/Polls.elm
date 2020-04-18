@@ -10,6 +10,7 @@ import Api.Polls exposing (Poll)
 import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class)
+import Html.Events exposing (onClick)
 import Picasso.Button exposing (button, filled, outlined)
 import Picasso.Text exposing (styledH2)
 import Session exposing (Session, Viewer)
@@ -20,6 +21,7 @@ import Task.Extra
 type Message
     = GotNewPolls (List Poll)
     | RequestPolls
+    | DeletePoll Poll
 
 
 type alias Model =
@@ -51,6 +53,14 @@ update message model =
                         |> Cmd.map GotNewPolls
                     ]
 
+        DeletePoll poll ->
+            model
+                |> withCmd
+                    [ Api.Polls.delete (Session.viewerCredentials model.viewer) poll RequestPolls
+                        |> Task.mapError (always RequestPolls)
+                        |> Task.Extra.execute
+                    ]
+
 
 view : Model -> List (Html Message)
 view model =
@@ -72,12 +82,12 @@ view model =
     ]
 
 
-displayPolls : List Poll -> List (Html msg)
+displayPolls : List Poll -> List (Html Message)
 displayPolls polls =
     List.map (\poll -> displayPoll poll) polls
 
 
-displayPoll : Poll -> Html msg
+displayPoll : Poll -> Html Message
 displayPoll poll =
     div
         [ class "flex flex-row" ]
@@ -99,6 +109,7 @@ displayPoll poll =
             (filled
                 ++ [ class "flex-shrink"
                    , class "mb-2 mr-2"
+                   , onClick <| DeletePoll poll
                    ]
             )
             [ text "del" ]

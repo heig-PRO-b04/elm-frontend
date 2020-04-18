@@ -233,7 +233,7 @@ login user pwd transform =
                 [ ( "username", Json.Encode.string user )
                 , ( "password", Json.Encode.string pwd )
                 ]
-        , endpoint = root |> withPath "/auth"
+        , endpoint = root |> withPath "auth"
         , decoder = credentialsDecoder user
         }
         |> Task.mapError
@@ -265,7 +265,7 @@ register user pwd transform =
                 [ ( "username", Json.Encode.string user )
                 , ( "password", Json.Encode.string pwd )
                 ]
-        , endpoint = root |> withPath "/register"
+        , endpoint = root |> withPath "register"
         , decoder = credentialsDecoder user
         }
         |> Task.mapError
