@@ -8,11 +8,11 @@ module Page.Polls exposing
 
 import Api.Polls exposing (Poll)
 import Cmd exposing (withCmd, withNoCmd)
-import Html exposing (Html, div, text)
-import Html.Attributes exposing (class)
+import Html exposing (Html, div, img, text)
+import Html.Attributes exposing (class, src)
 import Html.Events exposing (onClick)
-import Picasso.Button exposing (button, filled, outlined)
-import Picasso.Text exposing (styledH2)
+import Picasso.FloatingButton
+import Route
 import Session exposing (Session, Viewer)
 import Task
 import Task.Extra
@@ -64,62 +64,67 @@ update message model =
 
 view : Model -> List (Html Message)
 view model =
-    [ div
-        [ class "flex flex-col" ]
-        ([ div
-            [ class "flex flex-row justify-center" ]
-            [ actionButton "Create a new poll"
-            , actionButton "See your archived polls"
+    [ table model.polls ]
+        ++ [ Picasso.FloatingButton.a
+                [ class "fixed right-0 bottom-0 m-8"
+                , Route.href Route.NewPoll
+                ]
+                [ img [ src "icon/action-button-plus.svg" ] []
+                , div [ class "ml-4" ] [ text "New poll" ]
+                ]
+           ]
+
+
+table : List Poll -> Html Message
+table polls =
+    div [ class "align-middle mx-8 my-8" ]
+        [ Html.table [ class "min-w-full center border rounded-lg overflow-hidden shadow" ]
+            [ Html.thead [] [ viewHeader ]
+            , Html.tbody [ class "bg-white" ]
+                (List.map viewPoll polls)
             ]
-         , div
-            [ class "flex flex-row justify-center"
-            , class "px-3 pb-3"
-            ]
-            [ styledH2 "Your polls:" ]
-         ]
-            ++ displayPolls model.polls
-        )
-    ]
-
-
-displayPolls : List Poll -> List (Html Message)
-displayPolls polls =
-    List.map (\poll -> displayPoll poll) polls
-
-
-displayPoll : Poll -> Html Message
-displayPoll poll =
-    div
-        [ class "flex flex-row" ]
-        [ button
-            (outlined
-                ++ [ class "flex-grow"
-                   , class "mb-2 mx-2"
-                   ]
-            )
-            [ text poll.title ]
-        , button
-            (filled
-                ++ [ class "flex-shrink"
-                   , class "mb-2 mr-2"
-                   ]
-            )
-            [ text "arch" ]
-        , button
-            (filled
-                ++ [ class "flex-shrink"
-                   , class "mb-2 mr-2"
-                   , onClick <| DeletePoll poll
-                   ]
-            )
-            [ text "del" ]
         ]
 
 
-actionButton content =
-    button
-        (filled
-            ++ [ class "m-4"
-               ]
-        )
-        [ text content ]
+viewHeader : Html msg
+viewHeader =
+    Html.tr [ class "bg-gray-100 border-b" ]
+        [ viewHeaderRow [ class "px-6" ] [ text "Title" ]
+        , viewHeaderRow [ class "px-2" ] [ text "Status" ]
+        , viewHeaderRow [] []
+        ]
+
+
+viewHeaderRow : List (Html.Attribute msg) -> List (Html msg) -> Html msg
+viewHeaderRow attrs html =
+    let
+        base =
+            [ class "font-archivo text-gray-500 text-left tracking-wider border-gray-200"
+            , class "py-3"
+            ]
+    in
+    Html.th (base ++ attrs) html
+
+
+viewPoll : Poll -> Html Message
+viewPoll poll =
+    Html.tr
+        [ class " border-b hover:shadow-inner hover:bg-gray-100" ]
+        [ Html.td
+            [ class "py-3 px-4"
+            , class "font-bold font-archivo"
+            ]
+            [ text poll.title ]
+        , Html.td
+            []
+            [ text "Content that is extremely big" ]
+        , Html.td
+            [ class "text-right px-8" ]
+            [ Html.button
+                [ class "text-gray-500 hover:text-red-500 "
+                , class "capitalize font-archivo"
+                , onClick <| DeletePoll poll
+                ]
+                [ text "Delete" ]
+            ]
+        ]

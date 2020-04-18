@@ -37,6 +37,7 @@ module.exports = {
     },
   },
   variants: {
+    borderWidth: ['responsive', 'hover', 'focus'],
     display: ['responsive', 'group-hover'],
   },
   plugins: [],
