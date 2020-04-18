@@ -18,10 +18,8 @@ import Task
 import Task.Extra
 
 
-type Message
-    = GotNewPolls (List Poll)
-    | RequestPolls
-    | DeletePoll Poll
+
+-- MODEL
 
 
 type alias Model =
@@ -35,48 +33,71 @@ init viewer =
     { viewer = viewer
     , polls = []
     }
-        |> withCmd [ Task.perform identity <| Task.succeed RequestPolls ]
+        |> withCmd [ Cmd.succeed NowRequestPolls ]
+
+
+
+-- MESSAGE
+
+
+type Message
+    = GotAllPolls (List Poll)
+    | NowRequestPolls
+    | NowDeletePoll Poll
 
 
 update : Message -> Model -> ( Model, Cmd Message )
 update message model =
     case message of
-        GotNewPolls polls ->
+        GotAllPolls polls ->
             { model | polls = polls } |> withNoCmd
 
-        RequestPolls ->
+        NowRequestPolls ->
             model
                 |> withCmd
                     [ Api.Polls.getAllPolls (Session.viewerCredentials model.viewer) identity
                         |> Task.mapError (always [])
                         |> Task.Extra.execute
-                        |> Cmd.map GotNewPolls
+                        |> Cmd.map (List.sortBy .title)
+                        |> Cmd.map GotAllPolls
                     ]
 
-        DeletePoll poll ->
+        NowDeletePoll poll ->
             model
                 |> withCmd
-                    [ Api.Polls.delete (Session.viewerCredentials model.viewer) poll RequestPolls
-                        |> Task.mapError (always RequestPolls)
+                    [ Api.Polls.delete (Session.viewerCredentials model.viewer) poll NowRequestPolls
+                        |> Task.mapError (always NowRequestPolls)
                         |> Task.Extra.execute
                     ]
 
 
+
+-- VIEW
+
+
+{-| The main view of the page. Displays the list of polls, as well as the floating action button
+that navigates to the poll creation screen.
+-}
 view : Model -> List (Html Message)
 view model =
-    [ table model.polls ]
-        ++ [ Picasso.FloatingButton.a
-                [ class "fixed right-0 bottom-0 m-8"
-                , Route.href Route.NewPoll
-                ]
-                [ img [ src "icon/action-button-plus.svg" ] []
-                , div [ class "ml-4" ] [ text "New poll" ]
-                ]
-           ]
+    [ viewTable model.polls ] ++ [ fab ]
 
 
-table : List Poll -> Html Message
-table polls =
+{-| The floating action button that enables navigation to the new poll screen.
+-}
+fab : Html Message
+fab =
+    Picasso.FloatingButton.a
+        [ class "fixed right-0 bottom-0 m-8"
+        , Route.href Route.NewPoll
+        ]
+        [ img [ src "icon/action-button-plus.svg" ] []
+        , div [ class "ml-4" ] [ text "New poll" ]
+        ]
+
+
+viewTable : List Poll -> Html Message
+viewTable polls =
     div [ class "align-middle mx-2 md:mx-8 mt-8 mb-32" ]
         [ Html.table [ class "min-w-full center border rounded-lg overflow-hidden shadow" ]
             [ Html.thead [] [ viewHeader ]
@@ -116,15 +137,48 @@ viewPoll poll =
             ]
             [ text poll.title ]
         , Html.td
-            []
-            [ text "Content that is extremely big" ]
+            [ class "py-2" ]
+            [ pill Closed ]
         , Html.td
             [ class "text-right px-8" ]
             [ Html.button
                 [ class "text-gray-500 hover:text-red-500 "
                 , class "capitalize font-archivo"
-                , onClick <| DeletePoll poll
+                , onClick <| NowDeletePoll poll
                 ]
                 [ text "Delete" ]
             ]
         ]
+
+
+type PollStatus
+    = Closed
+    | ClosedToNewcomers
+    | Open
+    | Loading
+
+
+pill : PollStatus -> Html msg
+pill status =
+    let
+        ( contents, color ) =
+            case status of
+                Open ->
+                    ( "Live", class "bg-seaside-500 text-white shadow" )
+
+                Closed ->
+                    ( "Closed", class "bg-seaside-050 text-black" )
+
+                ClosedToNewcomers ->
+                    ( "Closed to newcomers", class "bg-seaside-400 text-white shadow" )
+
+                Loading ->
+                    ( "Loading", class "hidden" )
+    in
+    div
+        [ class "rounded-full py-0 px-4"
+        , class "font-archivo font-semibold capitalize text-sm"
+        , class "inline-block select-none cursor-default"
+        , color
+        ]
+        [ text contents ]
