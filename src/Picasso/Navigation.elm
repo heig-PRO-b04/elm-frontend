@@ -143,7 +143,7 @@ view model =
         , navigationClass
         , class "relative"
         , class "sticky top-0"
-        , class "px-8 py-4"
+        , class "pr-2 pl-4 md:pr-8 md:pl-8 py-4"
         ]
         ([ title [ class "md:text-start" ]
          , filler
