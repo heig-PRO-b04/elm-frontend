@@ -9,7 +9,11 @@ const app = Elm.Main.init({
   flags: flags
 });
 
-
+let obj = JSON.parse(flags);
+if (obj != null) {
+  obj.redirection = null;
+  localStorage.setItem(storageKey, JSON.stringify(obj))
+}
 
 app.ports.portStoreCredentials.subscribe(function (val) {
   if (val == null) {
