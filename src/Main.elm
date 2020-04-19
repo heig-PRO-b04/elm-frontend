@@ -6,6 +6,7 @@ import Browser.Navigation as Nav
 import Cmd exposing (initWith, updateWith, withCmd, withNoCmd)
 import Html
 import Page.Authenticate as Auth
+import Page.BadCredentials as Disc
 import Page.Home as Home
 import Page.Logout as Quit
 import Page.NewPoll as NewPoll
@@ -29,6 +30,7 @@ type alias Model =
 type PageModel
     = AuthModel Auth.Model
     | HomeModel Home.Model
+    | DiscModel Disc.Model
     | QuitModel Quit.Model
     | PollModel Poll.Model
     | NewPollModel NewPoll.Model
@@ -82,6 +84,9 @@ toSession model =
             m.session
 
         HomeModel m ->
+            m.session
+
+        DiscModel m ->
             m.session
 
         QuitModel m ->
@@ -139,6 +144,10 @@ view model =
                     Home.view homeModel
                         |> List.map (Html.map HomeMessage)
 
+                DiscModel discModel ->
+                    Disc.view discModel
+                        |> List.map (Html.map DiscMessage)
+
                 QuitModel quitModel ->
                     Quit.view quitModel
                         |> List.map (Html.map never)
@@ -165,6 +174,7 @@ type Message
     | ClickedLink Browser.UrlRequest
     | NavUIMessage NavUI.Message
     | HomeMessage Home.Message
+    | DiscMessage Disc.Message
     | AuthMessage Auth.Message
     | PollMessage Poll.Message
     | NewPollMessage NewPoll.Message
@@ -216,6 +226,14 @@ update msg model =
                 Home.update
                 homeMsg
                 homeModel
+
+        ( DiscMessage discMsg, DiscModel discModel ) ->
+            updateWith
+                DiscMessage
+                (embed model DiscModel)
+                Disc.update
+                discMsg
+                discModel
 
         ( PollMessage pollMsg, PollModel pollModel ) ->
             updateWith
@@ -292,6 +310,12 @@ changeRouteTo route model =
                 never
                 (embed newModel QuitModel)
                 (Quit.init session)
+
+        Just Route.BadCredentials ->
+            initWith
+                DiscMessage
+                (embed newModel DiscModel)
+                (Disc.init session)
 
         Just Route.Polls ->
             case Session.toViewer session of
