@@ -349,6 +349,22 @@ storeCredentialsClear =
 -- APPLICATION
 
 
+redirectionUrlDecoder : Json.Decode.Decoder Url
+redirectionUrlDecoder =
+    Json.Decode.map
+        Url.fromString
+        (Json.Decode.field "redirection" Json.Decode.string)
+        |> Json.Decode.andThen
+            (\url ->
+                case url of
+                    Just path ->
+                        Json.Decode.succeed path
+
+                    Nothing ->
+                        Json.Decode.fail "No url provided."
+            )
+
+
 {-| A variation of the `Browser.application` call, which also takes the responsibility to unwrap
 the stored credentials and pass them as the start flags of the program.
 -}
@@ -370,8 +386,15 @@ application config =
                     Json.Decode.decodeValue Json.Decode.string flags
                         |> Result.andThen (Json.Decode.decodeString credentialsStorageDecoder)
                         |> Result.toMaybe
+
+                redirection : Url
+                redirection =
+                    Json.Decode.decodeValue Json.Decode.string flags
+                        |> Result.andThen (Json.Decode.decodeString redirectionUrlDecoder)
+                        |> Result.toMaybe
+                        |> Maybe.withDefault url
             in
-            config.init viewer url navKey
+            config.init viewer redirection navKey
     in
     Browser.application
         { init = init
