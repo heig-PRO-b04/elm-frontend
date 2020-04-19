@@ -47,6 +47,7 @@ init viewer =
 
 type Message
     = GotAllPolls (List Poll)
+    | GotInvalidCredentials
     | NowRequestPolls
     | NowDeletePoll Poll
     | NowSetOrder Sorting.Order
@@ -58,20 +59,40 @@ update message model =
         GotAllPolls polls ->
             { model | polls = polls } |> withNoCmd
 
+        GotInvalidCredentials ->
+            model
+                |> withCmd [ Route.badCredentials (Session.viewerNavKey model.viewer) ]
+
         NowRequestPolls ->
             model
                 |> withCmd
                     [ Api.Polls.getAllPolls (Session.viewerCredentials model.viewer) identity
-                        |> Task.mapError (always [])
+                        |> Task.map GotAllPolls
+                        |> Task.mapError
+                            (\error ->
+                                case error of
+                                    Api.Polls.GotBadCredentials ->
+                                        GotInvalidCredentials
+
+                                    _ ->
+                                        GotAllPolls []
+                            )
                         |> Task.Extra.execute
-                        |> Cmd.map GotAllPolls
                     ]
 
         NowDeletePoll poll ->
             model
                 |> withCmd
                     [ Api.Polls.delete (Session.viewerCredentials model.viewer) poll NowRequestPolls
-                        |> Task.mapError (always NowRequestPolls)
+                        |> Task.mapError
+                            (\error ->
+                                case error of
+                                    Api.Polls.GotBadCredentials ->
+                                        GotInvalidCredentials
+
+                                    _ ->
+                                        NowRequestPolls
+                            )
                         |> Task.Extra.execute
                     ]
 
