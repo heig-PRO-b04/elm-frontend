@@ -39,6 +39,8 @@ module.exports = {
   variants: {
     borderWidth: ['responsive', 'hover', 'focus'],
     display: ['responsive', 'group-hover'],
+    rotate: ['responsive', 'hover', 'focus', 'group-hover'],
+    scale: ['responsive', 'hover', 'focus', 'group-hover'],
   },
   plugins: [],
 };
