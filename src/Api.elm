@@ -1,7 +1,9 @@
-module Api exposing
+port module Api exposing
     ( Endpoint, authenticated, withCredentials, withPath
     , Credentials, username, moderatorId
     , login, register, AuthError(..)
+    , application
+    , storeCredentials, storeCredentialsClear
     , delete, get, post, put
     )
 
@@ -33,6 +35,20 @@ token and expose it to the outside world !
 @docs login, register, AuthError
 
 
+# Persistence
+
+If you want to retrieve the credentials on application start, you can do so using the application
+function. It will automatically interact with the program flags and retrieve the eventual
+credentials.
+
+@docs application
+
+
+## Credentials management
+
+@docs storeCredentials, storeCredentialsClear
+
+
 # Requests
 
 To perform some requests, you must use one of the different methods that are
@@ -42,11 +58,13 @@ offered in this API.
 
 -}
 
+import Browser
+import Browser.Navigation as Nav
 import Http
 import Json.Decode exposing (Decoder)
 import Json.Encode
 import Task exposing (Task)
-import Url
+import Url exposing (Url)
 
 
 
@@ -278,6 +296,91 @@ register user pwd transform =
                         NetworkError
             )
         |> Task.map transform
+
+
+
+-- AUTHENTICATION PERSISTENCE
+
+
+credentialsStorageDecoder : Json.Decode.Decoder Credentials
+credentialsStorageDecoder =
+    Json.Decode.map3 Token
+        (Json.Decode.field "name" Json.Decode.string)
+        (Json.Decode.field "token" Json.Decode.string)
+        (Json.Decode.field "id" Json.Decode.int)
+
+
+credentialsStorageEncode : Credentials -> Json.Encode.Value
+credentialsStorageEncode (Token name token id) =
+    Json.Encode.object
+        [ ( "name", Json.Encode.string name )
+        , ( "token", Json.Encode.string token )
+        , ( "id", Json.Encode.int id )
+        ]
+
+
+{-| A port to JavaScript to store the credentials of the user in the local storage.
+-}
+port portStoreCredentials : Maybe Json.Encode.Value -> Cmd msg
+
+
+{-| A port to JavaScript to read the changes of the credentials written by the user.
+-}
+port portSubscribeCredentials : (Json.Encode.Value -> msg) -> Sub msg
+
+
+{-| Stores a Credentials instance into the application storage.
+-}
+storeCredentials : Credentials -> Cmd msg
+storeCredentials credentials =
+    credentialsStorageEncode credentials
+        |> Just
+        |> portStoreCredentials
+
+
+{-| Clears the credentials from the local storage database.
+-}
+storeCredentialsClear : Cmd msg
+storeCredentialsClear =
+    portStoreCredentials Nothing
+
+
+
+-- APPLICATION
+
+
+{-| A variation of the `Browser.application` call, which also takes the responsibility to unwrap
+the stored credentials and pass them as the start flags of the program.
+-}
+application :
+    { init : Maybe Credentials -> Url -> Nav.Key -> ( model, Cmd msg )
+    , onUrlChange : Url -> msg
+    , onUrlRequest : Browser.UrlRequest -> msg
+    , subscriptions : model -> Sub msg
+    , update : msg -> model -> ( model, Cmd msg )
+    , view : model -> Browser.Document msg
+    }
+    -> Program Json.Decode.Value model msg
+application config =
+    let
+        init flags url navKey =
+            let
+                viewer : Maybe Credentials
+                viewer =
+                    Json.Decode.decodeValue Json.Decode.string flags
+                        |> Result.andThen (Json.Decode.decodeString credentialsStorageDecoder)
+                        |> Result.toMaybe
+            in
+            config.init viewer url navKey
+    in
+    Browser.application
+        { init = init
+        , onUrlChange = config.onUrlChange
+        , onUrlRequest = config.onUrlRequest
+        , subscriptions = config.subscriptions
+        , update = config.update
+        , view = config.view
+        }
 
 
 

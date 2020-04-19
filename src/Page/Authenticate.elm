@@ -131,7 +131,8 @@ update message model =
                         |> Session.withCredentials credentials
             }
                 |> withCmd
-                    [ Route.replaceUrl
+                    [ Api.storeCredentials credentials
+                    , Route.replaceUrl
                         (Session.sessionNavKey model.session)
                         Route.Polls
                     ]

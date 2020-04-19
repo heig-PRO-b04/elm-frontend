@@ -5,6 +5,7 @@ module Page.Logout exposing
     , view
     )
 
+import Api
 import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html)
 import Route
@@ -18,7 +19,10 @@ type alias Model =
 init : Session -> ( Model, Cmd Never )
 init session =
     { session = Session.guest <| Session.sessionNavKey session }
-        |> withCmd [ Route.replaceUrl (Session.sessionNavKey session) Route.Home ]
+        |> withCmd
+            [ Api.storeCredentialsClear
+            , Route.replaceUrl (Session.sessionNavKey session) Route.Home
+            ]
 
 
 update : msg -> Model -> ( Model, Cmd Never )

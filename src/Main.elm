@@ -1,5 +1,6 @@
 module Main exposing (main)
 
+import Api
 import Browser
 import Browser.Navigation as Nav
 import Cmd exposing (initWith, updateWith, withCmd, withNoCmd)
@@ -93,11 +94,16 @@ toSession model =
             Session.toSession m.viewer
 
 
-init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Message )
-init _ url key =
+init : Maybe Api.Credentials -> Url.Url -> Nav.Key -> ( Model, Cmd Message )
+init credentials url key =
     let
         session =
-            Session.guest key
+            case credentials of
+                Just unwrapped ->
+                    Session.guest key |> Session.withCredentials unwrapped
+
+                Nothing ->
+                    Session.guest key
 
         start =
             \model ->
@@ -314,9 +320,8 @@ changeRouteTo route model =
 -- APPLICATION
 
 
-main : Program () Model Message
 main =
-    Browser.application
+    Api.application
         { init = init
         , update = update
         , subscriptions = subscriptions
