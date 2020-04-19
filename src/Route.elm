@@ -1,5 +1,6 @@
 module Route exposing
     ( Route(..)
+    , badCredentials
     , fromUrl
     , href
     , replaceUrl
@@ -17,6 +18,7 @@ type Route
     | Login
     | Registration
     | Logout
+    | BadCredentials
     | Polls
     | NewPoll
 
@@ -40,6 +42,14 @@ replaceUrl key route =
     Nav.replaceUrl key (routeToString route)
 
 
+{-| Performs navigation to a page that lets the user know that they currently have some bad
+credentials, and automatically disconnects them.
+-}
+badCredentials : Nav.Key -> Cmd msg
+badCredentials key =
+    replaceUrl key BadCredentials
+
+
 
 -- PARSER
 
@@ -52,6 +62,7 @@ parser =
         , Parser.map Home (s "home")
         , Parser.map Registration (s "register")
         , Parser.map Logout (s "logout")
+        , Parser.map BadCredentials (s "disconnected")
         , Parser.map Polls (s "polls")
         , Parser.map NewPoll (s "newpoll")
         ]
@@ -80,6 +91,9 @@ routeToPieces page =
 
         Logout ->
             [ "logout" ]
+
+        BadCredentials ->
+            [ "disconnected" ]
 
         Polls ->
             [ "polls" ]
