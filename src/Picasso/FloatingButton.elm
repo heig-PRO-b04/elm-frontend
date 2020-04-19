@@ -17,6 +17,7 @@ base =
     , class "font-archivo font-semibold uppercase"
     , class "shadow-xl hover:shadow-2xl"
     , class "rounded-full"
+    , class "transition duration-200"
     ]
 
 

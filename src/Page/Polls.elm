@@ -138,16 +138,27 @@ viewHeader order =
                     Sorting.TitleAsc
 
         titleSortIcon =
-            case order of
-                Sorting.TitleAsc ->
-                    img [ src "/icon/arrow-down.svg", class "inline-block transform scale-75 ml-1" ] []
+            let
+                base =
+                    [ src "/icon/arrow-down.svg"
+                    , class "inline-block ml-1"
+                    , class "transform duration-200 "
+                    , class "scale-75 group-hover:scale-90"
+                    ]
 
-                Sorting.TitleDes ->
-                    img [ src "/icon/arrow-up.svg", class "inline-block transform scale-75 ml-1" ] []
+                rotation =
+                    case order of
+                        Sorting.TitleAsc ->
+                            class "rotate-0"
+
+                        Sorting.TitleDes ->
+                            class "rotate-180"
+            in
+            img (rotation :: base) []
     in
     Html.tr [ class "bg-gray-100 border-b" ]
         [ viewHeaderRow
-            [ class "px-6", onClick <| NowSetOrder titleNextOrder ]
+            [ class "px-6 group", onClick <| NowSetOrder titleNextOrder ]
             [ text "Title", titleSortIcon ]
         , viewHeaderRow [ class "px-2" ] [ text "Status" ]
         , viewHeaderRow [] []
@@ -171,7 +182,7 @@ viewPoll poll =
         [ class " border-b hover:shadow-inner hover:bg-gray-100" ]
         [ Html.td
             [ class "py-3 px-4"
-            , class "font-bold font-archivo"
+            , class "font-bold font-archivo break-all"
             ]
             [ text poll.title ]
         , Html.td
