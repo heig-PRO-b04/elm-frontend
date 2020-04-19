@@ -1,5 +1,7 @@
 module Cmd exposing
-    ( withCmd, withNoCmd, succeed
+    ( withCmd, withNoCmd
+    , succeed
+    , addCmd
     , initWith
     , updateWith
     , andThen
@@ -11,7 +13,9 @@ everything that works with commands essentially.
 
 # Commands
 
-@docs withCmd, withNoCmd, succeed
+@docs withCmd, withNoCmd
+@docs succeed
+@docs addCmd
 
 
 # Init
@@ -57,6 +61,13 @@ succeed : a -> Cmd a
 succeed value =
     Task.succeed value
         |> Task.perform identity
+
+
+{-| Add a certain command to an existing model and command tuple.
+-}
+addCmd : Cmd msg -> ( model, Cmd msg ) -> ( model, Cmd msg )
+addCmd x ( model, xs ) =
+    ( model, Cmd.batch [ x, xs ] )
 
 
 

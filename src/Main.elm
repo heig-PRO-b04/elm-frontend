@@ -120,7 +120,7 @@ init credentials url key =
         HomeMessage
         start
         (Home.init session)
-        |> Cmd.andThen (changeRouteTo <| Route.fromUrl url)
+        |> Cmd.addCmd (Cmd.succeed <| ClickedLink (Browser.Internal url))
 
 
 
