@@ -23,22 +23,30 @@ import Task.Extra
 
 type Message
     = WriteNewTitle String
-    | CreatePoll
-    | UpdateTitle
+    | ClickPollTitleButton
     | GotCreateError
     | GotCreateSuccess Poll
+    | GotUpdateError
+    | GotUpdateSuccess Poll
 
 
 type CreationState
     = NotCreated
     | Pending
-    | Created
+    | Success
     | BadNetwork
+    | UpdateError
+
+
+type PollMode
+    = Create
+    | Update
 
 
 type alias Model =
     { viewer : Viewer
     , state : CreationState
+    , mode : PollMode
     , titleInput : String
     , poll : Maybe Poll
     }
@@ -48,6 +56,7 @@ init : Viewer -> ( Model, Cmd Message )
 init viewer =
     { viewer = viewer
     , state = NotCreated
+    , mode = Create
     , titleInput = ""
     , poll = Nothing
     }
@@ -61,13 +70,29 @@ update message model =
             { model | titleInput = title }
                 |> withNoCmd
 
-        CreatePoll ->
-            { model | state = Pending }
-                |> withCmd
-                    [ Api.Polls.create (Session.viewerCredentials model.viewer) model.titleInput GotCreateSuccess
-                        |> Task.mapError (always GotCreateError)
-                        |> Task.Extra.execute
-                    ]
+        ClickPollTitleButton ->
+            case model.mode of
+                Create ->
+                    { model | state = Pending }
+                        |> withCmd
+                            [ Api.Polls.create (Session.viewerCredentials model.viewer) model.titleInput GotCreateSuccess
+                                |> Task.mapError (always GotCreateError)
+                                |> Task.Extra.execute
+                            ]
+
+                Update ->
+                    case model.poll of
+                        Just poll ->
+                            { model | state = Pending }
+                                |> withCmd
+                                    [ Api.Polls.update (Session.viewerCredentials model.viewer) poll model.titleInput GotUpdateSuccess
+                                        |> Task.mapError (always GotUpdateError)
+                                        |> Task.Extra.execute
+                                    ]
+
+                        Nothing ->
+                            { model | state = UpdateError }
+                                |> withNoCmd
 
         GotCreateError ->
             { model
@@ -79,16 +104,24 @@ update message model =
         GotCreateSuccess poll ->
             { model
                 | poll = Just poll
-                , state = Created
+                , state = Success
+                , mode = Update
             }
-                |> withCmd
-                    [ Route.replaceUrl
-                        (Session.viewerNavKey model.viewer)
-                        Route.Polls
-                    ]
+                |> withNoCmd
 
-        UpdateTitle ->
-            model
+        --[ Route.replaceUrl
+        --    (Session.viewerNavKey model.viewer)
+        --    Route.Polls
+        --]
+        GotUpdateError ->
+            { model | state = BadNetwork }
+                |> withNoCmd
+
+        GotUpdateSuccess poll ->
+            { model
+                | poll = Just poll
+                , state = Success
+            }
                 |> withNoCmd
 
 
@@ -108,7 +141,7 @@ view model =
         ]
         [ styledH2 "Create a new poll"
         , inputTitle <| model.titleInput
-        , buttonCreatePoll model.state
+        , buttonPollTitle model.mode model.state
         ]
     ]
 
@@ -124,15 +157,15 @@ inputTitle content =
         |> withMargin
 
 
-buttonCreatePoll : CreationState -> Html Message
-buttonCreatePoll state =
+buttonPollTitle : PollMode -> CreationState -> Html Message
+buttonPollTitle mode state =
     let
         fillIn =
             if state == Pending then
                 filledDisabled
 
             else
-                filled ++ elevated ++ [ onClick CreatePoll ]
+                filled ++ elevated ++ [ onClick ClickPollTitleButton ]
 
         message =
             case state of
@@ -142,11 +175,19 @@ buttonCreatePoll state =
                 Pending ->
                     "Loading..."
 
-                Created ->
-                    "Success !"
+                Success ->
+                    case mode of
+                        Create ->
+                            "Poll created !"
+
+                        Update ->
+                            "Title changed !"
 
                 BadNetwork ->
                     "Network error"
+
+                UpdateError ->
+                    "Update error"
     in
     button
         (fillIn ++ [ class "mt-8" ])

@@ -1,6 +1,6 @@
 module Api.Polls exposing
     ( Poll, PollError(..)
-    , getAllPolls, delete, create
+    , getAllPolls, delete, create, update
     )
 
 {-| A module that provides ways to manipulate and to communicate with the
@@ -14,7 +14,7 @@ backend about everything polls
 
 # Endpoints
 
-@docs getAllPolls, delete, create
+@docs getAllPolls, delete, create, update
 
 -}
 
@@ -110,6 +110,33 @@ create credentials title transform =
         { body =
             Json.Encode.object
                 [ ( "title", Json.Encode.string title ) ]
+        , endpoint = authenticated credentials |> withPath path
+        , decoder = pollDecoder
+        }
+        |> Task.mapError
+            (\error ->
+                case error of
+                    Http.BadStatus 403 ->
+                        GotBadCredentials
+
+                    _ ->
+                        GotBadNetwork
+            )
+        |> Task.map transform
+
+
+{-| Updates a poll with a specified title, and returns the created poll on success
+-}
+update : Credentials -> Poll -> String -> (Poll -> a) -> Task PollError a
+update credentials poll newTitle transform =
+    let
+        path =
+            "mod/" ++ String.fromInt poll.idModerator ++ "/poll/" ++ String.fromInt poll.idPoll
+    in
+    Api.put
+        { body =
+            Json.Encode.object
+                [ ( "title", Json.Encode.string newTitle ) ]
         , endpoint = authenticated credentials |> withPath path
         , decoder = pollDecoder
         }
