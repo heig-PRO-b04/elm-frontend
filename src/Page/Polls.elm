@@ -182,7 +182,7 @@ viewPoll poll =
         [ class " border-b hover:shadow-inner hover:bg-gray-100" ]
         [ Html.td
             [ class "py-3 px-4"
-            , class "font-bold font-archivo"
+            , class "font-bold font-archivo break-all"
             ]
             [ text poll.title ]
         , Html.td
