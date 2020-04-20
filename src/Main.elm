@@ -7,7 +7,7 @@ import Cmd exposing (initWith, updateWith, withCmd, withNoCmd)
 import Html
 import Page.Authenticate as Auth
 import Page.BadCredentials as Disc
-import Page.DisplayPoll as NewPoll
+import Page.DisplayPoll as DisplayPoll
 import Page.Home as Home
 import Page.Logout as Quit
 import Page.Polls as Poll
@@ -33,8 +33,7 @@ type PageModel
     | DiscModel Disc.Model
     | QuitModel Quit.Model
     | PollModel Poll.Model
-    | NewPollModel NewPoll.Model
-    | DisplayPollModel NewPoll.Model
+    | DisplayPollModel DisplayPoll.Model
 
 
 
@@ -94,9 +93,6 @@ toSession model =
             m.session
 
         PollModel m ->
-            Session.toSession m.viewer
-
-        NewPollModel m ->
             Session.toSession m.viewer
 
         DisplayPollModel m ->
@@ -160,12 +156,8 @@ view model =
                     Poll.view pollModel
                         |> List.map (Html.map PollMessage)
 
-                NewPollModel newPollModel ->
-                    NewPoll.view newPollModel
-                        |> List.map (Html.map NewPollMessage)
-
                 DisplayPollModel displayPollModel ->
-                    NewPoll.view displayPollModel
+                    DisplayPoll.view displayPollModel
                         |> List.map (Html.map DisplayPollMessage)
     in
     { title = "heig-PRO-b04 | Live polls"
@@ -185,8 +177,7 @@ type Message
     | DiscMessage Disc.Message
     | AuthMessage Auth.Message
     | PollMessage Poll.Message
-    | NewPollMessage NewPoll.Message
-    | DisplayPollMessage NewPoll.Message
+    | DisplayPollMessage DisplayPoll.Message
 
 
 update : Message -> Model -> ( Model, Cmd Message )
@@ -252,19 +243,11 @@ update msg model =
                 pollMsg
                 pollModel
 
-        ( NewPollMessage newPollMsg, NewPollModel newPollModel ) ->
-            updateWith
-                NewPollMessage
-                (embed model NewPollModel)
-                NewPoll.update
-                newPollMsg
-                newPollModel
-
         ( DisplayPollMessage displayPollMsg, DisplayPollModel displayPollModel ) ->
             updateWith
                 DisplayPollMessage
                 (embed model DisplayPollModel)
-                NewPoll.update
+                DisplayPoll.update
                 displayPollMsg
                 displayPollModel
 
@@ -351,7 +334,7 @@ changeRouteTo route model =
                     initWith
                         NewPollMessage
                         (embed newModel NewPollModel)
-                        (NewPoll.initCreate viewer)
+                        (DisplayPoll.initCreate viewer)
 
                 Nothing ->
                     changeRouteTo (Just Route.Home) model
@@ -362,7 +345,7 @@ changeRouteTo route model =
                     initWith
                         DisplayPollMessage
                         (embed newModel DisplayPollModel)
-                        (NewPoll.initDisplay viewer poll)
+                        (DisplayPoll.initDisplay viewer poll)
 
                 Nothing ->
                     changeRouteTo (Just Route.Home) model

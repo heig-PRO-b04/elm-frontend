@@ -6,7 +6,7 @@ module Route exposing
     , replaceUrl
     )
 
-import Api.Polls exposing (PollIdentifier)
+import Api.Polls exposing (PollDiscriminator)
 import Browser.Navigation as Nav
 import Html
 import Html.Attributes
@@ -22,7 +22,7 @@ type Route
     | BadCredentials
     | Polls
     | NewPoll
-    | DisplayPoll PollIdentifier
+    | DisplayPoll PollDiscriminator
 
 
 

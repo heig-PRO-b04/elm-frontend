@@ -1,7 +1,8 @@
 module Api.Polls exposing
-    ( Poll, PollIdentifier, PollError(..)
+    ( Poll, PollError(..)
     , getAllPolls, getPoll, delete, create, update
     , urlParser
+    , PollDiscriminator
     )
 
 {-| A module that provides ways to manipulate and to communicate with the
@@ -45,7 +46,7 @@ type alias Poll =
     }
 
 
-type alias PollIdentifier =
+type alias PollDiscriminator =
     { idPoll : Int }
 
 
@@ -82,11 +83,11 @@ getAllPolls credentials transform =
         |> Task.map transform
 
 
-getPoll : Credentials -> PollIdentifier -> (Poll -> a) -> Task PollError a
-getPoll credentials pollIdentifier transform =
+getPoll : Credentials -> PollDiscriminator -> (Poll -> a) -> Task PollError a
+getPoll credentials pollDiscriminator transform =
     let
         path =
-            "mod/" ++ String.fromInt (Api.moderatorId credentials) ++ "/poll/" ++ String.fromInt pollIdentifier.idPoll
+            "mod/" ++ String.fromInt (Api.moderatorId credentials) ++ "/poll/" ++ String.fromInt pollDiscriminator.idPoll
     in
     Api.get
         { body =
@@ -201,6 +202,6 @@ pollListDecoder =
         pollDecoder
 
 
-urlParser : Url.Parser.Parser (PollIdentifier -> a) a
+urlParser : Url.Parser.Parser (PollDiscriminator -> a) a
 urlParser =
-    Url.Parser.map PollIdentifier int
+    Url.Parser.map PollDiscriminator int

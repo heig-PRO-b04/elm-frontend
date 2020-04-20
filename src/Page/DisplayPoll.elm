@@ -7,8 +7,7 @@ module Page.DisplayPoll exposing
     , view
     )
 
-import Api
-import Api.Polls exposing (Poll, PollIdentifier)
+import Api.Polls exposing (Poll, PollDiscriminator)
 import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, placeholder, value)
@@ -66,8 +65,8 @@ initCreate viewer =
         |> withNoCmd
 
 
-initDisplay : Viewer -> PollIdentifier -> ( Model, Cmd Message )
-initDisplay viewer pollIdentifier =
+initDisplay : Viewer -> PollDiscriminator -> ( Model, Cmd Message )
+initDisplay viewer pollDiscriminator =
     { viewer = viewer
     , state = Success
     , mode = Update
@@ -75,7 +74,7 @@ initDisplay viewer pollIdentifier =
     , poll = Nothing
     }
         |> withCmd
-            [ Api.Polls.getPoll (Session.viewerCredentials viewer) pollIdentifier GotPollDisplaySuccess
+            [ Api.Polls.getPoll (Session.viewerCredentials viewer) pollDiscriminator GotPollDisplaySuccess
                 |> Task.mapError (always GotPollDisplayError)
                 |> Task.Extra.execute
             ]
@@ -128,7 +127,7 @@ update message model =
                 |> withCmd
                     [ Route.replaceUrl
                         (Session.viewerNavKey model.viewer)
-                        (Route.DisplayPoll (PollIdentifier poll.idPoll))
+                        (Route.DisplayPoll (PollDiscriminator poll.idPoll))
                     ]
 
         GotUpdateError ->
@@ -188,12 +187,9 @@ inputTitle model =
 
 extractTitle : Model -> String
 extractTitle model =
-    case model.poll of
-        Just poll ->
-            poll.title
-
-        Nothing ->
-            ""
+    model.poll
+        |> Maybe.map .title
+        |> Maybe.withDefault ""
 
 
 buttonPollTitle : PollMode -> CreationState -> Html Message
