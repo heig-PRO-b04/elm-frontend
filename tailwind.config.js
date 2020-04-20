@@ -37,10 +37,13 @@ module.exports = {
     },
   },
   variants: {
-    borderWidth: ['responsive', 'hover', 'focus'],
-    display: ['responsive', 'group-hover'],
-    rotate: ['responsive', 'hover', 'focus', 'group-hover'],
-    scale: ['responsive', 'hover', 'focus', 'group-hover'],
+    backgroundColor:  ['responsive', 'hover', 'focus', 'active', 'group-hover'],
+    borderWidth:      ['responsive', 'hover', 'focus', 'active', 'group-hover'],
+    boxShadow:        ['responsive', 'hover', 'focus', 'active', 'group-hover'],
+    display:          ['responsive', 'hover', 'focus', 'active', 'group-hover'],
+    rotate:           ['responsive', 'hover', 'focus', 'active', 'group-hover'],
+    scale:            ['responsive', 'hover', 'focus', 'active', 'group-hover'],
+    textColor:        ['responsive', 'hover', 'focus', 'active', 'group-hover'],
   },
   plugins: [],
 };
