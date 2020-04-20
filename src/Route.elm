@@ -6,11 +6,12 @@ module Route exposing
     , replaceUrl
     )
 
+import Api.Polls exposing (PollIdentifier)
 import Browser.Navigation as Nav
 import Html
 import Html.Attributes
 import Url exposing (Url)
-import Url.Parser as Parser exposing (Parser, oneOf, s)
+import Url.Parser as Parser exposing ((</>), Parser, oneOf, s)
 
 
 type Route
@@ -21,6 +22,7 @@ type Route
     | BadCredentials
     | Polls
     | NewPoll
+    | DisplayPoll PollIdentifier
 
 
 
@@ -65,6 +67,7 @@ parser =
         , Parser.map BadCredentials (s "disconnected")
         , Parser.map Polls (s "polls")
         , Parser.map NewPoll (s "newpoll")
+        , Parser.map DisplayPoll (s "displaypoll" </> Api.Polls.urlParser)
         ]
 
 
@@ -100,3 +103,6 @@ routeToPieces page =
 
         NewPoll ->
             [ "newpoll" ]
+
+        DisplayPoll poll ->
+            [ "displaypoll", String.fromInt poll.idPoll ]

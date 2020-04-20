@@ -34,6 +34,7 @@ type PageModel
     | QuitModel Quit.Model
     | PollModel Poll.Model
     | NewPollModel NewPoll.Model
+    | DisplayPollModel NewPoll.Model
 
 
 
@@ -98,6 +99,9 @@ toSession model =
         NewPollModel m ->
             Session.toSession m.viewer
 
+        DisplayPollModel m ->
+            Session.toSession m.viewer
+
 
 init : Maybe Api.Credentials -> Url.Url -> Nav.Key -> ( Model, Cmd Message )
 init credentials url key =
@@ -159,6 +163,10 @@ view model =
                 NewPollModel newPollModel ->
                     NewPoll.view newPollModel
                         |> List.map (Html.map NewPollMessage)
+
+                DisplayPollModel displayPollModel ->
+                    NewPoll.view displayPollModel
+                        |> List.map (Html.map DisplayPollMessage)
     in
     { title = "heig-PRO-b04 | Live polls"
     , body = header :: contents
@@ -178,6 +186,7 @@ type Message
     | AuthMessage Auth.Message
     | PollMessage Poll.Message
     | NewPollMessage NewPoll.Message
+    | DisplayPollMessage NewPoll.Message
 
 
 update : Message -> Model -> ( Model, Cmd Message )
@@ -250,6 +259,14 @@ update msg model =
                 NewPoll.update
                 newPollMsg
                 newPollModel
+
+        ( DisplayPollMessage displayPollMsg, DisplayPollModel displayPollModel ) ->
+            updateWith
+                DisplayPollMessage
+                (embed model DisplayPollModel)
+                NewPoll.update
+                displayPollMsg
+                displayPollModel
 
         ( _, _ ) ->
             model
@@ -334,7 +351,18 @@ changeRouteTo route model =
                     initWith
                         NewPollMessage
                         (embed newModel NewPollModel)
-                        (NewPoll.init viewer)
+                        (NewPoll.initCreate viewer)
+
+                Nothing ->
+                    changeRouteTo (Just Route.Home) model
+
+        Just (Route.DisplayPoll poll) ->
+            case Session.toViewer session of
+                Just viewer ->
+                    initWith
+                        DisplayPollMessage
+                        (embed newModel DisplayPollModel)
+                        (NewPoll.initDisplay viewer poll)
 
                 Nothing ->
                     changeRouteTo (Just Route.Home) model
