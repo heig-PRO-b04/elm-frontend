@@ -7,9 +7,9 @@ import Cmd exposing (initWith, updateWith, withCmd, withNoCmd)
 import Html
 import Page.Authenticate as Auth
 import Page.BadCredentials as Disc
+import Page.DisplayPoll as NewPoll
 import Page.Home as Home
 import Page.Logout as Quit
-import Page.NewPoll as NewPoll
 import Page.Polls as Poll
 import Picasso.Navigation as NavUI
 import Route exposing (Route)
