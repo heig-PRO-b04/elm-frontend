@@ -332,8 +332,8 @@ changeRouteTo route model =
             case Session.toViewer session of
                 Just viewer ->
                     initWith
-                        NewPollMessage
-                        (embed newModel NewPollModel)
+                        DisplayPollMessage
+                        (embed newModel DisplayPollModel)
                         (DisplayPoll.initCreate viewer)
 
                 Nothing ->
