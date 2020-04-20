@@ -1,13 +1,13 @@
-module Page.NewPoll exposing
+module Page.DisplayPoll exposing
     ( Message
     , Model
-    , init
+    , initCreate
+    , initDisplay
     , update
     , view
     )
 
-import Api
-import Api.Polls exposing (Poll)
+import Api.Polls exposing (Poll, PollDiscriminator)
 import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, placeholder, value)
@@ -26,6 +26,8 @@ type Message
     | ClickPollTitleButton
     | GotCreateError
     | GotCreateSuccess Poll
+    | GotPollDisplaySuccess Poll
+    | GotPollDisplayError
     | GotUpdateError
     | GotUpdateSuccess Poll
 
@@ -52,8 +54,8 @@ type alias Model =
     }
 
 
-init : Viewer -> ( Model, Cmd Message )
-init viewer =
+initCreate : Viewer -> ( Model, Cmd Message )
+initCreate viewer =
     { viewer = viewer
     , state = NotCreated
     , mode = Create
@@ -61,6 +63,21 @@ init viewer =
     , poll = Nothing
     }
         |> withNoCmd
+
+
+initDisplay : Viewer -> PollDiscriminator -> ( Model, Cmd Message )
+initDisplay viewer pollDiscriminator =
+    { viewer = viewer
+    , state = Success
+    , mode = Update
+    , titleInput = ""
+    , poll = Nothing
+    }
+        |> withCmd
+            [ Api.Polls.getPoll (Session.viewerCredentials viewer) pollDiscriminator GotPollDisplaySuccess
+                |> Task.mapError (always GotPollDisplayError)
+                |> Task.Extra.execute
+            ]
 
 
 update : Message -> Model -> ( Model, Cmd Message )
@@ -107,12 +124,12 @@ update message model =
                 , state = Success
                 , mode = Update
             }
-                |> withNoCmd
+                |> withCmd
+                    [ Route.replaceUrl
+                        (Session.viewerNavKey model.viewer)
+                        (Route.DisplayPoll (PollDiscriminator poll.idPoll))
+                    ]
 
-        --[ Route.replaceUrl
-        --    (Session.viewerNavKey model.viewer)
-        --    Route.Polls
-        --]
         GotUpdateError ->
             { model | state = BadNetwork }
                 |> withNoCmd
@@ -122,6 +139,17 @@ update message model =
                 | poll = Just poll
                 , state = Success
             }
+                |> withNoCmd
+
+        GotPollDisplaySuccess poll ->
+            { model
+                | poll = Just poll
+                , state = Success
+            }
+                |> withNoCmd
+
+        GotPollDisplayError ->
+            { model | state = BadNetwork }
                 |> withNoCmd
 
 
@@ -140,21 +168,28 @@ view model =
         , class "md:max-w-lg"
         ]
         [ styledH2 "Create a new poll"
-        , inputTitle <| model.titleInput
+        , inputTitle <| model
         , buttonPollTitle model.mode model.state
         ]
     ]
 
 
-inputTitle : String -> Html Message
-inputTitle content =
-    Input.inputWithTitle "Poll title"
+inputTitle : Model -> Html Message
+inputTitle model =
+    Input.inputWithTitle ("Poll title: " ++ extractTitle model)
         [ onInput WriteNewTitle
         , placeholder "Et tu, Brute?"
-        , value content
+        , value model.titleInput
         ]
         []
         |> withMargin
+
+
+extractTitle : Model -> String
+extractTitle model =
+    model.poll
+        |> Maybe.map .title
+        |> Maybe.withDefault ""
 
 
 buttonPollTitle : PollMode -> CreationState -> Html Message

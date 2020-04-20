@@ -1,6 +1,8 @@
 module Api.Polls exposing
     ( Poll, PollError(..)
-    , getAllPolls, delete, create, update
+    , getAllPolls, getPoll, delete, create, update
+    , urlParser
+    , PollDiscriminator
     )
 
 {-| A module that provides ways to manipulate and to communicate with the
@@ -9,12 +11,17 @@ backend about everything polls
 
 # Types
 
-@docs Poll, PollError
+@docs Poll, PollIdentifier, PollError
 
 
 # Endpoints
 
-@docs getAllPolls, delete, create, update
+@docs getAllPolls, getPoll, delete, create, update
+
+
+# urlParser
+
+@docs urlParser
 
 -}
 
@@ -23,6 +30,7 @@ import Http
 import Json.Decode exposing (Decoder, field)
 import Json.Encode
 import Task exposing (Task)
+import Url.Parser exposing ((</>), int, s, string)
 
 
 type PollError
@@ -36,6 +44,10 @@ type alias Poll =
     , idPoll : Int
     , title : String
     }
+
+
+type alias PollDiscriminator =
+    { idPoll : Int }
 
 
 {-| A command that will try to request the list of polls existing for a logged
@@ -62,6 +74,30 @@ getAllPolls credentials transform =
                     Http.BadStatus 404 ->
                         GotNotFound
 
+                    Http.BadStatus 403 ->
+                        GotBadCredentials
+
+                    _ ->
+                        GotBadNetwork
+            )
+        |> Task.map transform
+
+
+getPoll : Credentials -> PollDiscriminator -> (Poll -> a) -> Task PollError a
+getPoll credentials pollDiscriminator transform =
+    let
+        path =
+            "mod/" ++ String.fromInt (Api.moderatorId credentials) ++ "/poll/" ++ String.fromInt pollDiscriminator.idPoll
+    in
+    Api.get
+        { body =
+            Json.Encode.null
+        , endpoint = authenticated credentials |> withPath path
+        , decoder = pollDecoder
+        }
+        |> Task.mapError
+            (\error ->
+                case error of
                     Http.BadStatus 403 ->
                         GotBadCredentials
 
@@ -164,3 +200,8 @@ pollListDecoder : Decoder (List Poll)
 pollListDecoder =
     Json.Decode.list <|
         pollDecoder
+
+
+urlParser : Url.Parser.Parser (PollDiscriminator -> a) a
+urlParser =
+    Url.Parser.map PollDiscriminator int

@@ -7,9 +7,9 @@ import Cmd exposing (initWith, updateWith, withCmd, withNoCmd)
 import Html
 import Page.Authenticate as Auth
 import Page.BadCredentials as Disc
+import Page.DisplayPoll as DisplayPoll
 import Page.Home as Home
 import Page.Logout as Quit
-import Page.NewPoll as NewPoll
 import Page.Polls as Poll
 import Picasso.Navigation as NavUI
 import Route exposing (Route)
@@ -33,7 +33,7 @@ type PageModel
     | DiscModel Disc.Model
     | QuitModel Quit.Model
     | PollModel Poll.Model
-    | NewPollModel NewPoll.Model
+    | DisplayPollModel DisplayPoll.Model
 
 
 
@@ -95,7 +95,7 @@ toSession model =
         PollModel m ->
             Session.toSession m.viewer
 
-        NewPollModel m ->
+        DisplayPollModel m ->
             Session.toSession m.viewer
 
 
@@ -156,9 +156,9 @@ view model =
                     Poll.view pollModel
                         |> List.map (Html.map PollMessage)
 
-                NewPollModel newPollModel ->
-                    NewPoll.view newPollModel
-                        |> List.map (Html.map NewPollMessage)
+                DisplayPollModel displayPollModel ->
+                    DisplayPoll.view displayPollModel
+                        |> List.map (Html.map DisplayPollMessage)
     in
     { title = "heig-PRO-b04 | Live polls"
     , body = header :: contents
@@ -177,7 +177,7 @@ type Message
     | DiscMessage Disc.Message
     | AuthMessage Auth.Message
     | PollMessage Poll.Message
-    | NewPollMessage NewPoll.Message
+    | DisplayPollMessage DisplayPoll.Message
 
 
 update : Message -> Model -> ( Model, Cmd Message )
@@ -243,13 +243,13 @@ update msg model =
                 pollMsg
                 pollModel
 
-        ( NewPollMessage newPollMsg, NewPollModel newPollModel ) ->
+        ( DisplayPollMessage displayPollMsg, DisplayPollModel displayPollModel ) ->
             updateWith
-                NewPollMessage
-                (embed model NewPollModel)
-                NewPoll.update
-                newPollMsg
-                newPollModel
+                DisplayPollMessage
+                (embed model DisplayPollModel)
+                DisplayPoll.update
+                displayPollMsg
+                displayPollModel
 
         ( _, _ ) ->
             model
@@ -332,9 +332,20 @@ changeRouteTo route model =
             case Session.toViewer session of
                 Just viewer ->
                     initWith
-                        NewPollMessage
-                        (embed newModel NewPollModel)
-                        (NewPoll.init viewer)
+                        DisplayPollMessage
+                        (embed newModel DisplayPollModel)
+                        (DisplayPoll.initCreate viewer)
+
+                Nothing ->
+                    changeRouteTo (Just Route.Home) model
+
+        Just (Route.DisplayPoll poll) ->
+            case Session.toViewer session of
+                Just viewer ->
+                    initWith
+                        DisplayPollMessage
+                        (embed newModel DisplayPollModel)
+                        (DisplayPoll.initDisplay viewer poll)
 
                 Nothing ->
                     changeRouteTo (Just Route.Home) model
