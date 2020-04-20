@@ -51,6 +51,7 @@ type Message
     | NowRequestPolls
     | NowDeletePoll Poll
     | NowSetOrder Sorting.Order
+    | NowDisplayPoll Poll
 
 
 update : Message -> Model -> ( Model, Cmd Message )
@@ -98,6 +99,14 @@ update message model =
 
         NowSetOrder order ->
             { model | order = order } |> withNoCmd
+
+        NowDisplayPoll poll ->
+            model
+                |> withCmd
+                    [ Route.replaceUrl
+                        (Session.viewerNavKey model.viewer)
+                        (Route.DisplayPoll { idPoll = poll.idPoll })
+                    ]
 
 
 {-| Request polls refresh every 10 seconds.
@@ -200,7 +209,9 @@ viewHeaderRow attrs html =
 viewPoll : Poll -> Html Message
 viewPoll poll =
     Html.tr
-        [ class " border-b hover:shadow-inner hover:bg-gray-100" ]
+        [ class " border-b active:shadow-inner hover:bg-gray-100"
+        , onClick <| NowDisplayPoll poll
+        ]
         [ Html.td
             [ class "py-3 px-4"
             , class "font-bold font-archivo break-all"
