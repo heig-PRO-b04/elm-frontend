@@ -21,44 +21,35 @@ import Task
 import Task.Extra
 
 
-type Message
-    = WriteNewTitle String
-    | ClickPollTitleButton
-    | GotCreateError
-    | RequestNavigateToPoll Poll
-    | GotNewPoll Poll
-    | GotPollDisplayError
-    | GotUpdateError
+
+-- MODEL
 
 
-type CreationState
-    = NotCreated
-    | Pending
-    | Success
-    | BadNetwork
+type PollError
+    = DisplayError
     | UpdateError
+    | CreateError
 
 
 type State
     = CreatingNew
     | LoadingFromExisting
     | Loaded Poll
+    | Error PollError
 
 
 type alias Model =
     { viewer : Viewer
-    , state : CreationState
     , titleInput : String
-    , state_ : State
+    , state : State
     }
 
 
 initCreate : Viewer -> ( Model, Cmd Message )
 initCreate viewer =
     { viewer = viewer
-    , state = NotCreated
     , titleInput = ""
-    , state_ = CreatingNew
+    , state = CreatingNew
     }
         |> withNoCmd
 
@@ -66,15 +57,26 @@ initCreate viewer =
 initDisplay : Viewer -> PollDiscriminator -> ( Model, Cmd Message )
 initDisplay viewer pollDiscriminator =
     { viewer = viewer
-    , state = Success
     , titleInput = ""
-    , state_ = LoadingFromExisting
+    , state = LoadingFromExisting
     }
         |> withCmd
             [ Api.Polls.getPoll (Session.viewerCredentials viewer) pollDiscriminator GotNewPoll
-                |> Task.mapError (always GotPollDisplayError)
+                |> Task.mapError (always <| GotError DisplayError)
                 |> Task.Extra.execute
             ]
+
+
+
+-- UPDATE
+
+
+type Message
+    = WriteNewTitle String
+    | ClickPollTitleButton
+    | RequestNavigateToPoll Poll
+    | GotNewPoll Poll
+    | GotError PollError
 
 
 update : Message -> Model -> ( Model, Cmd Message )
@@ -85,12 +87,12 @@ update message model =
                 |> withNoCmd
 
         ClickPollTitleButton ->
-            case model.state_ of
+            case model.state of
                 CreatingNew ->
-                    { model | state = Pending }
+                    model
                         |> withCmd
                             [ Api.Polls.create (Session.viewerCredentials model.viewer) model.titleInput RequestNavigateToPoll
-                                |> Task.mapError (always GotCreateError)
+                                |> Task.mapError (always <| GotError CreateError)
                                 |> Task.Extra.execute
                             ]
 
@@ -98,12 +100,15 @@ update message model =
                     model |> withNoCmd
 
                 Loaded poll ->
-                    { model | state = Pending }
+                    model
                         |> withCmd
                             [ Api.Polls.update (Session.viewerCredentials model.viewer) poll model.titleInput GotNewPoll
-                                |> Task.mapError (always GotUpdateError)
+                                |> Task.mapError (always <| GotError UpdateError)
                                 |> Task.Extra.execute
                             ]
+
+                Error _ ->
+                    model |> withNoCmd
 
         RequestNavigateToPoll poll ->
             model
@@ -113,32 +118,25 @@ update message model =
                         (Route.DisplayPoll (PollDiscriminator poll.idPoll))
                     ]
 
-        GotCreateError ->
-            { model | state = BadNetwork }
+        GotError error ->
+            { model | state = Error error }
                 |> withNoCmd
 
         GotNewPoll poll ->
             let
                 updated =
-                    { model | state_ = Loaded poll, state = Success }
+                    { model | state = Loaded poll }
             in
-            case model.state_ of
+            case model.state of
                 CreatingNew ->
                     updated |> withCmd [ Cmd.succeed <| RequestNavigateToPoll poll ]
 
-                LoadingFromExisting ->
+                _ ->
                     updated |> withNoCmd
 
-                Loaded _ ->
-                    updated |> withNoCmd
 
-        GotUpdateError ->
-            { model | state = BadNetwork }
-                |> withNoCmd
 
-        GotPollDisplayError ->
-            { model | state = BadNetwork }
-                |> withNoCmd
+-- VIEW
 
 
 view : Model -> List (Html Message)
@@ -175,7 +173,7 @@ inputTitle model =
 
 extractTitle : Model -> String
 extractTitle model =
-    case model.state_ of
+    case model.state of
         Loaded poll ->
             poll.title
 
@@ -183,35 +181,25 @@ extractTitle model =
             ""
 
 
-buttonPollTitle : CreationState -> Html Message
+buttonPollTitle : State -> Html Message
 buttonPollTitle state =
     let
-        fillIn =
-            if state == Pending then
-                filledDisabled
-
-            else
-                filled ++ elevated ++ [ onClick ClickPollTitleButton ]
-
         message =
             case state of
-                NotCreated ->
-                    "Create poll"
+                Loaded poll ->
+                    "Update"
 
-                Pending ->
-                    "Loading..."
+                LoadingFromExisting ->
+                    "Loading"
 
-                Success ->
-                    "Poll updated !"
+                CreatingNew ->
+                    "Create"
 
-                BadNetwork ->
-                    "Network error"
-
-                UpdateError ->
+                Error error ->
                     "Update error"
     in
     button
-        (fillIn ++ [ class "mt-8" ])
+        (filled ++ elevated ++ [ onClick ClickPollTitleButton, class "mt-8" ])
         [ text message ]
 
 
