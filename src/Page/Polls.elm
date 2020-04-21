@@ -8,7 +8,9 @@ module Page.Polls exposing
     )
 
 import Api.Polls exposing (Poll)
+import Api.Sessions exposing (ServerSession)
 import Cmd exposing (withCmd, withNoCmd)
+import Dict exposing (Dict)
 import Html exposing (Html, div, img, text)
 import Html.Attributes exposing (class, src)
 import Html.Events exposing (onClick)
@@ -28,6 +30,7 @@ import Time
 type alias Model =
     { viewer : Viewer
     , polls : List Poll
+    , sessionStatuses : Dict ( Int, Int ) PollStatus
     , order : Sorting.Order
     }
 
@@ -36,6 +39,7 @@ init : Viewer -> ( Model, Cmd Message )
 init viewer =
     { viewer = viewer
     , polls = []
+    , sessionStatuses = Dict.empty
     , order = Sorting.TitleAsc
     }
         |> withCmd [ Cmd.succeed NowRequestPolls ]
@@ -47,6 +51,7 @@ init viewer =
 
 type Message
     = GotAllPolls (List Poll)
+    | GotSessionStatus Poll (Maybe Api.Sessions.SessionStatus)
     | GotInvalidCredentials
     | NowRequestPolls
     | NowDeletePoll Poll
@@ -57,8 +62,46 @@ type Message
 update : Message -> Model -> ( Model, Cmd Message )
 update message model =
     case message of
+        GotSessionStatus poll maybeStatus ->
+            let
+                status : PollStatus
+                status =
+                    case maybeStatus of
+                        Just Api.Sessions.Open ->
+                            Open
+
+                        Just Api.Sessions.Closed ->
+                            Closed
+
+                        Just Api.Sessions.Quarantined ->
+                            ClosedToNewcomers
+
+                        Nothing ->
+                            Closed
+
+                updated : Dict ( Int, Int ) PollStatus
+                updated =
+                    Dict.insert
+                        ( poll.idModerator, poll.idPoll )
+                        status
+                        model.sessionStatuses
+            in
+            { model | sessionStatuses = updated }
+                |> withNoCmd
+
         GotAllPolls polls ->
-            { model | polls = polls } |> withNoCmd
+            let
+                getSessionStatus : Poll -> Cmd Message
+                getSessionStatus poll =
+                    Api.Sessions.getSession (Session.viewerCredentials model.viewer) identity poll
+                        |> Task.mapError (always <| GotSessionStatus poll Nothing)
+                        |> Task.map (\status -> status.status)
+                        |> Task.map (\status -> GotSessionStatus poll (Just status))
+                        |> Task.Extra.execute
+            in
+            { model | polls = polls }
+                |> withCmd
+                    (List.map getSessionStatus polls)
 
         GotInvalidCredentials ->
             model
@@ -126,10 +169,22 @@ that navigates to the poll creation screen.
 view : Model -> List (Html Message)
 view model =
     let
-        sorted =
+        pollToPair :
+            Dict ( Int, Int ) PollStatus
+            -> Poll
+            -> ( Poll, PollStatus )
+        pollToPair dict poll =
+            Dict.get ( poll.idModerator, poll.idPoll ) dict
+                |> Maybe.withDefault Loading
+                |> (\status -> ( poll, status ))
+
+        polls =
             List.sortWith (Sorting.ordering model.order) model.polls
+
+        mapped =
+            polls |> List.map (pollToPair model.sessionStatuses)
     in
-    [ viewTable model.order sorted ] ++ [ fab ]
+    [ viewTable model.order mapped ] ++ [ fab ]
 
 
 {-| The floating action button that enables navigation to the new poll screen.
@@ -145,13 +200,13 @@ fab =
         ]
 
 
-viewTable : Sorting.Order -> List Poll -> Html Message
+viewTable : Sorting.Order -> List ( Poll, PollStatus ) -> Html Message
 viewTable order polls =
     div [ class "align-middle mx-2 md:mx-8 mt-8 mb-32" ]
         [ Html.table [ class "min-w-full center border rounded-lg overflow-hidden shadow" ]
             [ Html.thead [] [ viewHeader order ]
             , Html.tbody [ class "bg-white" ]
-                (List.map viewPoll polls)
+                (List.map (\( poll, status ) -> viewPoll poll status) polls)
             ]
         ]
 
@@ -206,8 +261,8 @@ viewHeaderRow attrs html =
     Html.th (base ++ attrs) html
 
 
-viewPoll : Poll -> Html Message
-viewPoll poll =
+viewPoll : Poll -> PollStatus -> Html Message
+viewPoll poll status =
     Html.tr
         [ class " border-b active:shadow-inner hover:bg-gray-100"
         ]
@@ -219,7 +274,7 @@ viewPoll poll =
             [ text poll.title ]
         , Html.td
             [ class "py-2" ]
-            [ pill Closed ]
+            [ pill status ]
         , Html.td
             [ class "text-right px-8" ]
             [ Html.button
@@ -254,7 +309,7 @@ pill status =
                     ( "Closed to newcomers", class "bg-seaside-400 text-white shadow" )
 
                 Loading ->
-                    ( "Loading", class "hidden" )
+                    ( "Loading", class "bg-gray-100 text-gray-400 border border-gray-400" )
     in
     div
         [ class "rounded-full py-0 px-4"
