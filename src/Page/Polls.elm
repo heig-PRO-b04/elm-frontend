@@ -210,11 +210,11 @@ viewPoll : Poll -> Html Message
 viewPoll poll =
     Html.tr
         [ class " border-b active:shadow-inner hover:bg-gray-100"
-        , onClick <| NowDisplayPoll poll
         ]
         [ Html.td
             [ class "py-3 px-4"
             , class "font-bold font-archivo break-all"
+            , onClick <| NowDisplayPoll poll
             ]
             [ text poll.title ]
         , Html.td
