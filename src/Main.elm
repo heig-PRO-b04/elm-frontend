@@ -264,6 +264,11 @@ subscriptions model =
                 PollMessage
                 (Poll.subscriptions pollModel)
 
+        DisplayPollModel displayPollModel ->
+            Sub.map
+                DisplayPollMessage
+                (DisplayPoll.subscriptions displayPollModel)
+
         _ ->
             Sub.none
 

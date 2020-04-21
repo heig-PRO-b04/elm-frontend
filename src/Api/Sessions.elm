@@ -4,6 +4,7 @@ module Api.Sessions exposing
     , SessionError(..)
     , SessionStatus(..)
     , getSession
+    , putSession
     )
 
 import Api exposing (Credentials)
@@ -70,6 +71,33 @@ getSession :
 getSession credentials transform discriminator =
     Api.get
         { body = Json.Encode.null
+        , endpoint = sessionEndpoint discriminator credentials
+        , decoder = sessionDecoder
+        }
+        |> Task.mapError
+            (\error ->
+                case error of
+                    Http.BadStatus 404 ->
+                        GotNotFound
+
+                    Http.BadStatus 403 ->
+                        GotBadCredentials
+
+                    _ ->
+                        GotBadNetwork
+            )
+        |> Task.map transform
+
+
+putSession :
+    Credentials
+    -> ClientSession
+    -> { d | idPoll : Int }
+    -> (ServerSession -> a)
+    -> Task SessionError a
+putSession credentials session discriminator transform =
+    Api.put
+        { body = encodeSession session
         , endpoint = sessionEndpoint discriminator credentials
         , decoder = sessionDecoder
         }

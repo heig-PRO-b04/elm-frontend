@@ -3,11 +3,13 @@ module Page.DisplayPoll exposing
     , Model
     , initCreate
     , initDisplay
+    , subscriptions
     , update
     , view
     )
 
 import Api.Polls exposing (Poll, PollDiscriminator)
+import Api.Sessions
 import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, placeholder, value)
@@ -19,6 +21,7 @@ import Route
 import Session exposing (Session, Viewer)
 import Task
 import Task.Extra
+import Time
 
 
 
@@ -34,7 +37,7 @@ type PollError
 type State
     = CreatingNew
     | LoadingFromExisting
-    | Loaded Poll
+    | Loaded Poll (Maybe Api.Sessions.SessionStatus)
     | Error PollError
 
 
@@ -43,6 +46,16 @@ type alias Model =
     , titleInput : String
     , state : State
     }
+
+
+subscriptions : Model -> Sub Message
+subscriptions model =
+    case model.state of
+        Loaded poll _ ->
+            Time.every 1000 (always <| RequestSession { idPoll = poll.idPoll })
+
+        _ ->
+            Sub.none
 
 
 initCreate : Viewer -> ( Model, Cmd Message )
@@ -71,17 +84,57 @@ initDisplay viewer pollDiscriminator =
 -- UPDATE
 
 
-type Message
+type
+    Message
+    -- User interface.
     = WriteNewTitle String
     | ClickPollTitleButton
-    | RequestNavigateToPoll Poll
+    | ClickSessionStatus Api.Sessions.SessionStatus
+      -- Model updates
+    | RequestSession PollDiscriminator
     | GotNewPoll Poll
+    | GotSessionStatus Api.Sessions.SessionStatus
     | GotError PollError
+      -- Navigation
+    | RequestNavigateToPoll Poll
 
 
 update : Message -> Model -> ( Model, Cmd Message )
 update message model =
     case message of
+        RequestSession discriminator ->
+            model
+                |> withCmd
+                    [ Api.Sessions.getSession (Session.viewerCredentials model.viewer) identity discriminator
+                        |> Task.mapError (always <| GotError UpdateError)
+                        |> Task.map .status
+                        |> Task.map GotSessionStatus
+                        |> Task.Extra.execute
+                    ]
+
+        GotSessionStatus status ->
+            case model.state of
+                Loaded poll _ ->
+                    { model | state = Loaded poll <| Just status } |> withNoCmd
+
+                _ ->
+                    model |> withNoCmd
+
+        ClickSessionStatus status ->
+            case model.state of
+                Loaded poll _ ->
+                    model
+                        |> withCmd
+                            [ Api.Sessions.putSession (Session.viewerCredentials model.viewer) { status = status } poll identity
+                                |> Task.mapError (always <| GotError UpdateError)
+                                |> Task.map .status
+                                |> Task.map GotSessionStatus
+                                |> Task.Extra.execute
+                            ]
+
+                _ ->
+                    model |> withNoCmd
+
         WriteNewTitle title ->
             { model | titleInput = title }
                 |> withNoCmd
@@ -99,7 +152,7 @@ update message model =
                 LoadingFromExisting ->
                     model |> withNoCmd
 
-                Loaded poll ->
+                Loaded poll _ ->
                     model
                         |> withCmd
                             [ Api.Polls.update (Session.viewerCredentials model.viewer) poll model.titleInput GotNewPoll
@@ -119,13 +172,18 @@ update message model =
                     ]
 
         GotError error ->
-            { model | state = Error error }
-                |> withNoCmd
+            case model.state of
+                Loaded _ _ ->
+                    model |> withNoCmd
+
+                _ ->
+                    { model | state = Error error }
+                        |> withNoCmd
 
         GotNewPoll poll ->
             let
                 updated =
-                    { model | state = Loaded poll }
+                    { model | state = Loaded poll Nothing }
             in
             case model.state of
                 CreatingNew ->
@@ -157,7 +215,19 @@ view model =
         , inputTitle <| model
         , buttonPollTitle model.state
         ]
+    , div []
+        [ switchMode Api.Sessions.Open "Open"
+        , switchMode Api.Sessions.Closed "Close"
+        , switchMode Api.Sessions.Quarantined "Close to newcomers"
+        ]
     ]
+
+
+switchMode : Api.Sessions.SessionStatus -> String -> Html Message
+switchMode status contents =
+    Html.button
+        [ class "block", onClick (ClickSessionStatus status) ]
+        [ text contents ]
 
 
 inputTitle : Model -> Html Message
@@ -174,8 +244,21 @@ inputTitle model =
 extractTitle : Model -> String
 extractTitle model =
     case model.state of
-        Loaded poll ->
+        Loaded poll status ->
             poll.title
+                ++ (case status of
+                        Just Api.Sessions.Closed ->
+                            " Closed"
+
+                        Just Api.Sessions.Quarantined ->
+                            " Quarantined"
+
+                        Just Api.Sessions.Open ->
+                            " Open"
+
+                        Nothing ->
+                            " Not set"
+                   )
 
         _ ->
             ""
@@ -186,7 +269,7 @@ buttonPollTitle state =
     let
         message =
             case state of
-                Loaded poll ->
+                Loaded poll _ ->
                     "Update"
 
                 LoadingFromExisting ->
