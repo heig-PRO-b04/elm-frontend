@@ -25,11 +25,10 @@ type Message
     = WriteNewTitle String
     | ClickPollTitleButton
     | GotCreateError
-    | GotCreateSuccess Poll
-    | GotPollDisplaySuccess Poll
+    | RequestNavigateToPoll Poll
+    | GotNewPoll Poll
     | GotPollDisplayError
     | GotUpdateError
-    | GotUpdateSuccess Poll
 
 
 type CreationState
@@ -40,17 +39,17 @@ type CreationState
     | UpdateError
 
 
-type PollMode
-    = Create
-    | Update
+type State
+    = CreatingNew
+    | LoadingFromExisting
+    | Loaded Poll
 
 
 type alias Model =
     { viewer : Viewer
     , state : CreationState
-    , mode : PollMode
     , titleInput : String
-    , poll : Maybe Poll
+    , state_ : State
     }
 
 
@@ -58,9 +57,8 @@ initCreate : Viewer -> ( Model, Cmd Message )
 initCreate viewer =
     { viewer = viewer
     , state = NotCreated
-    , mode = Create
     , titleInput = ""
-    , poll = Nothing
+    , state_ = CreatingNew
     }
         |> withNoCmd
 
@@ -69,12 +67,11 @@ initDisplay : Viewer -> PollDiscriminator -> ( Model, Cmd Message )
 initDisplay viewer pollDiscriminator =
     { viewer = viewer
     , state = Success
-    , mode = Update
     , titleInput = ""
-    , poll = Nothing
+    , state_ = LoadingFromExisting
     }
         |> withCmd
-            [ Api.Polls.getPoll (Session.viewerCredentials viewer) pollDiscriminator GotPollDisplaySuccess
+            [ Api.Polls.getPoll (Session.viewerCredentials viewer) pollDiscriminator GotNewPoll
                 |> Task.mapError (always GotPollDisplayError)
                 |> Task.Extra.execute
             ]
@@ -88,64 +85,55 @@ update message model =
                 |> withNoCmd
 
         ClickPollTitleButton ->
-            case model.mode of
-                Create ->
+            case model.state_ of
+                CreatingNew ->
                     { model | state = Pending }
                         |> withCmd
-                            [ Api.Polls.create (Session.viewerCredentials model.viewer) model.titleInput GotCreateSuccess
+                            [ Api.Polls.create (Session.viewerCredentials model.viewer) model.titleInput RequestNavigateToPoll
                                 |> Task.mapError (always GotCreateError)
                                 |> Task.Extra.execute
                             ]
 
-                Update ->
-                    case model.poll of
-                        Just poll ->
-                            { model | state = Pending }
-                                |> withCmd
-                                    [ Api.Polls.update (Session.viewerCredentials model.viewer) poll model.titleInput GotUpdateSuccess
-                                        |> Task.mapError (always GotUpdateError)
-                                        |> Task.Extra.execute
-                                    ]
+                LoadingFromExisting ->
+                    model |> withNoCmd
 
-                        Nothing ->
-                            { model | state = UpdateError }
-                                |> withNoCmd
+                Loaded poll ->
+                    { model | state = Pending }
+                        |> withCmd
+                            [ Api.Polls.update (Session.viewerCredentials model.viewer) poll model.titleInput GotNewPoll
+                                |> Task.mapError (always GotUpdateError)
+                                |> Task.Extra.execute
+                            ]
 
-        GotCreateError ->
-            { model
-                | poll = Nothing
-                , state = BadNetwork
-            }
-                |> withNoCmd
-
-        GotCreateSuccess poll ->
-            { model
-                | poll = Just poll
-                , state = Success
-                , mode = Update
-            }
+        RequestNavigateToPoll poll ->
+            model
                 |> withCmd
                     [ Route.replaceUrl
                         (Session.viewerNavKey model.viewer)
                         (Route.DisplayPoll (PollDiscriminator poll.idPoll))
                     ]
 
-        GotUpdateError ->
+        GotCreateError ->
             { model | state = BadNetwork }
                 |> withNoCmd
 
-        GotUpdateSuccess poll ->
-            { model
-                | poll = Just poll
-                , state = Success
-            }
-                |> withNoCmd
+        GotNewPoll poll ->
+            let
+                updated =
+                    { model | state_ = Loaded poll, state = Success }
+            in
+            case model.state_ of
+                CreatingNew ->
+                    updated |> withCmd [ Cmd.succeed <| RequestNavigateToPoll poll ]
 
-        GotPollDisplaySuccess poll ->
-            { model
-                | poll = Just poll
-                , state = Success
-            }
+                LoadingFromExisting ->
+                    updated |> withNoCmd
+
+                Loaded _ ->
+                    updated |> withNoCmd
+
+        GotUpdateError ->
+            { model | state = BadNetwork }
                 |> withNoCmd
 
         GotPollDisplayError ->
@@ -169,7 +157,7 @@ view model =
         ]
         [ styledH2 "Create a new poll"
         , inputTitle <| model
-        , buttonPollTitle model.mode model.state
+        , buttonPollTitle model.state
         ]
     ]
 
@@ -187,13 +175,16 @@ inputTitle model =
 
 extractTitle : Model -> String
 extractTitle model =
-    model.poll
-        |> Maybe.map .title
-        |> Maybe.withDefault ""
+    case model.state_ of
+        Loaded poll ->
+            poll.title
+
+        _ ->
+            ""
 
 
-buttonPollTitle : PollMode -> CreationState -> Html Message
-buttonPollTitle mode state =
+buttonPollTitle : CreationState -> Html Message
+buttonPollTitle state =
     let
         fillIn =
             if state == Pending then
@@ -211,12 +202,7 @@ buttonPollTitle mode state =
                     "Loading..."
 
                 Success ->
-                    case mode of
-                        Create ->
-                            "Poll created !"
-
-                        Update ->
-                            "Title changed !"
+                    "Poll updated !"
 
                 BadNetwork ->
                     "Network error"
