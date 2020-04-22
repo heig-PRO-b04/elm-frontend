@@ -14,7 +14,7 @@ import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, placeholder, value)
 import Html.Events exposing (onClick, onInput)
-import Picasso.Button exposing (button, elevated, filled, filledDisabled)
+import Picasso.Button as Picasso exposing (button, elevated, filled, filledDisabled)
 import Picasso.Input as Input
 import Picasso.Text exposing (styledH2)
 import Route
@@ -37,7 +37,7 @@ type PollError
 type State
     = CreatingNew
     | LoadingFromExisting
-    | Loaded Poll (Maybe Api.Sessions.SessionStatus)
+    | Loaded Poll (Maybe Api.Sessions.ServerSession)
     | Error PollError
 
 
@@ -93,7 +93,7 @@ type
       -- Model updates
     | RequestSession PollDiscriminator
     | GotNewPoll Poll
-    | GotSessionStatus Api.Sessions.SessionStatus
+    | GotSessionStatus Api.Sessions.ServerSession
     | GotError PollError
       -- Navigation
     | RequestNavigateToPoll Poll
@@ -107,7 +107,6 @@ update message model =
                 |> withCmd
                     [ Api.Sessions.getSession (Session.viewerCredentials model.viewer) identity discriminator
                         |> Task.mapError (always <| GotError UpdateError)
-                        |> Task.map .status
                         |> Task.map GotSessionStatus
                         |> Task.Extra.execute
                     ]
@@ -127,7 +126,6 @@ update message model =
                         |> withCmd
                             [ Api.Sessions.putSession (Session.viewerCredentials model.viewer) { status = status } poll identity
                                 |> Task.mapError (always <| GotError UpdateError)
-                                |> Task.map .status
                                 |> Task.map GotSessionStatus
                                 |> Task.Extra.execute
                             ]
@@ -225,14 +223,14 @@ view model =
 
 switchMode : Api.Sessions.SessionStatus -> String -> Html Message
 switchMode status contents =
-    Html.button
-        [ class "block", onClick (ClickSessionStatus status) ]
+    Picasso.button
+        (Picasso.filled ++ [ class "block m-4", onClick (ClickSessionStatus status) ])
         [ text contents ]
 
 
 inputTitle : Model -> Html Message
 inputTitle model =
-    Input.inputWithTitle ("Poll title: " ++ extractTitle model)
+    Input.inputWithTitle ("Poll title: " ++ extractTitle model ++ extractEmojiCode model)
         [ onInput WriteNewTitle
         , placeholder "Et tu, Brute?"
         , value model.titleInput
@@ -241,12 +239,75 @@ inputTitle model =
         |> withMargin
 
 
+extractEmojiCode : Model -> String
+extractEmojiCode model =
+    case model.state of
+        Loaded _ (Just status) ->
+            let
+                mapper emoji =
+                    case emoji of
+                        Api.Sessions.Emoji0 ->
+                            "0"
+
+                        Api.Sessions.Emoji1 ->
+                            "1"
+
+                        Api.Sessions.Emoji2 ->
+                            "2"
+
+                        Api.Sessions.Emoji3 ->
+                            "3"
+
+                        Api.Sessions.Emoji4 ->
+                            "4"
+
+                        Api.Sessions.Emoji5 ->
+                            "5"
+
+                        Api.Sessions.Emoji6 ->
+                            "6"
+
+                        Api.Sessions.Emoji7 ->
+                            "7"
+
+                        Api.Sessions.Emoji8 ->
+                            "8"
+
+                        Api.Sessions.Emoji9 ->
+                            "9"
+
+                        Api.Sessions.EmojiA ->
+                            "A"
+
+                        Api.Sessions.EmojiB ->
+                            "B"
+
+                        Api.Sessions.EmojiC ->
+                            "C"
+
+                        Api.Sessions.EmojiD ->
+                            "D"
+
+                        Api.Sessions.EmojiE ->
+                            "E"
+
+                        Api.Sessions.EmojiF ->
+                            "F"
+            in
+            List.map mapper status.code
+                |> String.concat
+                |> (\code -> " 0x" ++ code)
+
+        _ ->
+            "NO CODE"
+
+
 extractTitle : Model -> String
 extractTitle model =
     case model.state of
         Loaded poll status ->
             poll.title
-                ++ (case status of
+                ++ (case Maybe.map .status status of
                         Just Api.Sessions.Closed ->
                             " Closed"
 
