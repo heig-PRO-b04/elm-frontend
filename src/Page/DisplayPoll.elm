@@ -15,14 +15,13 @@ import Html.Attributes exposing (class, placeholder, value)
 import Html.Events exposing (onClick, onInput)
 import Page.DisplayPoll.Questions as Questions
 import Page.DisplayPoll.Session as Sessions
-import Picasso.Button as Picasso exposing (button, elevated, filled)
+import Picasso.Button exposing (button, elevated, filled)
 import Picasso.Input as Input
 import Picasso.Text exposing (styledH2)
 import Route
 import Session exposing (Session, Viewer)
 import Task
 import Task.Extra
-import Time
 
 
 
