@@ -84,19 +84,15 @@ initDisplay viewer pollDiscriminator =
 -- UPDATE
 
 
-type
-    Message
-    -- User interface.
+type Message
     = WriteNewTitle String
     | ClickPollTitleButton
-      -- Model updates
     | GotNewPoll Poll
     | GotError PollError
+    | RequestNavigateToPoll Poll
       -- Sub model
     | QuestionMessage Questions.Message
     | SessionMessage Sessions.Message
-      -- Navigation
-    | RequestNavigateToPoll Poll
 
 
 update : Message -> Model -> ( Model, Cmd Message )
