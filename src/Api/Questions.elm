@@ -21,7 +21,7 @@ backend about everything polls
 import Api exposing (Credentials, authenticated, get, moderatorId, withPath)
 import Api.Polls exposing (PollDiscriminator)
 import Http
-import Json.Decode exposing (Decoder, field)
+import Json.Decode exposing (Decoder, andThen, field)
 import Json.Encode
 import Task exposing (Task)
 
@@ -32,13 +32,19 @@ type QuestionError
     | GotBadNetwork
 
 
+type QuestionVisibility
+    = Hidden
+    | Archived
+    | Visible
+
+
 type alias ServerQuestion =
     { idModerator : Int
     , idPoll : Int
     , idQuestion : Int
     , title : String
     , details : String
-    , visibility : String
+    , visibility : QuestionVisibility
     , answersMin : Int
     , answersMax : Int
     }
@@ -47,7 +53,7 @@ type alias ServerQuestion =
 type alias ClientQuestion =
     { title : String
     , details : String
-    , visibility : String
+    , visibility : QuestionVisibility
     , answersMin : Int
     , answersMax : Int
     }
@@ -98,17 +104,20 @@ create credentials clientQuestion transform =
     let
         path =
             "mod/" ++ String.fromInt (Api.moderatorId credentials) ++ "/poll"
+
+        endpoint =
+            authenticated credentials |> withPath path
     in
     Api.post
         { body =
             Json.Encode.object
                 [ ( "title", Json.Encode.string clientQuestion.title )
                 , ( "details", Json.Encode.string clientQuestion.details )
-                , ( "visibility", Json.Encode.string clientQuestion.visibility )
+                , ( "visibility", Json.Encode.string (questionVisibilityToString clientQuestion.visibility) )
                 , ( "answersMin", Json.Encode.int clientQuestion.answersMin )
                 , ( "answersMax", Json.Encode.int clientQuestion.answersMax )
                 ]
-        , endpoint = authenticated credentials |> withPath path
+        , endpoint = endpoint
         , decoder = questionDecoder
         }
         |> Task.mapError
@@ -128,12 +137,15 @@ create credentials clientQuestion transform =
 delete : Credentials -> QuestionDiscriminator -> a -> Task QuestionError a
 delete credentials question return =
     let
-        path =
-            "mod/" ++ String.fromInt (Api.moderatorId credentials) ++ "/poll/" ++ String.fromInt question.idPoll ++ "/question/" ++ String.fromInt question.idQuestion
+        pathEnd =
+            "/" ++ String.fromInt question.idQuestion
+
+        endpoint =
+            questionEndpoint pathEnd question credentials
     in
     Api.delete
         { body = Json.Encode.null
-        , endpoint = authenticated credentials |> withPath path
+        , endpoint = endpoint
         , decoder = Json.Decode.succeed return
         }
         |> Task.mapError
@@ -150,24 +162,27 @@ delete credentials question return =
             )
 
 
-{-| Updates a poll with a specified title, and returns the created poll on success
+{-| Updates a question for a specific poll with the content of a ClientQuestion, and returns the updated question on success
 -}
 update : Credentials -> QuestionDiscriminator -> ClientQuestion -> (ServerQuestion -> a) -> Task QuestionError a
-update credentials questionDiscriminator clientQuestion transform =
+update credentials question clientQuestion transform =
     let
-        path =
-            "mod/" ++ String.fromInt (Api.moderatorId credentials) ++ "/poll/" ++ String.fromInt questionDiscriminator.idPoll
+        pathEnd =
+            "/" ++ String.fromInt question.idQuestion
+
+        endpoint =
+            questionEndpoint pathEnd question credentials
     in
     Api.put
         { body =
             Json.Encode.object
                 [ ( "title", Json.Encode.string clientQuestion.title )
                 , ( "details", Json.Encode.string clientQuestion.details )
-                , ( "visibility", Json.Encode.string clientQuestion.visibility )
+                , ( "visibility", Json.Encode.string (questionVisibilityToString clientQuestion.visibility) )
                 , ( "answersMin", Json.Encode.int clientQuestion.answersMin )
                 , ( "answersMax", Json.Encode.int clientQuestion.answersMax )
                 ]
-        , endpoint = authenticated credentials |> withPath path
+        , endpoint = endpoint
         , decoder = questionDecoder
         }
         |> Task.mapError
@@ -182,6 +197,50 @@ update credentials questionDiscriminator clientQuestion transform =
         |> Task.map transform
 
 
+questionEndpoint : String -> QuestionDiscriminator -> (Credentials -> Api.Endpoint)
+questionEndpoint path discriminator credentials =
+    Api.authenticated credentials
+        |> Api.withPath "mod/"
+        |> Api.withPath (String.fromInt (Api.moderatorId credentials))
+        |> Api.withPath "/poll/"
+        |> Api.withPath (String.fromInt discriminator.idPoll)
+        |> Api.withPath "/question"
+        |> Api.withPath path
+
+
+questionVisibilityToString : QuestionVisibility -> String
+questionVisibilityToString questionVisibility =
+    case questionVisibility of
+        Hidden ->
+            "hidden"
+
+        Archived ->
+            "archived"
+
+        Visible ->
+            "visible"
+
+
+questionVisibilityDecoder : Decoder QuestionVisibility
+questionVisibilityDecoder =
+    Json.Decode.string
+        |> Json.Decode.andThen
+            (\string ->
+                case string of
+                    "hidden" ->
+                        Json.Decode.succeed Hidden
+
+                    "archived" ->
+                        Json.Decode.succeed Archived
+
+                    "visible" ->
+                        Json.Decode.succeed Visible
+
+                    error ->
+                        Json.Decode.fail <| "Unknown visibility: " ++ error
+            )
+
+
 questionDecoder : Decoder ServerQuestion
 questionDecoder =
     Json.Decode.map8 ServerQuestion
@@ -190,7 +249,7 @@ questionDecoder =
         (field "idQuestion" Json.Decode.int)
         (field "title" Json.Decode.string)
         (field "details" Json.Decode.string)
-        (field "visibility" Json.Decode.string)
+        (field "visibility" questionVisibilityDecoder)
         (field "answersMin" Json.Decode.int)
         (field "answersMax" Json.Decode.int)
 

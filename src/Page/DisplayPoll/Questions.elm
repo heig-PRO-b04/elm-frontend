@@ -7,6 +7,7 @@ module Page.DisplayPoll.Questions exposing
     )
 
 import Api.Polls
+import Api.Questions
 import Html exposing (Html)
 import Html.Attributes exposing (class)
 import Html.Events exposing (onClick)
