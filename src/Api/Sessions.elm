@@ -12,6 +12,7 @@ import Api exposing (Credentials)
 import Http
 import Json.Decode exposing (Decoder)
 import Json.Encode
+import QRCode exposing (QRCode)
 import Task exposing (Task)
 
 
@@ -114,6 +115,7 @@ type alias ServerSession =
     , idPoll : Int
     , idSession : Int
     , code : List Emoji
+    , qr : QRCode
     , status : SessionStatus
     }
 
@@ -269,12 +271,27 @@ emojiListDecoder =
             )
 
 
+qrCodeDecoder : Decoder QRCode
+qrCodeDecoder =
+    Json.Decode.string
+        |> Json.Decode.andThen
+            (\chars ->
+                case QRCode.encode chars of
+                    Ok code ->
+                        Json.Decode.succeed code
+
+                    Err _ ->
+                        Json.Decode.fail "Could not build QRCode"
+            )
+
+
 sessionDecoder : Decoder ServerSession
 sessionDecoder =
-    Json.Decode.map5
+    Json.Decode.map6
         ServerSession
         (Json.Decode.field "idModerator" Json.Decode.int)
         (Json.Decode.field "idPoll" Json.Decode.int)
         (Json.Decode.field "idSession" Json.Decode.int)
         (Json.Decode.field "code" emojiListDecoder)
+        (Json.Decode.field "code" qrCodeDecoder)
         (Json.Decode.field "status" sessionStatusDecoder)

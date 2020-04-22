@@ -12,11 +12,17 @@ import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class)
 import Html.Events exposing (onClick)
+import Page.DisplayPoll.Session.Emoji as Emoji
 import Picasso.Button as Picasso
+import QRCode
 import Session exposing (Viewer)
 import Task
 import Task.Extra
 import Time
+
+
+
+-- MODEL
 
 
 type alias Model =
@@ -26,16 +32,20 @@ type alias Model =
     }
 
 
-type Message
-    = ClickStatus Api.SessionStatus
-    | GotSession (Maybe Api.ServerSession)
-    | RequestSession
-
-
 init : Viewer -> { p | idPoll : Int } -> ( Model, Cmd Message )
 init viewer discriminator =
     { viewer = viewer, idPoll = discriminator.idPoll, session = Nothing }
         |> withCmd [ Cmd.succeed RequestSession ]
+
+
+
+-- UPDATE
+
+
+type Message
+    = ClickStatus Api.SessionStatus
+    | GotSession (Maybe Api.ServerSession)
+    | RequestSession
 
 
 update : Message -> Model -> ( Model, Cmd Message )
@@ -51,9 +61,6 @@ update msg model =
                         |> Task.Extra.execute
                     ]
 
-        GotSession session ->
-            { model | session = session } |> withNoCmd
-
         RequestSession ->
             model
                 |> withCmd
@@ -63,6 +70,9 @@ update msg model =
                         |> Task.map (\session -> GotSession <| Just session)
                         |> Task.Extra.execute
                     ]
+
+        GotSession session ->
+            { model | session = session } |> withNoCmd
 
 
 subscriptions : Model -> Sub Message
@@ -76,20 +86,57 @@ subscriptions _ =
 
 view : Model -> List (Html Message)
 view model =
-    [ div []
-        [ text <| extractTitle model
-        , extractEmojiCode model
-        , switchMode Api.Open "Open"
-        , switchMode Api.Closed "Close"
-        , switchMode Api.Quarantined "Close to newcomers"
+    [ div
+        [ class "bg-white shadow m-0 mx-auto w-full md:w-1/2 md:max-w-lg"
+        , class "md:rounded-lg"
+        , class "flex flex-col items-center"
+        , class "p-8"
+        , class "mt-4"
+        ]
+        [ viewTitle [ class "self-start" ] model
+        , extractQrCode model |> Maybe.withDefault (div [] [])
+        , extractEmojiCode model |> Maybe.withDefault (div [] [])
+        , div [ class "flex flex-row justify-between" ]
+            [ switchMode Api.Open "Open"
+            , switchMode Api.Closed "Close"
+            , switchMode Api.Quarantined "Close to newcomers"
+            ]
         ]
     ]
+
+
+viewTitle : List (Html.Attribute msg) -> Model -> Html msg
+viewTitle attrs model =
+    let
+        state =
+            model.session
+                |> Maybe.map .status
+                |> Maybe.withDefault Api.Closed
+
+        spanAttrs =
+            [ class "font-archivo text-2xl font-semibold" ]
+
+        span =
+            case state of
+                Api.Closed ->
+                    Html.span ([ class "text-red-500" ] ++ spanAttrs) [ text "closed ⛔️" ]
+
+                Api.Quarantined ->
+                    Html.span ([ class "text-orange-500" ] ++ spanAttrs) [ text "closed to newcomers ⚠️" ]
+
+                Api.Open ->
+                    Html.span ([ class "text-green-500" ] ++ spanAttrs) [ text "open ✅" ]
+    in
+    div attrs
+        [ Html.span spanAttrs [ text "This poll is " ]
+        , span
+        ]
 
 
 switchMode : Api.SessionStatus -> String -> Html Message
 switchMode status contents =
     Picasso.button
-        (Picasso.filled ++ [ class "block m-4", onClick (ClickStatus status) ])
+        (Picasso.filled ++ [ onClick (ClickStatus status) ])
         [ text contents ]
 
 
@@ -111,65 +158,33 @@ extractTitle model =
             ""
 
 
-extractEmojiCode : Model -> Html msg
+extractQrCode : Model -> Maybe (Html msg)
+extractQrCode model =
+    case model.session of
+        Just session ->
+            case session.status of
+                Api.Open ->
+                    Just (QRCode.toSvg session.qr)
+
+                _ ->
+                    Nothing
+
+        Nothing ->
+            Nothing
+
+
+extractEmojiCode : Model -> Maybe (Html msg)
 extractEmojiCode model =
     case model.session of
         Just session ->
-            let
-                mapper emoji =
-                    case emoji of
-                        Api.Emoji0 ->
-                            "0"
+            case session.status of
+                Api.Open ->
+                    List.map (Emoji.img [ class "inline-block mx-2" ] []) session.code
+                        |> div []
+                        |> Just
 
-                        Api.Emoji1 ->
-                            "1"
+                _ ->
+                    Nothing
 
-                        Api.Emoji2 ->
-                            "2"
-
-                        Api.Emoji3 ->
-                            "3"
-
-                        Api.Emoji4 ->
-                            "4"
-
-                        Api.Emoji5 ->
-                            "5"
-
-                        Api.Emoji6 ->
-                            "6"
-
-                        Api.Emoji7 ->
-                            "7"
-
-                        Api.Emoji8 ->
-                            "8"
-
-                        Api.Emoji9 ->
-                            "9"
-
-                        Api.EmojiA ->
-                            "a"
-
-                        Api.EmojiB ->
-                            "b"
-
-                        Api.EmojiC ->
-                            "c"
-
-                        Api.EmojiD ->
-                            "d"
-
-                        Api.EmojiE ->
-                            "e"
-
-                        Api.EmojiF ->
-                            "f"
-            in
-            List.map mapper session.code
-                |> List.map (\letter -> "/emoji/emoji_" ++ letter ++ ".png")
-                |> List.map (\path -> Html.img [ Html.Attributes.src path, class "w-8 h-8 inline-block" ] [])
-                |> div []
-
-        _ ->
-            text "NO CODE"
+        Nothing ->
+            Nothing

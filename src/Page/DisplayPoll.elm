@@ -202,38 +202,40 @@ update message model =
 view : Model -> List (Html Message)
 view model =
     let
+        prepended =
+            case model.state of
+                Loaded _ _ sModel ->
+                    List.map (Html.map SessionMessage) (Sessions.view sModel)
+
+                _ ->
+                    []
+
         appended =
             case model.state of
-                Loaded _ qModel sModel ->
-                    let
-                        qHtml =
-                            List.map (Html.map QuestionMessage) (Questions.view qModel)
-
-                        sHtml =
-                            List.map (Html.map SessionMessage) (Sessions.view sModel)
-                    in
-                    sHtml ++ qHtml
+                Loaded _ qModel _ ->
+                    List.map (Html.map QuestionMessage) (Questions.view qModel)
 
                 _ ->
                     []
     in
-    [ div
-        [ class "flex flex-col"
-        , class "m-auto my-4 md:my-16"
+    prepended
+        ++ [ div
+                [ class "flex flex-col"
+                , class "m-auto my-4 md:my-16"
 
-        -- Card appearance
-        , class "bg-white"
-        , class "shadow"
-        , class "p-8"
-        , class "md:rounded-lg"
-        , class "md:w-1/2"
-        , class "md:max-w-lg"
-        ]
-        [ styledH2 "Create a new poll"
-        , inputTitle <| model
-        , buttonPollTitle model.state
-        ]
-    ]
+                -- Card appearance
+                , class "bg-white"
+                , class "shadow"
+                , class "p-8"
+                , class "md:rounded-lg"
+                , class "md:w-1/2"
+                , class "md:max-w-lg"
+                ]
+                [ styledH2 "Create a new poll"
+                , inputTitle <| model
+                , buttonPollTitle model.state
+                ]
+           ]
         ++ appended
 
 
