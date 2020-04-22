@@ -96,13 +96,33 @@ view model =
         [ viewTitle [ class "self-start" ] model
         , extractQrCode model |> Maybe.withDefault (div [] [])
         , extractEmojiCode model |> Maybe.withDefault (div [] [])
-        , div [ class "flex flex-row justify-between" ]
-            [ switchMode Api.Open "Open"
-            , switchMode Api.Closed "Close"
-            , switchMode Api.Quarantined "Close to newcomers"
-            ]
+        , viewButtons model
         ]
     ]
+
+
+viewButtons : Model -> Html Message
+viewButtons model =
+    let
+        status =
+            Maybe.map .status model.session |> Maybe.withDefault Api.Closed
+    in
+    case status of
+        Api.Closed ->
+            div [ class "flex flex-row justify-between" ]
+                [ switchMode Api.Open "Open"
+                ]
+
+        Api.Quarantined ->
+            div [ class "flex flex-row justify-between" ]
+                [ switchMode Api.Closed "Close"
+                ]
+
+        Api.Open ->
+            div [ class "flex flex-row justify-between" ]
+                [ switchMode Api.Closed "Close"
+                , switchMode Api.Quarantined "Close to newcomers"
+                ]
 
 
 viewTitle : List (Html.Attribute msg) -> Model -> Html msg
