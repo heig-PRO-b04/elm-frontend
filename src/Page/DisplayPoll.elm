@@ -231,7 +231,13 @@ view model =
                 , class "md:w-1/2"
                 , class "md:max-w-lg"
                 ]
-                [ styledH2 "Create a new poll"
+                [ styledH2 <|
+                    case model.state of
+                        Loaded poll _ _ ->
+                            poll.title
+
+                        _ ->
+                            "Create a poll"
                 , inputTitle <| model
                 , buttonPollTitle model.state
                 ]
@@ -258,7 +264,7 @@ buttonPollTitle state =
         message =
             case state of
                 Loaded poll _ _ ->
-                    "Update"
+                    "Update title"
 
                 LoadingFromExisting ->
                     "Loading"
