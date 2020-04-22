@@ -258,16 +258,19 @@ switchMode status contents =
 
 inputTitle : Model -> Html Message
 inputTitle model =
-    Input.inputWithTitle ("Poll title: " ++ extractTitle model ++ extractEmojiCode model)
-        [ onInput WriteNewTitle
-        , placeholder "Et tu, Brute?"
-        , value model.titleInput
+    div []
+        [ Input.inputWithTitle ("Poll title: " ++ extractTitle model)
+            [ onInput WriteNewTitle
+            , placeholder "Et tu, Brute?"
+            , value model.titleInput
+            ]
+            []
+            |> withMargin
+        , extractEmojiCode model
         ]
-        []
-        |> withMargin
 
 
-extractEmojiCode : Model -> String
+extractEmojiCode : Model -> Html msg
 extractEmojiCode model =
     case model.state of
         Loaded _ _ (Just status) ->
@@ -305,29 +308,30 @@ extractEmojiCode model =
                             "9"
 
                         Api.Sessions.EmojiA ->
-                            "A"
+                            "a"
 
                         Api.Sessions.EmojiB ->
-                            "B"
+                            "b"
 
                         Api.Sessions.EmojiC ->
-                            "C"
+                            "c"
 
                         Api.Sessions.EmojiD ->
-                            "D"
+                            "d"
 
                         Api.Sessions.EmojiE ->
-                            "E"
+                            "e"
 
                         Api.Sessions.EmojiF ->
-                            "F"
+                            "f"
             in
             List.map mapper status.code
-                |> String.concat
-                |> (\code -> " 0x" ++ code)
+                |> List.map (\letter -> "/emoji/emoji_" ++ letter ++ ".png")
+                |> List.map (\path -> Html.img [ Html.Attributes.src path, class "w-8 h-8 inline-block" ] [])
+                |> div []
 
         _ ->
-            "NO CODE"
+            text "NO CODE"
 
 
 extractTitle : Model -> String
