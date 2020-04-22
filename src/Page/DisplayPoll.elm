@@ -9,20 +9,19 @@ module Page.DisplayPoll exposing
     )
 
 import Api.Polls exposing (Poll, PollDiscriminator)
-import Api.Sessions
 import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, placeholder, value)
 import Html.Events exposing (onClick, onInput)
 import Page.DisplayPoll.Questions as Questions
-import Picasso.Button as Picasso exposing (button, elevated, filled, filledDisabled)
+import Page.DisplayPoll.Session as Sessions
+import Picasso.Button exposing (button, elevated, filled)
 import Picasso.Input as Input
 import Picasso.Text exposing (styledH2)
 import Route
 import Session exposing (Session, Viewer)
 import Task
 import Task.Extra
-import Time
 
 
 
@@ -38,7 +37,7 @@ type PollError
 type State
     = CreatingNew
     | LoadingFromExisting
-    | Loaded Poll Questions.Model (Maybe Api.Sessions.ServerSession)
+    | Loaded Poll Questions.Model Sessions.Model
     | Error PollError
 
 
@@ -52,8 +51,8 @@ type alias Model =
 subscriptions : Model -> Sub Message
 subscriptions model =
     case model.state of
-        Loaded poll _ _ ->
-            Time.every 1000 (always <| RequestSession { idPoll = poll.idPoll })
+        Loaded _ _ sessionModel ->
+            Sub.map SessionMessage (Sessions.subscriptions sessionModel)
 
         _ ->
             Sub.none
@@ -85,26 +84,32 @@ initDisplay viewer pollDiscriminator =
 -- UPDATE
 
 
-type
-    Message
-    -- User interface.
+type Message
     = WriteNewTitle String
     | ClickPollTitleButton
-    | ClickSessionStatus Api.Sessions.SessionStatus
-      -- Model updates
-    | RequestSession PollDiscriminator
     | GotNewPoll Poll
-    | GotSessionStatus Api.Sessions.ServerSession
     | GotError PollError
+    | RequestNavigateToPoll Poll
       -- Sub model
     | QuestionMessage Questions.Message
-      -- Navigation
-    | RequestNavigateToPoll Poll
+    | SessionMessage Sessions.Message
 
 
 update : Message -> Model -> ( Model, Cmd Message )
 update message model =
     case message of
+        SessionMessage subMessage ->
+            case model.state of
+                Loaded poll pModel sModel ->
+                    let
+                        ( updatedModel, cmd ) =
+                            Sessions.update subMessage sModel
+                    in
+                    ( { model | state = Loaded poll pModel updatedModel }, Cmd.map SessionMessage cmd )
+
+                _ ->
+                    model |> withNoCmd
+
         QuestionMessage subMessage ->
             case model.state of
                 Loaded poll pollModel session ->
@@ -113,37 +118,6 @@ update message model =
                             Questions.update subMessage pollModel
                     in
                     ( { model | state = Loaded poll updatedModel session }, Cmd.map QuestionMessage cmd )
-
-                _ ->
-                    model |> withNoCmd
-
-        RequestSession discriminator ->
-            model
-                |> withCmd
-                    [ Api.Sessions.getSession (Session.viewerCredentials model.viewer) identity discriminator
-                        |> Task.mapError (always <| GotError UpdateError)
-                        |> Task.map GotSessionStatus
-                        |> Task.Extra.execute
-                    ]
-
-        GotSessionStatus status ->
-            case model.state of
-                Loaded poll pollModel _ ->
-                    { model | state = Loaded poll pollModel <| Just status } |> withNoCmd
-
-                _ ->
-                    model |> withNoCmd
-
-        ClickSessionStatus status ->
-            case model.state of
-                Loaded poll _ _ ->
-                    model
-                        |> withCmd
-                            [ Api.Sessions.putSession (Session.viewerCredentials model.viewer) { status = status } poll identity
-                                |> Task.mapError (always <| GotError UpdateError)
-                                |> Task.map GotSessionStatus
-                                |> Task.Extra.execute
-                            ]
 
                 _ ->
                     model |> withNoCmd
@@ -195,18 +169,30 @@ update message model =
 
         GotNewPoll poll ->
             let
-                ( pollModel, cmd ) =
+                ( questionModel, questionCmd ) =
                     Questions.init poll
 
+                ( sessionModel, sessionCmd ) =
+                    Sessions.init model.viewer poll
+
                 updated =
-                    { model | state = Loaded poll pollModel Nothing }
+                    { model | state = Loaded poll questionModel sessionModel }
             in
             case model.state of
                 CreatingNew ->
-                    updated |> withCmd [ Cmd.succeed <| RequestNavigateToPoll poll ]
+                    updated
+                        |> withCmd
+                            [ Cmd.succeed <| RequestNavigateToPoll poll
+                            , Cmd.map QuestionMessage questionCmd
+                            , Cmd.map SessionMessage sessionCmd
+                            ]
 
                 _ ->
-                    updated |> withNoCmd
+                    updated
+                        |> withCmd
+                            [ Cmd.map QuestionMessage questionCmd
+                            , Cmd.map SessionMessage sessionCmd
+                            ]
 
 
 
@@ -218,8 +204,15 @@ view model =
     let
         appended =
             case model.state of
-                Loaded _ pollModel _ ->
-                    List.map (Html.map QuestionMessage) (Questions.view pollModel)
+                Loaded _ qModel sModel ->
+                    let
+                        qHtml =
+                            List.map (Html.map QuestionMessage) (Questions.view qModel)
+
+                        sHtml =
+                            List.map (Html.map SessionMessage) (Sessions.view sModel)
+                    in
+                    sHtml ++ qHtml
 
                 _ ->
                     []
@@ -240,117 +233,21 @@ view model =
         , inputTitle <| model
         , buttonPollTitle model.state
         ]
-    , div []
-        [ switchMode Api.Sessions.Open "Open"
-        , switchMode Api.Sessions.Closed "Close"
-        , switchMode Api.Sessions.Quarantined "Close to newcomers"
-        ]
     ]
         ++ appended
 
 
-switchMode : Api.Sessions.SessionStatus -> String -> Html Message
-switchMode status contents =
-    Picasso.button
-        (Picasso.filled ++ [ class "block m-4", onClick (ClickSessionStatus status) ])
-        [ text contents ]
-
-
 inputTitle : Model -> Html Message
 inputTitle model =
-    Input.inputWithTitle ("Poll title: " ++ extractTitle model ++ extractEmojiCode model)
-        [ onInput WriteNewTitle
-        , placeholder "Et tu, Brute?"
-        , value model.titleInput
+    div []
+        [ Input.inputWithTitle "Poll title: "
+            [ onInput WriteNewTitle
+            , placeholder "Et tu, Brute?"
+            , value model.titleInput
+            ]
+            []
+            |> withMargin
         ]
-        []
-        |> withMargin
-
-
-extractEmojiCode : Model -> String
-extractEmojiCode model =
-    case model.state of
-        Loaded _ _ (Just status) ->
-            let
-                mapper emoji =
-                    case emoji of
-                        Api.Sessions.Emoji0 ->
-                            "0"
-
-                        Api.Sessions.Emoji1 ->
-                            "1"
-
-                        Api.Sessions.Emoji2 ->
-                            "2"
-
-                        Api.Sessions.Emoji3 ->
-                            "3"
-
-                        Api.Sessions.Emoji4 ->
-                            "4"
-
-                        Api.Sessions.Emoji5 ->
-                            "5"
-
-                        Api.Sessions.Emoji6 ->
-                            "6"
-
-                        Api.Sessions.Emoji7 ->
-                            "7"
-
-                        Api.Sessions.Emoji8 ->
-                            "8"
-
-                        Api.Sessions.Emoji9 ->
-                            "9"
-
-                        Api.Sessions.EmojiA ->
-                            "A"
-
-                        Api.Sessions.EmojiB ->
-                            "B"
-
-                        Api.Sessions.EmojiC ->
-                            "C"
-
-                        Api.Sessions.EmojiD ->
-                            "D"
-
-                        Api.Sessions.EmojiE ->
-                            "E"
-
-                        Api.Sessions.EmojiF ->
-                            "F"
-            in
-            List.map mapper status.code
-                |> String.concat
-                |> (\code -> " 0x" ++ code)
-
-        _ ->
-            "NO CODE"
-
-
-extractTitle : Model -> String
-extractTitle model =
-    case model.state of
-        Loaded poll _ status ->
-            poll.title
-                ++ (case Maybe.map .status status of
-                        Just Api.Sessions.Closed ->
-                            " Closed"
-
-                        Just Api.Sessions.Quarantined ->
-                            " Quarantined"
-
-                        Just Api.Sessions.Open ->
-                            " Open"
-
-                        Nothing ->
-                            " Not set"
-                   )
-
-        _ ->
-            ""
 
 
 buttonPollTitle : State -> Html Message
