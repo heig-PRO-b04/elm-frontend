@@ -170,7 +170,7 @@ update message model =
         GotNewPoll poll ->
             let
                 ( questionModel, questionCmd ) =
-                    Questions.init poll
+                    Questions.init model.viewer poll
 
                 ( sessionModel, sessionCmd ) =
                     Sessions.init model.viewer poll

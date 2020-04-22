@@ -11,6 +11,7 @@ import Api.Questions
 import Html exposing (Html)
 import Html.Attributes exposing (class)
 import Html.Events exposing (onClick)
+import Session exposing (Viewer)
 
 
 type alias Model =
@@ -22,8 +23,8 @@ type Message
     | Dec
 
 
-init : Api.Polls.Poll -> ( Model, Cmd Message )
-init poll =
+init : Viewer -> Api.Polls.Poll -> ( Model, Cmd Message )
+init _ poll =
     ( poll.idPoll, Cmd.none )
 
 

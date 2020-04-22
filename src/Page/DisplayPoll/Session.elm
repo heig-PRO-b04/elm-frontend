@@ -140,24 +140,6 @@ switchMode status contents =
         [ text contents ]
 
 
-extractTitle : Model -> String
-extractTitle model =
-    case model.session of
-        Just session ->
-            case session.status of
-                Api.Closed ->
-                    " Closed"
-
-                Api.Quarantined ->
-                    " Quarantined"
-
-                Api.Open ->
-                    " Open"
-
-        _ ->
-            ""
-
-
 extractQrCode : Model -> Maybe (Html msg)
 extractQrCode model =
     case model.session of
@@ -179,7 +161,7 @@ extractEmojiCode model =
         Just session ->
             case session.status of
                 Api.Open ->
-                    List.map (Emoji.img [ class "inline-block mx-2" ] []) session.code
+                    List.map (Emoji.img [ class "inline-block mx-2 bg-seaside-050" ] []) session.code
                         |> div []
                         |> Just
 
