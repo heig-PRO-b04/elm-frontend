@@ -1,9 +1,11 @@
 module Api.Sessions exposing
     ( ClientSession
+    , Emoji(..)
     , ServerSession
     , SessionError(..)
     , SessionStatus(..)
     , getSession
+    , putSession
     )
 
 import Api exposing (Credentials)
@@ -17,11 +19,101 @@ import Task exposing (Task)
 -- DATA TYPES
 
 
+type Emoji
+    = Emoji0
+    | Emoji1
+    | Emoji2
+    | Emoji3
+    | Emoji4
+    | Emoji5
+    | Emoji6
+    | Emoji7
+    | Emoji8
+    | Emoji9
+    | EmojiA
+    | EmojiB
+    | EmojiC
+    | EmojiD
+    | EmojiE
+    | EmojiF
+
+
+
+-- TODO : Use Elm parsers instead ?
+
+
+parseEmojiCode : String -> Maybe (List Emoji)
+parseEmojiCode text =
+    let
+        transform : Char -> Maybe Emoji
+        transform char =
+            case char of
+                '0' ->
+                    Just Emoji0
+
+                '1' ->
+                    Just Emoji1
+
+                '2' ->
+                    Just Emoji2
+
+                '3' ->
+                    Just Emoji3
+
+                '4' ->
+                    Just Emoji4
+
+                '5' ->
+                    Just Emoji5
+
+                '6' ->
+                    Just Emoji6
+
+                '7' ->
+                    Just Emoji7
+
+                '8' ->
+                    Just Emoji8
+
+                '9' ->
+                    Just Emoji9
+
+                'A' ->
+                    Just EmojiA
+
+                'B' ->
+                    Just EmojiB
+
+                'C' ->
+                    Just EmojiC
+
+                'D' ->
+                    Just EmojiD
+
+                'E' ->
+                    Just EmojiE
+
+                'F' ->
+                    Just EmojiF
+
+                _ ->
+                    Nothing
+    in
+    if String.startsWith "0x" text == True then
+        String.dropLeft 2 text
+            |> String.toList
+            |> List.map transform
+            |> List.foldr (Maybe.map2 (::)) (Just [])
+
+    else
+        Nothing
+
+
 type alias ServerSession =
     { idModerator : Int
     , idPoll : Int
     , idSession : Int
-    , code : String
+    , code : List Emoji
     , status : SessionStatus
     }
 
@@ -88,6 +180,33 @@ getSession credentials transform discriminator =
         |> Task.map transform
 
 
+putSession :
+    Credentials
+    -> ClientSession
+    -> { d | idPoll : Int }
+    -> (ServerSession -> a)
+    -> Task SessionError a
+putSession credentials session discriminator transform =
+    Api.put
+        { body = encodeSession session
+        , endpoint = sessionEndpoint discriminator credentials
+        , decoder = sessionDecoder
+        }
+        |> Task.mapError
+            (\error ->
+                case error of
+                    Http.BadStatus 404 ->
+                        GotNotFound
+
+                    Http.BadStatus 403 ->
+                        GotBadCredentials
+
+                    _ ->
+                        GotBadNetwork
+            )
+        |> Task.map transform
+
+
 
 -- JSON ENCODING
 
@@ -136,6 +255,20 @@ sessionStatusDecoder =
             )
 
 
+emojiListDecoder : Decoder (List Emoji)
+emojiListDecoder =
+    Json.Decode.string
+        |> Json.Decode.andThen
+            (\chars ->
+                case parseEmojiCode chars of
+                    Just list ->
+                        Json.Decode.succeed list
+
+                    Nothing ->
+                        Json.Decode.fail "Malformed code."
+            )
+
+
 sessionDecoder : Decoder ServerSession
 sessionDecoder =
     Json.Decode.map5
@@ -143,5 +276,5 @@ sessionDecoder =
         (Json.Decode.field "idModerator" Json.Decode.int)
         (Json.Decode.field "idPoll" Json.Decode.int)
         (Json.Decode.field "idSession" Json.Decode.int)
-        (Json.Decode.field "code" Json.Decode.string)
+        (Json.Decode.field "code" emojiListDecoder)
         (Json.Decode.field "status" sessionStatusDecoder)
