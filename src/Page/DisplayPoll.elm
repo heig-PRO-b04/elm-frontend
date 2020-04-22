@@ -203,10 +203,14 @@ update message model =
             in
             case model.state of
                 CreatingNew ->
-                    updated |> withCmd [ Cmd.succeed <| RequestNavigateToPoll poll ]
+                    updated
+                        |> withCmd
+                            [ Cmd.succeed <| RequestNavigateToPoll poll
+                            , Cmd.map QuestionMessage cmd
+                            ]
 
                 _ ->
-                    updated |> withNoCmd
+                    updated |> withCmd [ Cmd.map QuestionMessage cmd ]
 
 
 
