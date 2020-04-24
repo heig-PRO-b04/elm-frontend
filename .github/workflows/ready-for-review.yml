@@ -1,8 +1,7 @@
 name: Deploy to GitHub Pages
 on:
   pull_request:
-    types:
-      - labeled
+    types: [labeled, opened, synchronize]
 
 jobs:
   build:
