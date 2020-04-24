@@ -6,13 +6,14 @@ module Page.DisplayPoll.Questions exposing
     , view
     )
 
-import Api.Polls exposing (Poll)
-import Api.Questions exposing (QuestionDiscriminator, ServerQuestion)
+import Api.Polls exposing (Poll, PollDiscriminator)
+import Api.Questions exposing (ClientQuestion, QuestionDiscriminator, ServerQuestion)
 import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html)
-import Html.Attributes exposing (class)
-import Html.Events exposing (onClick)
+import Route
 import Session exposing (Viewer)
+import Task
+import Task.Extra
 
 
 type alias Model =
@@ -25,7 +26,8 @@ type alias Model =
 type Message
     = GotAllQuestions (List ServerQuestion)
     | GotInvalidCredentials
-    | NowRequestQuestions
+    | NowRequestQuestions PollDiscriminator
+    | NowCreateQuestion ClientQuestion
     | NowDeleteQuestion QuestionDiscriminator
 
 
@@ -35,12 +37,43 @@ init viewer poll =
     , poll = poll
     , questions = []
     }
-        |> withCmd [ Cmd.succeed NowRequestQuestions ]
+        |> withCmd [ Cmd.succeed <| NowRequestQuestions <| PollDiscriminator poll.idPoll ]
 
 
 update : Message -> Model -> ( Model, Cmd Message )
 update msg model =
-    model |> withNoCmd
+    case msg of
+        GotAllQuestions serverQuestionList ->
+            { model | questions = serverQuestionList }
+                |> withNoCmd
+
+        NowCreateQuestion clientQuestion ->
+            model
+                |> withNoCmd
+
+        NowRequestQuestions pollDiscriminator ->
+            model
+                |> withCmd
+                    [ Api.Questions.getQuestionList (Session.viewerCredentials model.viewer) pollDiscriminator identity
+                        |> Task.map GotAllQuestions
+                        |> Task.mapError
+                            (\error ->
+                                case error of
+                                    Api.Questions.GotBadCredentials ->
+                                        GotInvalidCredentials
+
+                                    _ ->
+                                        GotAllQuestions []
+                            )
+                        |> Task.Extra.execute
+                    ]
+
+        NowDeleteQuestion questionDiscriminator ->
+            model |> withNoCmd
+
+        GotInvalidCredentials ->
+            model
+                |> withCmd [ Route.badCredentials (Session.viewerNavKey model.viewer) ]
 
 
 view : Model -> List (Html Message)
