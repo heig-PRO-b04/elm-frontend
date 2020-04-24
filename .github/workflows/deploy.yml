@@ -28,6 +28,7 @@ jobs:
           git push -u origin gh-pages --force
       # Send a message in a dedicated Telegram channel, indicating the deployment status.
       - uses: yanzay/notify-telegram@v0.1.0
+        if : github.repository == 'heig-PRO-b04/elm-frontend'
         with:
           chat: ${{ secrets.TL_CHANNEL }}
           token: ${{ secrets.TL_TOKEN }}
