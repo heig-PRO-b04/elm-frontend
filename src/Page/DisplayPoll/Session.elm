@@ -2,19 +2,22 @@ module Page.DisplayPoll.Session exposing
     ( Message
     , Model
     , init
+    , moderatorView
+    , participantView
     , subscriptions
     , update
-    , view
     )
 
 import Api.Sessions as Api
 import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, text)
-import Html.Attributes exposing (class)
+import Html.Attributes exposing (class, target)
 import Html.Events exposing (onClick)
+import List.Extra
 import Page.DisplayPoll.Session.Emoji as Emoji
 import Picasso.Button as Picasso
 import QRCode
+import Route
 import Session exposing (Viewer)
 import Task
 import Task.Extra
@@ -50,25 +53,26 @@ type Message
 
 update : Message -> Model -> ( Model, Cmd Message )
 update msg model =
+    let
+        toCmd : Task.Task error Api.ServerSession -> Cmd Message
+        toCmd task =
+            Task.mapError (always <| GotSession Nothing) task
+                |> Task.map (\session -> GotSession <| Just session)
+                |> Task.Extra.execute
+    in
     case msg of
         ClickStatus status ->
             model
                 |> withCmd
                     [ Api.putSession (Session.viewerCredentials model.viewer) { status = status } model identity
-                        -- TODO : Factorize this
-                        |> Task.mapError (always <| GotSession Nothing)
-                        |> Task.map (\session -> GotSession <| Just session)
-                        |> Task.Extra.execute
+                        |> toCmd
                     ]
 
         RequestSession ->
             model
                 |> withCmd
                     [ Api.getSession (Session.viewerCredentials model.viewer) identity model
-                        -- TODO : Factorize this
-                        |> Task.mapError (always <| GotSession Nothing)
-                        |> Task.map (\session -> GotSession <| Just session)
-                        |> Task.Extra.execute
+                        |> toCmd
                     ]
 
         GotSession session ->
@@ -84,8 +88,8 @@ subscriptions _ =
 -- VIEW
 
 
-view : Model -> List (Html Message)
-view model =
+participantView : Model -> List (Html Message)
+participantView model =
     [ div
         [ class "bg-white shadow m-0 mx-auto w-full md:w-1/2 md:max-w-lg"
         , class "md:rounded-lg"
@@ -96,13 +100,28 @@ view model =
         [ viewTitle [ class "self-start" ] model
         , extractQrCode model |> Maybe.withDefault (div [] [])
         , extractEmojiCode model |> Maybe.withDefault (div [] [])
-        , viewButtons model
         ]
     ]
 
 
-viewButtons : Model -> Html Message
-viewButtons model =
+moderatorView : Model -> List (Html Message)
+moderatorView model =
+    [ div
+        [ class "bg-white shadow m-0 mx-auto w-full md:w-1/2 md:max-w-lg"
+        , class "md:rounded-lg"
+        , class "flex flex-col items-center"
+        , class "p-8"
+        , class "mt-4"
+        ]
+        [ viewTitle [ class "self-start" ] model
+        , extractEmojiCode model |> Maybe.withDefault (div [] [])
+        , moderatorViewButtons model
+        ]
+    ]
+
+
+moderatorViewButtons : Model -> Html Message
+moderatorViewButtons model =
     let
         status =
             Maybe.map .status model.session |> Maybe.withDefault Api.Closed
@@ -111,17 +130,20 @@ viewButtons model =
         Api.Closed ->
             div [ class "flex flex-row justify-between" ]
                 [ switchMode Api.Open "Open"
+                , openParticipantView model
                 ]
 
         Api.Quarantined ->
             div [ class "flex flex-row justify-between" ]
                 [ switchMode Api.Closed "Close"
+                , openParticipantView model
                 ]
 
         Api.Open ->
             div [ class "flex flex-row justify-between" ]
                 [ switchMode Api.Closed "Close"
                 , switchMode Api.Quarantined "Close to newcomers"
+                , openParticipantView model
                 ]
 
 
@@ -160,6 +182,17 @@ switchMode status contents =
         [ text contents ]
 
 
+openParticipantView : Model -> Html Message
+openParticipantView model =
+    Picasso.a
+        (Picasso.filled
+            ++ [ Route.href <| Route.LivePoll { idPoll = model.idPoll }
+               , target "_blank"
+               ]
+        )
+        [ text "Participants" ]
+
+
 extractQrCode : Model -> Maybe (Html msg)
 extractQrCode model =
     case model.session of
@@ -181,12 +214,24 @@ extractEmojiCode model =
         Just session ->
             case session.status of
                 Api.Open ->
-                    List.map (Emoji.img [ class "inline-block mx-2 bg-seaside-050" ] []) session.code
-                        |> div []
-                        |> Just
+                    Just <| code session.code
 
                 _ ->
                     Nothing
 
         Nothing ->
             Nothing
+
+
+{-| Displays the emoji code as an adaptive grid. If the items do not fix on a horizontal line, they
+will be displayed on two lines, as a 2x2 grid.
+-}
+code : List Api.Emoji -> Html msg
+code emojis =
+    let
+        grouped =
+            List.Extra.grouped 2 emojis
+                |> List.map (List.map (Emoji.img [ class "inline-block m-2 bg-seaside-050" ] []))
+                |> List.map (div [])
+    in
+    div [ class "flex flex-wrap flex-row" ] grouped

@@ -205,7 +205,7 @@ view model =
         prepended =
             case model.state of
                 Loaded _ _ sModel ->
-                    List.map (Html.map SessionMessage) (Sessions.view sModel)
+                    List.map (Html.map SessionMessage) (Sessions.moderatorView sModel)
 
                 _ ->
                     []

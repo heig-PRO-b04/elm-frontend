@@ -56,6 +56,7 @@ type MenuState
 
 type Display
     = NoInfo
+    | NoInfoStatic
     | ReadyToLogin
     | LoggedInClosed { username : String }
     | LoggedInOpen { username : String }
@@ -108,21 +109,28 @@ update message (Model route session state) =
 
 display : Model -> Display
 display (Model route session state) =
-    if route == Route.Login || route == Route.Registration then
-        NoInfo
+    case route of
+        Route.Login ->
+            NoInfo
 
-    else
-        case Session.sessionCredentials session of
-            Just credentials ->
-                case state of
-                    MenuClosed ->
-                        LoggedInClosed { username = Api.username credentials }
+        Route.Registration ->
+            NoInfo
 
-                    MenuOpen ->
-                        LoggedInOpen { username = Api.username credentials }
+        Route.LivePoll _ ->
+            NoInfoStatic
 
-            Nothing ->
-                ReadyToLogin
+        _ ->
+            case Session.sessionCredentials session of
+                Just credentials ->
+                    case state of
+                        MenuClosed ->
+                            LoggedInClosed { username = Api.username credentials }
+
+                        MenuOpen ->
+                            LoggedInOpen { username = Api.username credentials }
+
+                Nothing ->
+                    ReadyToLogin
 
 
 view : Model -> Html Message
@@ -130,6 +138,13 @@ view model =
     let
         info =
             display model
+
+        clickableTitle =
+            if info == NoInfoStatic then
+                [ class "cursor-default" ]
+
+            else
+                [ onClick <| Request Route.Home ]
 
         navigationClass =
             if info == ReadyToLogin || info == NoInfo then
@@ -145,7 +160,7 @@ view model =
         , class "sticky top-0"
         , class "pr-2 pl-4 md:pr-8 md:pl-8 py-4"
         ]
-        ([ title [ class "md:text-start" ]
+        ([ title <| [ class "md:text-start" ] ++ clickableTitle
          , filler
          ]
             ++ (case info of
@@ -160,6 +175,9 @@ view model =
 
                     NoInfo ->
                         []
+
+                    NoInfoStatic ->
+                        []
                )
         )
 
@@ -167,7 +185,7 @@ view model =
 title : List (Html.Attribute Message) -> Html Message
 title attributes =
     Html.button
-        ([ onClick <| Request Route.Home, class "py-2" ]
+        ([ class "py-2" ]
             ++ attributes
         )
         [ styledH1 "✌️ rockin • app" ]

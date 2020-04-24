@@ -10,6 +10,7 @@ import Page.BadCredentials as Disc
 import Page.DisplayPoll as DisplayPoll
 import Page.Home as Home
 import Page.Logout as Quit
+import Page.PollLive as Live
 import Page.Polls as Poll
 import Picasso.Navigation as NavUI
 import Route exposing (Route)
@@ -34,6 +35,7 @@ type PageModel
     | QuitModel Quit.Model
     | PollModel Poll.Model
     | DisplayPollModel DisplayPoll.Model
+    | LiveModel Live.Model
 
 
 
@@ -98,6 +100,9 @@ toSession model =
         DisplayPollModel m ->
             Session.toSession m.viewer
 
+        LiveModel m ->
+            Live.toSession m
+
 
 init : Maybe Api.Credentials -> Url.Url -> Nav.Key -> ( Model, Cmd Message )
 init credentials url key =
@@ -159,6 +164,10 @@ view model =
                 DisplayPollModel displayPollModel ->
                     DisplayPoll.view displayPollModel
                         |> List.map (Html.map DisplayPollMessage)
+
+                LiveModel liveModel ->
+                    Live.view liveModel
+                        |> List.map (Html.map LiveMessage)
     in
     { title = "heig-PRO-b04 | Live polls"
     , body = header :: contents
@@ -178,6 +187,7 @@ type Message
     | AuthMessage Auth.Message
     | PollMessage Poll.Message
     | DisplayPollMessage DisplayPoll.Message
+    | LiveMessage Live.Message
 
 
 update : Message -> Model -> ( Model, Cmd Message )
@@ -251,6 +261,14 @@ update msg model =
                 displayPollMsg
                 displayPollModel
 
+        ( LiveMessage liveMsg, LiveModel liveModel ) ->
+            updateWith
+                LiveMessage
+                (embed model LiveModel)
+                Live.update
+                liveMsg
+                liveModel
+
         ( _, _ ) ->
             model
                 |> withNoCmd
@@ -268,6 +286,11 @@ subscriptions model =
             Sub.map
                 DisplayPollMessage
                 (DisplayPoll.subscriptions displayPollModel)
+
+        LiveModel liveModel ->
+            Sub.map
+                LiveMessage
+                (Live.subscriptions liveModel)
 
         _ ->
             Sub.none
@@ -351,6 +374,17 @@ changeRouteTo route model =
                         DisplayPollMessage
                         (embed newModel DisplayPollModel)
                         (DisplayPoll.initDisplay viewer poll)
+
+                Nothing ->
+                    changeRouteTo (Just Route.Home) model
+
+        Just (Route.LivePoll poll) ->
+            case Session.toViewer session of
+                Just viewer ->
+                    initWith
+                        LiveMessage
+                        (embed newModel LiveModel)
+                        (Live.init viewer poll)
 
                 Nothing ->
                     changeRouteTo (Just Route.Home) model

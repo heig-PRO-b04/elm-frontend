@@ -23,6 +23,7 @@ type Route
     | Polls
     | NewPoll
     | DisplayPoll PollDiscriminator
+    | LivePoll PollDiscriminator
 
 
 
@@ -68,6 +69,7 @@ parser =
         , Parser.map Polls (s "polls")
         , Parser.map NewPoll (s "newpoll")
         , Parser.map DisplayPoll (s "displaypoll" </> Api.Polls.urlParser)
+        , Parser.map LivePoll (s "live" </> Api.Polls.urlParser)
         ]
 
 
@@ -106,3 +108,6 @@ routeToPieces page =
 
         DisplayPoll poll ->
             [ "displaypoll", String.fromInt poll.idPoll ]
+
+        LivePoll poll ->
+            [ "live", String.fromInt poll.idPoll ]
