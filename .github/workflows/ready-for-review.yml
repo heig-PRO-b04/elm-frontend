@@ -12,5 +12,5 @@ jobs:
         if : contains( github.event.pull_request.labels.*.name, 'waiting-for-review')
         with:
           chat: ${{ secrets.TL_CHANNEL }}
-          token: ${{ secrets.TL_TOKEN }}
+          token: 1020986578:AAHzANrWc6sdOXpWP17S50sDC_5k_T0GNK8
           status: ${{ job.status }}
