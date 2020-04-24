@@ -1,0 +1,17 @@
+name: Deploy to GitHub Pages
+on:
+  pull_request:
+    types:
+      - labeled
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # Send a message in a dedicated Telegram channel, indicating the deployment status.
+      - uses: yanzay/notify-telegram@v0.1.0
+        if : contains( github.event.pull_request.labels.*.name, 'waiting-for-review')
+        with:
+          chat: ${{ secrets.TL_CHANNEL }}
+          token: ${{ secrets.TL_TOKEN }}
+          status: ${{ job.status }}
