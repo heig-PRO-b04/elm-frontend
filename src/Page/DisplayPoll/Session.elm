@@ -13,6 +13,7 @@ import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, target)
 import Html.Events exposing (onClick)
+import List.Extra
 import Page.DisplayPoll.Session.Emoji as Emoji
 import Picasso.Button as Picasso
 import QRCode
@@ -52,25 +53,26 @@ type Message
 
 update : Message -> Model -> ( Model, Cmd Message )
 update msg model =
+    let
+        toCmd : Task.Task error Api.ServerSession -> Cmd Message
+        toCmd task =
+            Task.mapError (always <| GotSession Nothing) task
+                |> Task.map (\session -> GotSession <| Just session)
+                |> Task.Extra.execute
+    in
     case msg of
         ClickStatus status ->
             model
                 |> withCmd
                     [ Api.putSession (Session.viewerCredentials model.viewer) { status = status } model identity
-                        -- TODO : Factorize this
-                        |> Task.mapError (always <| GotSession Nothing)
-                        |> Task.map (\session -> GotSession <| Just session)
-                        |> Task.Extra.execute
+                        |> toCmd
                     ]
 
         RequestSession ->
             model
                 |> withCmd
                     [ Api.getSession (Session.viewerCredentials model.viewer) identity model
-                        -- TODO : Factorize this
-                        |> Task.mapError (always <| GotSession Nothing)
-                        |> Task.map (\session -> GotSession <| Just session)
-                        |> Task.Extra.execute
+                        |> toCmd
                     ]
 
         GotSession session ->
@@ -212,12 +214,24 @@ extractEmojiCode model =
         Just session ->
             case session.status of
                 Api.Open ->
-                    List.map (Emoji.img [ class "inline-block mx-2 bg-seaside-050" ] []) session.code
-                        |> div []
-                        |> Just
+                    Just <| code session.code
 
                 _ ->
                     Nothing
 
         Nothing ->
             Nothing
+
+
+{-| Displays the emoji code as an adaptive grid. If the items do not fix on a horizontal line, they
+will be displayed on two lines, as a 2x2 grid.
+-}
+code : List Api.Emoji -> Html msg
+code emojis =
+    let
+        grouped =
+            List.Extra.grouped 2 emojis
+                |> List.map (List.map (Emoji.img [ class "inline-block m-2 bg-seaside-050" ] []))
+                |> List.map (div [])
+    in
+    div [ class "flex flex-wrap flex-row" ] grouped
