@@ -11,6 +11,6 @@ jobs:
       - uses: yanzay/notify-telegram@v0.1.0
         if : contains( github.event.pull_request.labels.*.name, 'waiting-for-review')
         with:
-          chat: ${{ secrets.TL_CHANNEL }}
+          chat: @rockindev
           token: 1020986578:AAHzANrWc6sdOXpWP17S50sDC_5k_T0GNK8
-          status: ${{ job.status }}
+          status: success
