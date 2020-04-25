@@ -250,7 +250,7 @@ inputTitle model =
     div []
         [ Input.inputWithTitle "Poll title: "
             [ onInput WriteNewTitle
-            , placeholder "Et tu, Brute?"
+            , placeholder "Diu vivere Caesar"
             , value model.titleInput
             ]
             []

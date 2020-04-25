@@ -1,5 +1,5 @@
 module Api.Questions exposing
-    ( ServerQuestion, ClientQuestion, QuestionDiscriminator, QuestionError(..)
+    ( ServerQuestion, ClientQuestion, QuestionDiscriminator, QuestionVisibility(..), QuestionError(..)
     , getQuestionList, create, update, delete
     )
 
@@ -9,7 +9,7 @@ backend about everything polls
 
 # Types
 
-@docs ServerQuestion, ClientQuestion, QuestionDiscriminator, QuestionError
+@docs ServerQuestion, ClientQuestion, QuestionDiscriminator, QuestionVisibility, QuestionError
 
 
 # Endpoints
@@ -18,10 +18,10 @@ backend about everything polls
 
 -}
 
-import Api exposing (Credentials, authenticated, get, moderatorId, withPath)
+import Api exposing (Credentials)
 import Api.Polls exposing (PollDiscriminator)
 import Http
-import Json.Decode exposing (Decoder, andThen, field)
+import Json.Decode exposing (Decoder, field)
 import Json.Encode
 import Task exposing (Task)
 
@@ -71,15 +71,16 @@ in moderator, and tell what the issue was if it did not work.
 getQuestionList : Credentials -> PollDiscriminator -> (List ServerQuestion -> a) -> Task QuestionError a
 getQuestionList credentials pollDiscriminator transform =
     let
-        path =
-            "mod/" ++ String.fromInt (moderatorId credentials) ++ "/poll/" ++ String.fromInt pollDiscriminator.idPoll ++ "/question"
+        questionId =
+            Nothing
+
+        endpoint =
+            questionEndpoint pollDiscriminator questionId credentials
     in
-    get
+    Api.get
         { body =
             Json.Encode.null
-        , endpoint =
-            authenticated credentials
-                |> withPath path
+        , endpoint = endpoint
         , decoder = questionListDecoder
         }
         |> Task.mapError
@@ -97,16 +98,16 @@ getQuestionList credentials pollDiscriminator transform =
         |> Task.map transform
 
 
-{-| Create a question with a specified title, and returns the created poll on success
+{-| Create a question with a specified title for a specific poll, and returns the created question on success
 -}
-create : Credentials -> ClientQuestion -> (ServerQuestion -> a) -> Task QuestionError a
-create credentials clientQuestion transform =
+create : Credentials -> PollDiscriminator -> ClientQuestion -> (ServerQuestion -> a) -> Task QuestionError a
+create credentials pollDiscriminator clientQuestion transform =
     let
-        path =
-            "mod/" ++ String.fromInt (Api.moderatorId credentials) ++ "/poll"
+        questionId =
+            Nothing
 
         endpoint =
-            authenticated credentials |> withPath path
+            questionEndpoint pollDiscriminator questionId credentials
     in
     Api.post
         { body =
@@ -135,13 +136,16 @@ create credentials clientQuestion transform =
 {-| Deletes a provided question for a specific poll from the backend, and returns the specified value on success.
 -}
 delete : Credentials -> QuestionDiscriminator -> a -> Task QuestionError a
-delete credentials question return =
+delete credentials questionDiscriminator return =
     let
-        pathEnd =
-            "/" ++ String.fromInt question.idQuestion
+        pollDiscriminator =
+            PollDiscriminator questionDiscriminator.idPoll
+
+        questionId =
+            Just questionDiscriminator.idQuestion
 
         endpoint =
-            questionEndpoint pathEnd question credentials
+            questionEndpoint pollDiscriminator questionId credentials
     in
     Api.delete
         { body = Json.Encode.null
@@ -165,13 +169,16 @@ delete credentials question return =
 {-| Updates a question for a specific poll with the content of a ClientQuestion, and returns the updated question on success
 -}
 update : Credentials -> QuestionDiscriminator -> ClientQuestion -> (ServerQuestion -> a) -> Task QuestionError a
-update credentials question clientQuestion transform =
+update credentials questionDiscriminator clientQuestion transform =
     let
-        pathEnd =
-            "/" ++ String.fromInt question.idQuestion
+        pollDiscriminator =
+            PollDiscriminator questionDiscriminator.idPoll
+
+        questionId =
+            Just questionDiscriminator.idQuestion
 
         endpoint =
-            questionEndpoint pathEnd question credentials
+            questionEndpoint pollDiscriminator questionId credentials
     in
     Api.put
         { body =
@@ -188,6 +195,9 @@ update credentials question clientQuestion transform =
         |> Task.mapError
             (\error ->
                 case error of
+                    Http.BadStatus 404 ->
+                        GotNotFound
+
                     Http.BadStatus 403 ->
                         GotBadCredentials
 
@@ -197,15 +207,22 @@ update credentials question clientQuestion transform =
         |> Task.map transform
 
 
-questionEndpoint : String -> QuestionDiscriminator -> (Credentials -> Api.Endpoint)
-questionEndpoint path discriminator credentials =
+questionEndpoint : PollDiscriminator -> Maybe Int -> (Credentials -> Api.Endpoint)
+questionEndpoint pollDiscriminator maybeIdQuestion credentials =
     Api.authenticated credentials
         |> Api.withPath "mod/"
         |> Api.withPath (String.fromInt (Api.moderatorId credentials))
         |> Api.withPath "/poll/"
-        |> Api.withPath (String.fromInt discriminator.idPoll)
+        |> Api.withPath (String.fromInt pollDiscriminator.idPoll)
         |> Api.withPath "/question"
-        |> Api.withPath path
+        |> Api.withPath
+            (case maybeIdQuestion of
+                Just idQuestion ->
+                    "/" ++ String.fromInt idQuestion
+
+                Nothing ->
+                    ""
+            )
 
 
 questionVisibilityToString : QuestionVisibility -> String
@@ -250,8 +267,8 @@ questionDecoder =
         (field "title" Json.Decode.string)
         (field "details" Json.Decode.string)
         (field "visibility" questionVisibilityDecoder)
-        (field "answersMin" Json.Decode.int)
-        (field "answersMax" Json.Decode.int)
+        (field "answerMin" Json.Decode.int)
+        (field "answerMax" Json.Decode.int)
 
 
 questionListDecoder : Decoder (List ServerQuestion)
