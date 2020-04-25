@@ -9,6 +9,7 @@ module Page.DisplayPoll.Questions exposing
 import Api.Polls exposing (Poll, PollDiscriminator)
 import Api.Questions exposing (ClientQuestion, QuestionDiscriminator, QuestionVisibility(..), ServerQuestion)
 import Cmd exposing (withCmd, withNoCmd)
+import Debug exposing (toString)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, placeholder, value)
 import Html.Events exposing (onClick, onInput)
@@ -101,8 +102,8 @@ update msg model =
 
         -- TODO: Should this reload all questions? Or add the received question to the list
         GotQuestion serverQuestion ->
-            { model | questions = [ serverQuestion ] }
-                |> withCmd [ Cmd.succeed <| NowRequestQuestions ]
+            { model | questions = serverQuestion :: model.questions }
+                |> withNoCmd
 
         GotAllQuestions serverQuestionList ->
             { model | questions = serverQuestionList }
@@ -126,8 +127,8 @@ update msg model =
                                     Api.Questions.GotBadCredentials ->
                                         GotInvalidCredentials
 
-                                    _ ->
-                                        GotAllQuestions [ ServerQuestion 0 0 999 "Error" "details" Visible 1 1 ]
+                                    any ->
+                                        GotAllQuestions [ ServerQuestion 0 0 999 (toString any) "details" Visible 1 1 ]
                             )
                         |> Task.Extra.execute
                     ]
@@ -159,7 +160,7 @@ view model =
         , class "md:max-w-lg"
         ]
         [ styledH2 <| "Create a new question"
-        , inputTitle <| model
+        , inputTitle <| model.newQuestion.title
         , buttonNewQuestionTitle model.newQuestion
         , buttonRequestQuestions
         ]
@@ -189,13 +190,13 @@ showQuestion question =
         [ styledH2 <| question.title ]
 
 
-inputTitle : Model -> Html Message
-inputTitle model =
+inputTitle : String -> Html Message
+inputTitle title =
     div []
         [ Input.inputWithTitle "Question title: "
             [ onInput WriteNewTitle
             , placeholder "Et tu, Brute?"
-            , value model.newQuestion.title
+            , value title
             ]
             []
             |> withMargin
