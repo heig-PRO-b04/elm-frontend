@@ -134,7 +134,24 @@ update msg model =
                     ]
 
         NowDeleteQuestion questionDiscriminator ->
-            model |> withNoCmd
+            let
+                viewer =
+                    Session.viewerCredentials model.viewer
+            in
+            model
+                |> withCmd
+                    [ Api.Questions.delete viewer questionDiscriminator NowRequestQuestions
+                        |> Task.mapError
+                            (\error ->
+                                case error of
+                                    Api.Questions.GotBadCredentials ->
+                                        GotInvalidCredentials
+
+                                    _ ->
+                                        NowRequestQuestions
+                            )
+                        |> Task.Extra.execute
+                    ]
 
         GotInvalidCredentials ->
             let
@@ -174,7 +191,11 @@ showQuestionList questions =
 
 
 showQuestion : ServerQuestion -> Html Message
-showQuestion question =
+showQuestion serverQuestion =
+    let
+        questionDiscriminator =
+            QuestionDiscriminator serverQuestion.idPoll serverQuestion.idQuestion
+    in
     div
         [ class "flex flex-col"
         , class "m-auto my-4 md:my-16"
@@ -187,7 +208,9 @@ showQuestion question =
         , class "md:w-1/2"
         , class "md:max-w-lg"
         ]
-        [ styledH2 <| question.title ]
+        [ styledH2 <| serverQuestion.title
+        , buttonDeleteQuestion questionDiscriminator
+        ]
 
 
 inputTitle : String -> Html Message
@@ -211,6 +234,17 @@ buttonNewQuestionTitle newQuestion =
     in
     button
         (filled ++ elevated ++ [ onClick <| NowCreateQuestion newQuestion, class "mt-8" ])
+        [ text message ]
+
+
+buttonDeleteQuestion : QuestionDiscriminator -> Html Message
+buttonDeleteQuestion questionDiscriminator =
+    let
+        message =
+            "Delete"
+    in
+    button
+        (filled ++ elevated ++ [ onClick <| NowDeleteQuestion questionDiscriminator, class "mt-8" ])
         [ text message ]
 
 
