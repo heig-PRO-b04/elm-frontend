@@ -20,7 +20,6 @@ backend about everything polls
 
 import Api exposing (Credentials)
 import Api.Polls exposing (PollDiscriminator)
-import Debug exposing (toString)
 import Http
 import Json.Decode exposing (Decoder, field)
 import Json.Encode

@@ -9,11 +9,9 @@ module Page.DisplayPoll.Questions exposing
 import Api.Polls exposing (Poll, PollDiscriminator)
 import Api.Questions exposing (ClientQuestion, QuestionDiscriminator, QuestionVisibility(..), ServerQuestion)
 import Cmd exposing (withCmd, withNoCmd)
-import Debug exposing (toString)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, placeholder, value)
 import Html.Events exposing (onClick, onInput)
-import Json.Decode exposing (errorToString)
 import Picasso.Button exposing (button, elevated, filled)
 import Picasso.Input as Input
 import Picasso.Text exposing (styledH2)
