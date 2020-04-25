@@ -43,11 +43,12 @@ init : Viewer -> Api.Polls.Poll -> ( Model, Cmd Message )
 init viewer poll =
     { viewer = viewer
     , poll = poll
-    , questions = []
+    , questions = [ ServerQuestion poll.idModerator poll.idPoll 999 "Hardcoded question" "details" Visible 1 1 ]
     , newQuestion =
         ClientQuestion "" "" Visible 1 1
     }
-        |> withCmd [ Cmd.succeed <| NowRequestQuestions <| PollDiscriminator poll.idPoll ]
+        --|> withCmd [ Cmd.succeed <| NowRequestQuestions <| PollDiscriminator poll.idPoll ]
+        |> withNoCmd
 
 
 update : Message -> Model -> ( Model, Cmd Message )
@@ -67,11 +68,11 @@ update msg model =
                 ansMax =
                     model.newQuestion.answersMax
             in
+            -- TODO: How to update a record in a record?
             { model | newQuestion = ClientQuestion string details visibility ansMin ansMax }
                 |> withNoCmd
 
         NowCreateQuestion clientQuestion ->
-            -- TODO: Should this reload all questions?
             model
                 |> withCmd
                     [ Api.Questions.create (Session.viewerCredentials model.viewer) clientQuestion identity
@@ -88,9 +89,10 @@ update msg model =
                         |> Task.Extra.execute
                     ]
 
+        -- TODO: Should this reload all questions? Or add the received question to the list
         GotQuestion serverQuestion ->
             { model | questions = serverQuestion :: model.questions }
-                |> withNoCmd
+                |> withCmd [ Cmd.succeed <| NowRequestQuestions <| PollDiscriminator model.poll.idPoll ]
 
         GotAllQuestions serverQuestionList ->
             { model | questions = serverQuestionList }
@@ -140,6 +142,29 @@ view model =
         , buttonNewQuestionTitle model.newQuestion
         ]
     ]
+        ++ showQuestionList model.questions
+
+
+showQuestionList : List ServerQuestion -> List (Html Message)
+showQuestionList questions =
+    List.map (\serverQuestion -> showQuestion serverQuestion) questions
+
+
+showQuestion : ServerQuestion -> Html Message
+showQuestion question =
+    div
+        [ class "flex flex-col"
+        , class "m-auto my-4 md:my-16"
+
+        -- Card appearance
+        , class "bg-white"
+        , class "shadow"
+        , class "p-8"
+        , class "md:rounded-lg"
+        , class "md:w-1/2"
+        , class "md:max-w-lg"
+        ]
+        [ styledH2 <| question.title ]
 
 
 inputTitle : Model -> Html Message
