@@ -1,5 +1,5 @@
 module Api.Questions exposing
-    ( ServerQuestion, ClientQuestion, QuestionDiscriminator, QuestionError(..)
+    ( ServerQuestion, ClientQuestion, QuestionDiscriminator, QuestionVisibility(..), QuestionError(..)
     , getQuestionList, create, update, delete
     )
 
@@ -9,7 +9,7 @@ backend about everything polls
 
 # Types
 
-@docs ServerQuestion, ClientQuestion, QuestionDiscriminator, QuestionError
+@docs ServerQuestion, ClientQuestion, QuestionDiscriminator, QuestionVisibility, QuestionError
 
 
 # Endpoints
@@ -21,7 +21,7 @@ backend about everything polls
 import Api exposing (Credentials, authenticated, get, moderatorId, withPath)
 import Api.Polls exposing (PollDiscriminator)
 import Http
-import Json.Decode exposing (Decoder, andThen, field)
+import Json.Decode exposing (Decoder, field)
 import Json.Encode
 import Task exposing (Task)
 
