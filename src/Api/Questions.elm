@@ -31,7 +31,6 @@ type QuestionError
     = GotNotFound
     | GotBadCredentials
     | GotBadNetwork
-    | GotUnexpectedError String
 
 
 type QuestionVisibility
@@ -94,8 +93,8 @@ getQuestionList credentials pollDiscriminator transform =
                     Http.BadStatus 403 ->
                         GotBadCredentials
 
-                    any ->
-                        GotUnexpectedError (toString any)
+                    _ ->
+                        GotBadNetwork
             )
         |> Task.map transform
 
@@ -269,8 +268,8 @@ questionDecoder =
         (field "title" Json.Decode.string)
         (field "details" Json.Decode.string)
         (field "visibility" questionVisibilityDecoder)
-        (field "answersMin" Json.Decode.int)
-        (field "answersMax" Json.Decode.int)
+        (field "answerMin" Json.Decode.int)
+        (field "answerMax" Json.Decode.int)
 
 
 questionListDecoder : Decoder (List ServerQuestion)

@@ -127,8 +127,8 @@ update msg model =
                                     Api.Questions.GotBadCredentials ->
                                         GotInvalidCredentials
 
-                                    any ->
-                                        GotAllQuestions [ ServerQuestion 0 0 999 (toString any) "details" Visible 1 1 ]
+                                    _ ->
+                                        GotAllQuestions []
                             )
                         |> Task.Extra.execute
                     ]
