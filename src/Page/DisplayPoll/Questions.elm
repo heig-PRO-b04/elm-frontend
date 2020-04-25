@@ -12,6 +12,7 @@ import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, placeholder, value)
 import Html.Events exposing (onClick, onInput)
+import Json.Decode exposing (errorToString)
 import Picasso.Button exposing (button, elevated, filled)
 import Picasso.Input as Input
 import Picasso.Text exposing (styledH2)
@@ -35,7 +36,7 @@ type Message
     | GotInvalidCredentials
     | NowCreateQuestion ClientQuestion
     | GotQuestion ServerQuestion
-    | NowRequestQuestions PollDiscriminator
+    | NowRequestQuestions
     | NowDeleteQuestion QuestionDiscriminator
 
 
@@ -43,12 +44,11 @@ init : Viewer -> Api.Polls.Poll -> ( Model, Cmd Message )
 init viewer poll =
     { viewer = viewer
     , poll = poll
-    , questions = [ ServerQuestion poll.idModerator poll.idPoll 999 "Hardcoded question" "details" Visible 1 1 ]
+    , questions = []
     , newQuestion =
         ClientQuestion "" "" Visible 1 1
     }
-        --|> withCmd [ Cmd.succeed <| NowRequestQuestions <| PollDiscriminator poll.idPoll ]
-        |> withNoCmd
+        |> withCmd [ Cmd.succeed <| NowRequestQuestions ]
 
 
 update : Message -> Model -> ( Model, Cmd Message )
@@ -67,15 +67,25 @@ update msg model =
 
                 ansMax =
                     model.newQuestion.answersMax
+
+                clientQuestion =
+                    ClientQuestion string details visibility ansMin ansMax
             in
             -- TODO: How to update a record in a record?
-            { model | newQuestion = ClientQuestion string details visibility ansMin ansMax }
+            { model | newQuestion = clientQuestion }
                 |> withNoCmd
 
         NowCreateQuestion clientQuestion ->
+            let
+                viewer =
+                    Session.viewerCredentials model.viewer
+
+                pollDiscriminator =
+                    PollDiscriminator model.poll.idPoll
+            in
             model
                 |> withCmd
-                    [ Api.Questions.create (Session.viewerCredentials model.viewer) clientQuestion identity
+                    [ Api.Questions.create viewer pollDiscriminator clientQuestion identity
                         |> Task.map GotQuestion
                         |> Task.mapError
                             (\error ->
@@ -91,17 +101,24 @@ update msg model =
 
         -- TODO: Should this reload all questions? Or add the received question to the list
         GotQuestion serverQuestion ->
-            { model | questions = serverQuestion :: model.questions }
-                |> withCmd [ Cmd.succeed <| NowRequestQuestions <| PollDiscriminator model.poll.idPoll ]
+            { model | questions = [ serverQuestion ] }
+                |> withCmd [ Cmd.succeed <| NowRequestQuestions ]
 
         GotAllQuestions serverQuestionList ->
             { model | questions = serverQuestionList }
                 |> withNoCmd
 
-        NowRequestQuestions pollDiscriminator ->
+        NowRequestQuestions ->
+            let
+                viewer =
+                    Session.viewerCredentials model.viewer
+
+                pollDiscriminator =
+                    PollDiscriminator model.poll.idPoll
+            in
             model
                 |> withCmd
-                    [ Api.Questions.getQuestionList (Session.viewerCredentials model.viewer) pollDiscriminator identity
+                    [ Api.Questions.getQuestionList viewer pollDiscriminator identity
                         |> Task.map GotAllQuestions
                         |> Task.mapError
                             (\error ->
@@ -110,7 +127,7 @@ update msg model =
                                         GotInvalidCredentials
 
                                     _ ->
-                                        GotAllQuestions []
+                                        GotAllQuestions [ ServerQuestion 0 0 999 "Error" "details" Visible 1 1 ]
                             )
                         |> Task.Extra.execute
                     ]
@@ -119,8 +136,12 @@ update msg model =
             model |> withNoCmd
 
         GotInvalidCredentials ->
+            let
+                viewer =
+                    Session.viewerNavKey model.viewer
+            in
             model
-                |> withCmd [ Route.badCredentials (Session.viewerNavKey model.viewer) ]
+                |> withCmd [ Route.badCredentials viewer ]
 
 
 view : Model -> List (Html Message)
@@ -140,6 +161,7 @@ view model =
         [ styledH2 <| "Create a new question"
         , inputTitle <| model
         , buttonNewQuestionTitle model.newQuestion
+        , buttonRequestQuestions
         ]
     ]
         ++ showQuestionList model.questions
@@ -188,6 +210,17 @@ buttonNewQuestionTitle newQuestion =
     in
     button
         (filled ++ elevated ++ [ onClick <| NowCreateQuestion newQuestion, class "mt-8" ])
+        [ text message ]
+
+
+buttonRequestQuestions : Html Message
+buttonRequestQuestions =
+    let
+        message =
+            "Refresh questions"
+    in
+    button
+        (filled ++ elevated ++ [ onClick <| NowRequestQuestions, class "mt-8" ])
         [ text message ]
 
 
