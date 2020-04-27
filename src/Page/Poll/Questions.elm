@@ -7,17 +7,21 @@ module Page.Poll.Questions exposing
     )
 
 import Api.Polls exposing (Poll, PollDiscriminator)
-import Api.Questions exposing (ClientQuestion, QuestionDiscriminator, QuestionVisibility(..), ServerQuestion)
+import Api.Questions
+    exposing
+        ( ClientQuestion
+        , QuestionDiscriminator
+        , QuestionVisibility(..)
+        , ServerQuestion
+        )
 import Cmd exposing (withCmd, withNoCmd)
 import Dict exposing (Dict)
 import Html exposing (Html, div, img, text)
-import Html.Attributes exposing (class, placeholder, src, value)
+import Html.Attributes exposing (class, colspan, placeholder, src, value)
 import Html.Events exposing (onClick, onInput)
 import Page.Question as Question
-import Picasso.Button exposing (button, elevated, filled)
 import Picasso.FloatingButton
 import Picasso.Input as Input
-import Picasso.Text exposing (styledH2)
 import Route
 import Session exposing (Viewer)
 import Set exposing (Set)
@@ -208,23 +212,6 @@ update msg model =
 view : Model -> List (Html Message)
 view model =
     let
-        questionView =
-            case model.newQuestion of
-                Just question ->
-                    div
-                        [ class "flex flex-col"
-                        , class "m-auto my-4 md:my-16"
-                        , class "bg-white shadow p-8 md:rounded-lg md:w-1/2 md:max-w-lg"
-                        ]
-                        [ styledH2 <| "Create a new question"
-                        , inputTitle <| question.title
-                        , buttonNewQuestionTitle question
-                        , buttonRequestQuestions
-                        ]
-
-                Nothing ->
-                    div [] []
-
         fabView =
             case model.newQuestion of
                 Just _ ->
@@ -239,80 +226,63 @@ view model =
                         , div [ class "ml-4" ] [ text "New question" ]
                         ]
     in
-    [ viewQuestionsTable model.questions
-    , questionView
+    [ viewQuestionsTable model
     , fabView
     ]
 
 
-viewQuestionsTable : Dict QuestionIdentifier Question.Model -> Html Message
+viewQuestionsTable : Model -> Html Message
 viewQuestionsTable model =
     let
+        questionView =
+            case model.newQuestion of
+                Just question ->
+                    Html.tr [ class "border-b active:shadow-inner hover:bg-gray-100" ]
+                        [ Html.td
+                            [ class "py-3 pl-4", colspan 2, class "w-full" ]
+                            [ inputTitle <| question.title ]
+                        , Html.td
+                            [ class "text-right px-8 text-seaside-600" ]
+                            [ Html.button
+                                [ onClick <| NowCreateQuestion question
+                                , class "font-bold"
+                                ]
+                                [ text "Create" ]
+                            ]
+                        ]
+
+                Nothing ->
+                    div [] []
+
         headerBase =
             class "font-bold font-archivo text-gray-500 text-left tracking-wider border-gray-200 select-none py-3"
     in
     div [ class "align-middle mx-2 md:mx-8 mt-8 mb-32" ]
         [ Html.table [ class "min-w-full center border rounded-lg overflow-hidden shadow" ]
             [ Html.thead [ class "bg-gray-100 border-b" ]
-                [ Html.td [ class "px-6", headerBase ] [ Html.text "Title" ]
+                [ Html.td [ class "px-6 w-full", headerBase ] [ Html.text "Title" ]
                 , Html.td [ class "px-2", headerBase ] [ Html.text "Visibility" ]
                 , Html.td [] []
                 ]
-            , Html.tbody [ class "bg-white" ] (showQuestionList model)
+            , Html.tbody [ class "bg-white" ] (questionView :: viewQuestionList model.questions)
             ]
         ]
 
 
-showQuestionList : Dict QuestionIdentifier Question.Model -> List (Html Message)
-showQuestionList questions =
+viewQuestionList : Dict QuestionIdentifier Question.Model -> List (Html Message)
+viewQuestionList questions =
     questions
         |> Dict.toList
         |> List.sortBy Tuple.first
-        |> List.map (\serverQuestion -> showQuestion serverQuestion)
+        |> List.map (\serverQuestion -> viewQuestion serverQuestion)
 
 
-showQuestion : ( QuestionIdentifier, Question.Model ) -> Html Message
-showQuestion ( identifier, model ) =
+viewQuestion : ( QuestionIdentifier, Question.Model ) -> Html Message
+viewQuestion ( identifier, model ) =
     Question.view model
         |> Html.map (\msg -> GotQuestionMessage identifier msg)
 
 
 inputTitle : String -> Html Message
 inputTitle title =
-    div []
-        [ Input.inputWithTitle "Question title: "
-            [ onInput WriteNewTitle
-            , placeholder "Et tu, Brute?"
-            , value title
-            ]
-            []
-            |> withMargin
-        ]
-
-
-buttonNewQuestionTitle : ClientQuestion -> Html Message
-buttonNewQuestionTitle newQuestion =
-    let
-        message =
-            "Create"
-    in
-    button
-        (filled ++ elevated ++ [ onClick <| NowCreateQuestion newQuestion, class "mt-8" ])
-        [ text message ]
-
-
-buttonRequestQuestions : Html Message
-buttonRequestQuestions =
-    let
-        message =
-            "Refresh questions"
-    in
-    button
-        (filled ++ elevated ++ [ onClick <| NowRequestQuestions, class "mt-8" ])
-        [ text message ]
-
-
-withMargin : Html msg -> Html msg
-withMargin html =
-    div [ class "mt-8" ]
-        [ html ]
+    Input.input [ onInput WriteNewTitle, placeholder "🚀 New question...", class "w-full", value title ] []
