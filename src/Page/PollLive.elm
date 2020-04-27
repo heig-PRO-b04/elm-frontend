@@ -11,7 +11,7 @@ module Page.PollLive exposing
 import Api.Polls exposing (PollDiscriminator)
 import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, text)
-import Page.DisplayPoll.Session
+import Page.Poll.Session
 import Session exposing (Session, Viewer)
 import Time
 
@@ -21,7 +21,7 @@ import Time
 
 
 type Model
-    = SessionInfo Viewer Page.DisplayPoll.Session.Model
+    = SessionInfo Viewer Page.Poll.Session.Model
 
 
 toSession : Model -> Session
@@ -36,7 +36,7 @@ init :
 init viewer discriminator =
     let
         ( model, cmd ) =
-            Page.DisplayPoll.Session.init viewer discriminator
+            Page.Poll.Session.init viewer discriminator
     in
     ( SessionInfo viewer model, Cmd.map SessionMsg cmd )
 
@@ -46,21 +46,21 @@ init viewer discriminator =
 
 
 type Message
-    = SessionMsg Page.DisplayPoll.Session.Message
+    = SessionMsg Page.Poll.Session.Message
 
 
 update : Message -> Model -> ( Model, Cmd Message )
 update (SessionMsg message) (SessionInfo viewer session) =
     let
         ( sessionModel, cmd ) =
-            Page.DisplayPoll.Session.update message session
+            Page.Poll.Session.update message session
     in
     ( SessionInfo viewer sessionModel, Cmd.map SessionMsg cmd )
 
 
 subscriptions : Model -> Sub Message
 subscriptions (SessionInfo _ session) =
-    Page.DisplayPoll.Session.subscriptions session
+    Page.Poll.Session.subscriptions session
         |> Sub.map SessionMsg
 
 
@@ -70,4 +70,4 @@ subscriptions (SessionInfo _ session) =
 
 view : Model -> List (Html Message)
 view (SessionInfo _ session) =
-    List.map (Html.map SessionMsg) <| Page.DisplayPoll.Session.participantView session
+    List.map (Html.map SessionMsg) <| Page.Poll.Session.participantView session

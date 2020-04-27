@@ -1,4 +1,4 @@
-module Page.DisplayPoll.Questions exposing
+module Page.Poll.Questions exposing
     ( Message
     , Model
     , init

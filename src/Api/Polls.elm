@@ -1,6 +1,6 @@
 module Api.Polls exposing
     ( Poll, PollError(..)
-    , getAllPolls, getPoll, delete, create, update
+    , getPollList, getPoll, delete, create, update
     , urlParser
     , PollDiscriminator
     )
@@ -16,7 +16,7 @@ backend about everything polls
 
 # Endpoints
 
-@docs getAllPolls, getPoll, delete, create, update
+@docs getPollList, getPoll, delete, create, update
 
 
 # urlParser
@@ -54,8 +54,8 @@ type alias PollDiscriminator =
 in moderator, and tell what
 the issue was if it did not work.
 -}
-getAllPolls : Credentials -> (List Poll -> a) -> Task PollError a
-getAllPolls credentials transform =
+getPollList : Credentials -> (List Poll -> a) -> Task PollError a
+getPollList credentials transform =
     let
         path =
             "mod/" ++ String.fromInt (moderatorId credentials) ++ "/poll"
