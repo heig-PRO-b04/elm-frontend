@@ -1,4 +1,4 @@
-module Page.DisplayPoll.Session exposing
+module Page.Poll.Session exposing
     ( Message
     , Model
     , init
@@ -14,7 +14,7 @@ import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, target)
 import Html.Events exposing (onClick)
 import List.Extra
-import Page.DisplayPoll.Session.Emoji as Emoji
+import Page.Poll.Session.Emoji as Emoji
 import Picasso.Button as Picasso
 import QRCode
 import Route

@@ -7,11 +7,11 @@ import Cmd exposing (initWith, updateWith, withCmd, withNoCmd)
 import Html
 import Page.Authenticate as Auth
 import Page.BadCredentials as Disc
-import Page.DisplayPoll as DisplayPoll
 import Page.Home as Home
 import Page.Logout as Quit
+import Page.Poll as DisplayPoll
+import Page.PollList as Poll
 import Page.PollLive as Live
-import Page.Polls as Poll
 import Picasso.Navigation as NavUI
 import Route exposing (Route)
 import Session exposing (Session)

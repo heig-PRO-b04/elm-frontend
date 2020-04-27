@@ -1,4 +1,4 @@
-module Page.Polls.Sorting exposing
+module Page.PollList.Sorting exposing
     ( Order(..)
     , ordering
     )

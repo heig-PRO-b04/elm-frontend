@@ -1,4 +1,4 @@
-module Page.DisplayPoll.Session.Emoji exposing (img)
+module Page.Poll.Session.Emoji exposing (img)
 
 import Api.Sessions
 import Html exposing (Html)

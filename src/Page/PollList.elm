@@ -1,4 +1,4 @@
-module Page.Polls exposing
+module Page.PollList exposing
     ( Message
     , Model
     , init
@@ -14,7 +14,7 @@ import Dict exposing (Dict)
 import Html exposing (Html, div, img, text)
 import Html.Attributes exposing (class, src)
 import Html.Events exposing (onClick)
-import Page.Polls.Sorting as Sorting
+import Page.PollList.Sorting as Sorting
 import Picasso.FloatingButton
 import Route
 import Session exposing (Session, Viewer)
@@ -110,7 +110,7 @@ update message model =
         NowRequestPolls ->
             model
                 |> withCmd
-                    [ Api.Polls.getAllPolls (Session.viewerCredentials model.viewer) identity
+                    [ Api.Polls.getPollList (Session.viewerCredentials model.viewer) identity
                         |> Task.map GotAllPolls
                         |> Task.mapError
                             (\error ->
