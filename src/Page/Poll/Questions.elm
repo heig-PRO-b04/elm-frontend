@@ -10,11 +10,12 @@ import Api.Polls exposing (Poll, PollDiscriminator)
 import Api.Questions exposing (ClientQuestion, QuestionDiscriminator, QuestionVisibility(..), ServerQuestion)
 import Cmd exposing (withCmd, withNoCmd)
 import Dict exposing (Dict)
-import Html exposing (Html, div, text)
-import Html.Attributes exposing (class, placeholder, value)
+import Html exposing (Html, div, img, text)
+import Html.Attributes exposing (class, placeholder, src, value)
 import Html.Events exposing (onClick, onInput)
 import Page.Question as Question
 import Picasso.Button exposing (button, elevated, filled)
+import Picasso.FloatingButton
 import Picasso.Input as Input
 import Picasso.Text exposing (styledH2)
 import Route
@@ -32,12 +33,13 @@ type alias Model =
     { viewer : Viewer
     , poll : Poll
     , questions : Dict QuestionIdentifier Question.Model
-    , newQuestion : ClientQuestion
+    , newQuestion : Maybe ClientQuestion
     }
 
 
 type Message
     = WriteNewTitle String
+    | NowStartCreateQuestion
     | NowCreateQuestion ClientQuestion
     | NowRequestQuestions
     | GotAllQuestions (List ServerQuestion)
@@ -50,7 +52,7 @@ init viewer poll =
     { viewer = viewer
     , poll = poll
     , questions = Dict.empty
-    , newQuestion = ClientQuestion "" "" Visible 1 1
+    , newQuestion = Nothing
     }
         |> withCmd [ Cmd.succeed <| NowRequestQuestions ]
 
@@ -62,8 +64,22 @@ update msg model =
             let
                 question =
                     model.newQuestion
+                        |> Maybe.map (\x -> { x | title = string })
             in
-            { model | newQuestion = { question | title = string } }
+            { model | newQuestion = question }
+                |> withNoCmd
+
+        NowStartCreateQuestion ->
+            { model
+                | newQuestion =
+                    Just <|
+                        { title = ""
+                        , details = ""
+                        , visibility = Visible
+                        , answersMin = 1
+                        , answersMax = 1
+                        }
+            }
                 |> withNoCmd
 
         NowCreateQuestion clientQuestion ->
@@ -71,7 +87,7 @@ update msg model =
                 viewer =
                     Session.viewerCredentials model.viewer
             in
-            model
+            { model | newQuestion = Nothing }
                 |> withCmd
                     [ Api.Questions.create viewer { idPoll = model.poll.idPoll } clientQuestion identity
                         |> Task.map (always NowRequestQuestions)
@@ -191,34 +207,55 @@ update msg model =
 
 view : Model -> List (Html Message)
 view model =
-    [ div
-        [ class "flex flex-col"
-        , class "m-auto my-4 md:my-16"
+    let
+        questionView =
+            case model.newQuestion of
+                Just question ->
+                    div
+                        [ class "flex flex-col"
+                        , class "m-auto my-4 md:my-16"
+                        , class "bg-white shadow p-8 md:rounded-lg md:w-1/2 md:max-w-lg"
+                        ]
+                        [ styledH2 <| "Create a new question"
+                        , inputTitle <| question.title
+                        , buttonNewQuestionTitle question
+                        , buttonRequestQuestions
+                        ]
 
-        -- Card appearance
-        , class "bg-white"
-        , class "shadow"
-        , class "p-8"
-        , class "md:rounded-lg"
-        , class "md:w-1/2"
-        , class "md:max-w-lg"
-        ]
-        [ styledH2 <| "Create a new question"
-        , inputTitle <| model.newQuestion.title
-        , buttonNewQuestionTitle model.newQuestion
-        , buttonRequestQuestions
-        ]
-    , viewQuestionsTable model.questions
+                Nothing ->
+                    div [] []
+
+        fabView =
+            case model.newQuestion of
+                Just _ ->
+                    div [] []
+
+                Nothing ->
+                    Picasso.FloatingButton.button
+                        [ class "fixed right-0 bottom-0 m-8"
+                        , onClick NowStartCreateQuestion
+                        ]
+                        [ img [ src "/icon/action-button-plus.svg" ] []
+                        , div [ class "ml-4" ] [ text "New question" ]
+                        ]
+    in
+    [ viewQuestionsTable model.questions
+    , questionView
+    , fabView
     ]
 
 
 viewQuestionsTable : Dict QuestionIdentifier Question.Model -> Html Message
 viewQuestionsTable model =
+    let
+        headerBase =
+            class "font-bold font-archivo text-gray-500 text-left tracking-wider border-gray-200 select-none py-3"
+    in
     div [ class "align-middle mx-2 md:mx-8 mt-8 mb-32" ]
         [ Html.table [ class "min-w-full center border rounded-lg overflow-hidden shadow" ]
-            [ Html.thead []
-                [ Html.td [] [ Html.text "Title" ]
-                , Html.td [] [ Html.text "Visibility" ]
+            [ Html.thead [ class "bg-gray-100 border-b" ]
+                [ Html.td [ class "px-6", headerBase ] [ Html.text "Title" ]
+                , Html.td [ class "px-2", headerBase ] [ Html.text "Visibility" ]
                 , Html.td [] []
                 ]
             , Html.tbody [] (showQuestionList model)
