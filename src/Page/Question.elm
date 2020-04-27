@@ -1,14 +1,28 @@
 module Page.Question exposing
     ( Message
     , Model
+    , init
+    , subscriptions
     , update
+    , view
+    , viewIndex
     )
 
 import Html exposing (Html)
+import Session exposing (Viewer)
+
+
+
+-- MODEL
 
 
 type alias Model =
     ()
+
+
+init : Viewer -> { d | idPoll : Int, idQuestion : Int } -> ( Model, Cmd Message )
+init _ _ =
+    ( (), Cmd.none )
 
 
 
