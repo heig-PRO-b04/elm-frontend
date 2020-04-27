@@ -247,11 +247,15 @@ view model =
 
 viewQuestionsTable : Dict QuestionIdentifier Question.Model -> Html Message
 viewQuestionsTable model =
+    let
+        headerBase =
+            class "font-bold font-archivo text-gray-500 text-left tracking-wider border-gray-200 select-none py-3"
+    in
     div [ class "align-middle mx-2 md:mx-8 mt-8 mb-32" ]
         [ Html.table [ class "min-w-full center border rounded-lg overflow-hidden shadow" ]
             [ Html.thead [ class "bg-gray-100 border-b" ]
-                [ Html.td [ class "font-bold px-6 font-archivo text-gray-500 text-left tracking-wider border-gray-200 select-none py-3" ] [ Html.text "Title" ]
-                , Html.td [ class "font-bold px-2 font-archivo text-gray-500 text-left tracking-wider border-gray-200 select-none py-3" ] [ Html.text "Visibility" ]
+                [ Html.td [ class "px-6", headerBase ] [ Html.text "Title" ]
+                , Html.td [ class "px-2", headerBase ] [ Html.text "Visibility" ]
                 , Html.td [] []
                 ]
             , Html.tbody [] (showQuestionList model)
