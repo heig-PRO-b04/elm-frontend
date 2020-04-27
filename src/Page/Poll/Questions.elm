@@ -9,22 +9,29 @@ module Page.Poll.Questions exposing
 import Api.Polls exposing (Poll, PollDiscriminator)
 import Api.Questions exposing (ClientQuestion, QuestionDiscriminator, QuestionVisibility(..), ServerQuestion)
 import Cmd exposing (withCmd, withNoCmd)
+import Dict exposing (Dict)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, placeholder, value)
 import Html.Events exposing (onClick, onInput)
+import Page.Question as Question
 import Picasso.Button exposing (button, elevated, filled)
 import Picasso.Input as Input
 import Picasso.Text exposing (styledH2)
 import Route
 import Session exposing (Viewer)
+import Set exposing (Set)
 import Task
 import Task.Extra
+
+
+type alias QuestionIdentifier =
+    ( Int, Int )
 
 
 type alias Model =
     { viewer : Viewer
     , poll : Poll
-    , questions : List ServerQuestion
+    , questions : Dict QuestionIdentifier Question.Model
     , newQuestion : ClientQuestion
     }
 
@@ -34,6 +41,7 @@ type Message
     | NowCreateQuestion ClientQuestion
     | NowRequestQuestions
     | GotAllQuestions (List ServerQuestion)
+    | GotQuestionMessage QuestionIdentifier Question.Message
     | GotInvalidCredentials
 
 
@@ -41,7 +49,7 @@ init : Viewer -> Api.Polls.Poll -> ( Model, Cmd Message )
 init viewer poll =
     { viewer = viewer
     , poll = poll
-    , questions = []
+    , questions = Dict.empty
     , newQuestion = ClientQuestion "" "" Visible 1 1
     }
         |> withCmd [ Cmd.succeed <| NowRequestQuestions ]
@@ -80,8 +88,77 @@ update msg model =
                     ]
 
         GotAllQuestions serverQuestionList ->
-            { model | questions = serverQuestionList |> List.sortBy .title }
-                |> withNoCmd
+            let
+                keys : Set QuestionIdentifier
+                keys =
+                    serverQuestionList
+                        |> List.map (\question -> ( question.idPoll, question.idQuestion ))
+                        |> Set.fromList
+
+                -- STEP 1 : Remove the extra keys.
+                withRemovals : Dict QuestionIdentifier Question.Model
+                withRemovals =
+                    let
+                        toRemove : Set ( Int, Int )
+                        toRemove =
+                            Dict.keys model.questions
+                                |> Set.fromList
+                                |> Set.diff keys
+                    in
+                    Set.foldr
+                        (\id dict -> Dict.remove id dict)
+                        model.questions
+                        toRemove
+
+                -- STEP 2 : Add the missing keys.
+                ( withInsertions, commands ) =
+                    let
+                        toInsert : Set QuestionIdentifier
+                        toInsert =
+                            keys
+                                |> Set.diff (Set.fromList (Dict.keys withRemovals))
+                    in
+                    Set.foldr
+                        (\( idPoll, idQuestion ) ( dict, cmd ) ->
+                            let
+                                id =
+                                    ( idPoll, idQuestion )
+
+                                ( m, c ) =
+                                    Question.init model.viewer
+                                        { idPoll = idPoll
+                                        , idQuestion = idQuestion
+                                        }
+
+                                newCmd =
+                                    Cmd.batch
+                                        [ c |> Cmd.map (GotQuestionMessage id)
+                                        , cmd
+                                        ]
+                            in
+                            ( Dict.insert id m dict, newCmd )
+                        )
+                        ( withRemovals, Cmd.none )
+                        toInsert
+            in
+            ( { model | questions = withInsertions }, commands )
+
+        GotQuestionMessage identifier message ->
+            let
+                updated : Maybe ( Question.Model, Cmd Question.Message )
+                updated =
+                    model.questions
+                        |> Dict.get identifier
+                        |> Maybe.map (\m -> Question.update message m)
+            in
+            case updated of
+                Just ( mod, cmd ) ->
+                    ( { model | questions = model.questions |> Dict.insert identifier mod }
+                    , Cmd.map (GotQuestionMessage identifier) cmd
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
 
         NowRequestQuestions ->
             let
@@ -136,20 +213,18 @@ view model =
         ++ showQuestionList model.questions
 
 
-showQuestionList : List ServerQuestion -> List (Html Message)
+showQuestionList : Dict ( Int, Int ) Question.Model -> List (Html Message)
 showQuestionList questions =
-    List.map (\serverQuestion -> showQuestion serverQuestion) questions
+    questions
+        |> Dict.toList
+        |> List.sortBy Tuple.first
+        |> List.map (\serverQuestion -> showQuestion serverQuestion)
 
 
-showQuestion : ServerQuestion -> Html Message
-showQuestion serverQuestion =
-    div
-        [ class "flex flex-col"
-        , class "m-auto my-4 md:my-16"
-        , class "bg-white shadow p-8 md:rounded-lg md:w-1/2 md:max-w-lg"
-        ]
-        [ styledH2 <| serverQuestion.title
-        ]
+showQuestion : ( ( Int, Int ), Question.Model ) -> Html Message
+showQuestion ( identifier, model ) =
+    Question.view model
+        |> Html.map (\msg -> GotQuestionMessage identifier msg)
 
 
 inputTitle : String -> Html Message
