@@ -99,7 +99,7 @@ update msg model =
                 withRemovals : Dict QuestionIdentifier Question.Model
                 withRemovals =
                     let
-                        toRemove : Set ( Int, Int )
+                        toRemove : Set QuestionIdentifier
                         toRemove =
                             Dict.keys model.questions
                                 |> Set.fromList
@@ -115,8 +115,7 @@ update msg model =
                     let
                         toInsert : Set QuestionIdentifier
                         toInsert =
-                            keys
-                                |> Set.diff (Set.fromList (Dict.keys withRemovals))
+                            Set.diff keys (Set.fromList (Dict.keys withRemovals))
                     in
                     Set.foldr
                         (\( idPoll, idQuestion ) ( dict, cmd ) ->
@@ -213,7 +212,7 @@ view model =
         ++ showQuestionList model.questions
 
 
-showQuestionList : Dict ( Int, Int ) Question.Model -> List (Html Message)
+showQuestionList : Dict QuestionIdentifier Question.Model -> List (Html Message)
 showQuestionList questions =
     questions
         |> Dict.toList
@@ -221,7 +220,7 @@ showQuestionList questions =
         |> List.map (\serverQuestion -> showQuestion serverQuestion)
 
 
-showQuestion : ( ( Int, Int ), Question.Model ) -> Html Message
+showQuestion : ( QuestionIdentifier, Question.Model ) -> Html Message
 showQuestion ( identifier, model ) =
     Question.view model
         |> Html.map (\msg -> GotQuestionMessage identifier msg)
