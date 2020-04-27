@@ -208,8 +208,22 @@ view model =
         , buttonNewQuestionTitle model.newQuestion
         , buttonRequestQuestions
         ]
+    , viewQuestionsTable model.questions
     ]
-        ++ showQuestionList model.questions
+
+
+viewQuestionsTable : Dict QuestionIdentifier Question.Model -> Html Message
+viewQuestionsTable model =
+    div [ class "align-middle mx-2 md:mx-8 mt-8 mb-32" ]
+        [ Html.table [ class "min-w-full center border rounded-lg overflow-hidden shadow" ]
+            [ Html.thead []
+                [ Html.td [] [ Html.text "Title" ]
+                , Html.td [] [ Html.text "Visibility" ]
+                , Html.td [] []
+                ]
+            , Html.tbody [] (showQuestionList model)
+            ]
+        ]
 
 
 showQuestionList : Dict QuestionIdentifier Question.Model -> List (Html Message)
