@@ -10,7 +10,9 @@ module Page.Question exposing
 
 import Api.Questions exposing (QuestionDiscriminator, ServerQuestion)
 import Cmd exposing (withCmd, withNoCmd)
-import Html exposing (Html)
+import Html exposing (Html, div)
+import Html.Attributes exposing (class)
+import Html.Events as Html
 import Session exposing (Viewer)
 import Task
 import Task.Extra
@@ -128,16 +130,54 @@ view : Model -> Html Message
 view model =
     case model.question of
         Just question ->
-            Html.text question.title
+            Html.tr
+                [ class " border-b active:shadow-inner hover:bg-gray-100"
+                ]
+                [ Html.td
+                    [ class "py-3 px-4"
+                    , class "font-bold font-archivo break-all"
+                    ]
+                    [ Html.text question.title ]
+                , Html.td
+                    [ class "py-2" ]
+                    [ Html.text <| visibility question ]
+                , Html.td
+                    [ class "text-right px-8" ]
+                    [ Html.button
+                        [ class "text-gray-500 hover:text-red-500 "
+                        , class "capitalize font-archivo"
+                        ]
+                        [ Html.text "Delete" ]
+                    ]
+                ]
 
         Nothing ->
-            case model.state of
-                Existing ->
-                    Html.text "Error"
+            Html.tr
+                [ class " border-b active:shadow-inner hover:bg-gray-100"
+                ]
+                [ Html.td
+                    []
+                    []
+                , Html.td
+                    []
+                    []
+                , Html.td
+                    []
+                    []
+                ]
 
-                -- TODO: What should happen here?
-                Deleted ->
-                    Html.text "Nothing"
+
+visibility : ServerQuestion -> String
+visibility question =
+    case question.visibility of
+        Api.Questions.Visible ->
+            "Visible"
+
+        Api.Questions.Hidden ->
+            "Hidden"
+
+        Api.Questions.Archived ->
+            "Archived"
 
 
 viewIndex : Model -> Float
