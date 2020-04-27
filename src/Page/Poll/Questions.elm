@@ -31,12 +31,10 @@ type alias Model =
 
 type Message
     = WriteNewTitle String
+    | NowCreateQuestion ClientQuestion
+    | NowRequestQuestions
     | GotAllQuestions (List ServerQuestion)
     | GotInvalidCredentials
-    | NowCreateQuestion ClientQuestion
-    | GotQuestion ServerQuestion
-    | NowRequestQuestions
-    | NowDeleteQuestion QuestionDiscriminator
 
 
 init : Viewer -> Api.Polls.Poll -> ( Model, Cmd Message )
@@ -44,8 +42,7 @@ init viewer poll =
     { viewer = viewer
     , poll = poll
     , questions = []
-    , newQuestion =
-        ClientQuestion "" "" Visible 1 1
+    , newQuestion = ClientQuestion "" "" Visible 1 1
     }
         |> withCmd [ Cmd.succeed <| NowRequestQuestions ]
 
@@ -55,37 +52,21 @@ update msg model =
     case msg of
         WriteNewTitle string ->
             let
-                details =
-                    model.newQuestion.details
-
-                visibility =
-                    model.newQuestion.visibility
-
-                ansMin =
-                    model.newQuestion.answersMin
-
-                ansMax =
-                    model.newQuestion.answersMax
-
-                clientQuestion =
-                    ClientQuestion string details visibility ansMin ansMax
+                question =
+                    model.newQuestion
             in
-            -- TODO: How to update a record in a record?
-            { model | newQuestion = clientQuestion }
+            { model | newQuestion = { question | title = string } }
                 |> withNoCmd
 
         NowCreateQuestion clientQuestion ->
             let
                 viewer =
                     Session.viewerCredentials model.viewer
-
-                pollDiscriminator =
-                    PollDiscriminator model.poll.idPoll
             in
             model
                 |> withCmd
-                    [ Api.Questions.create viewer pollDiscriminator clientQuestion identity
-                        |> Task.map GotQuestion
+                    [ Api.Questions.create viewer { idPoll = model.poll.idPoll } clientQuestion identity
+                        |> Task.map (always NowRequestQuestions)
                         |> Task.mapError
                             (\error ->
                                 case error of
@@ -98,26 +79,18 @@ update msg model =
                         |> Task.Extra.execute
                     ]
 
-        -- TODO: Should this reload all questions? Or add the received question to the list
-        GotQuestion serverQuestion ->
-            { model | questions = serverQuestion :: model.questions }
-                |> withNoCmd
-
         GotAllQuestions serverQuestionList ->
-            { model | questions = serverQuestionList }
+            { model | questions = serverQuestionList |> List.sortBy .title }
                 |> withNoCmd
 
         NowRequestQuestions ->
             let
                 viewer =
                     Session.viewerCredentials model.viewer
-
-                pollDiscriminator =
-                    PollDiscriminator model.poll.idPoll
             in
             model
                 |> withCmd
-                    [ Api.Questions.getQuestionList viewer pollDiscriminator identity
+                    [ Api.Questions.getQuestionList viewer { idPoll = model.poll.idPoll } identity
                         |> Task.map GotAllQuestions
                         |> Task.mapError
                             (\error ->
@@ -127,26 +100,6 @@ update msg model =
 
                                     _ ->
                                         GotAllQuestions []
-                            )
-                        |> Task.Extra.execute
-                    ]
-
-        NowDeleteQuestion questionDiscriminator ->
-            let
-                viewer =
-                    Session.viewerCredentials model.viewer
-            in
-            model
-                |> withCmd
-                    [ Api.Questions.delete viewer questionDiscriminator NowRequestQuestions
-                        |> Task.mapError
-                            (\error ->
-                                case error of
-                                    Api.Questions.GotBadCredentials ->
-                                        GotInvalidCredentials
-
-                                    _ ->
-                                        NowRequestQuestions
                             )
                         |> Task.Extra.execute
                     ]
@@ -190,24 +143,12 @@ showQuestionList questions =
 
 showQuestion : ServerQuestion -> Html Message
 showQuestion serverQuestion =
-    let
-        questionDiscriminator =
-            QuestionDiscriminator serverQuestion.idPoll serverQuestion.idQuestion
-    in
     div
         [ class "flex flex-col"
         , class "m-auto my-4 md:my-16"
-
-        -- Card appearance
-        , class "bg-white"
-        , class "shadow"
-        , class "p-8"
-        , class "md:rounded-lg"
-        , class "md:w-1/2"
-        , class "md:max-w-lg"
+        , class "bg-white shadow p-8 md:rounded-lg md:w-1/2 md:max-w-lg"
         ]
         [ styledH2 <| serverQuestion.title
-        , buttonDeleteQuestion questionDiscriminator
         ]
 
 
@@ -232,17 +173,6 @@ buttonNewQuestionTitle newQuestion =
     in
     button
         (filled ++ elevated ++ [ onClick <| NowCreateQuestion newQuestion, class "mt-8" ])
-        [ text message ]
-
-
-buttonDeleteQuestion : QuestionDiscriminator -> Html Message
-buttonDeleteQuestion questionDiscriminator =
-    let
-        message =
-            "Delete"
-    in
-    button
-        (filled ++ elevated ++ [ onClick <| NowDeleteQuestion questionDiscriminator, class "mt-8" ])
         [ text message ]
 
 
