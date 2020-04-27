@@ -137,7 +137,7 @@ view model =
 
                 -- TODO: What should happen here?
                 Deleted ->
-                    Nothing
+                    Html.text "Nothing"
 
 
 viewIndex : Model -> Float
