@@ -78,8 +78,7 @@ getQuestionList credentials pollDiscriminator transform =
             questionEndpoint pollDiscriminator questionId credentials
     in
     Api.get
-        { body =
-            Json.Encode.null
+        { body = Json.Encode.null
         , endpoint = endpoint
         , decoder = questionListDecoder
         }
