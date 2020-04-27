@@ -1,6 +1,6 @@
 module Api.Questions exposing
     ( ServerQuestion, ClientQuestion, QuestionDiscriminator, QuestionVisibility(..), QuestionError(..)
-    , getQuestionList, create, update, delete
+    , getQuestionList, getQuestion, create, update, delete
     )
 
 {-| A module that provides ways to manipulate and to communicate with the
@@ -14,7 +14,7 @@ backend about everything polls
 
 # Endpoints
 
-@docs getQuestionList, create, update, delete
+@docs getQuestionList, getQuestion, create, update, delete
 
 -}
 
@@ -82,6 +82,39 @@ getQuestionList credentials pollDiscriminator transform =
             Json.Encode.null
         , endpoint = endpoint
         , decoder = questionListDecoder
+        }
+        |> Task.mapError
+            (\error ->
+                case error of
+                    Http.BadStatus 404 ->
+                        GotNotFound
+
+                    Http.BadStatus 403 ->
+                        GotBadCredentials
+
+                    _ ->
+                        GotBadNetwork
+            )
+        |> Task.map transform
+
+
+getQuestion : Credentials -> QuestionDiscriminator -> (ServerQuestion -> a) -> Task QuestionError a
+getQuestion credentials questionDiscriminator transform =
+    let
+        pollDiscriminator =
+            PollDiscriminator questionDiscriminator.idPoll
+
+        questionId =
+            Just questionDiscriminator.idQuestion
+
+        endpoint =
+            questionEndpoint pollDiscriminator questionId credentials
+    in
+    Api.get
+        { body =
+            Json.Encode.null
+        , endpoint = endpoint
+        , decoder = questionDecoder
         }
         |> Task.mapError
             (\error ->
