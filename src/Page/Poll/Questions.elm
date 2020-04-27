@@ -258,7 +258,7 @@ viewQuestionsTable model =
                 , Html.td [ class "px-2", headerBase ] [ Html.text "Visibility" ]
                 , Html.td [] []
                 ]
-            , Html.tbody [] (showQuestionList model)
+            , Html.tbody [ class "bg-white" ] (showQuestionList model)
             ]
         ]
 
