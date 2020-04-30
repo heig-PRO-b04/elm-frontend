@@ -1,7 +1,6 @@
 module Api.Questions exposing
-    ( ServerAnswer, ClientAnswer, AnswerDiscriminator
- VisibilityetQuestionList, getAnswer, create, update, delete
-    , Answer(..), AnswerError(..)
+    ( ServerAnswer, ClientAnswer, AnswerDiscriminator, AnswerError(..)
+    , getAnswer, create, update, delete
     )
 
 {-| A module that provides ways to manipulate and to communicate with the
@@ -10,17 +9,16 @@ backend about everything polls
 
 # Types
 
-@docs ServerQuestion, ClientQuestion, QuestionDiscriminator, QuestionVisibility, QuestionError
+@docs ServerAnswer, ClientAnswer, AnswerDiscriminator, AnswerError
 
 
 # Endpoints
 
-@docs getQuestionList, getQuestion, create, update, delete
+@docs getAnswerList, getAnswer, create, update, delete
 
 -}
 
 import Api exposing (Credentials)
-import Api.Polls exposing (PollDiscriminator)
 import Api.Questions exposing (QuestionDiscriminator)
 import Http
 import Json.Decode exposing (Decoder, field)
@@ -216,10 +214,11 @@ genericAnswerEndpoint questionDiscriminator credentials =
 specificAnswerEndpoint : AnswerDiscriminator -> (Credentials -> Api.Endpoint)
 specificAnswerEndpoint answerDiscriminator credentials =
     let
-        questionDiscriminator = QuestionDiscriminator answerDiscriminator.idPoll answerDiscriminator.idQuestion
+        questionDiscriminator =
+            QuestionDiscriminator answerDiscriminator.idPoll answerDiscriminator.idQuestion
     in
     genericAnswerEndpoint questionDiscriminator credentials
-        |> Api.withPath ("/" ++ (String.fromInt answerDiscriminator.idQuestion))
+        |> Api.withPath ("/" ++ String.fromInt answerDiscriminator.idQuestion)
 
 
 answerDecoder : Decoder ServerAnswer
