@@ -6,7 +6,7 @@ module Page.Poll.Questions exposing
     , view
     )
 
-import Api.Polls exposing (Poll, PollDiscriminator)
+import Api.Polls exposing (PollDiscriminator, ServerPoll)
 import Api.Questions
     exposing
         ( ClientQuestion
@@ -35,7 +35,7 @@ type alias QuestionIdentifier =
 
 type alias Model =
     { viewer : Viewer
-    , poll : Poll
+    , poll : ServerPoll
     , questions : Dict QuestionIdentifier Question.Model
     , newQuestion : Maybe ClientQuestion
     }
@@ -51,7 +51,7 @@ type Message
     | GotInvalidCredentials
 
 
-init : Viewer -> Api.Polls.Poll -> ( Model, Cmd Message )
+init : Viewer -> Api.Polls.ServerPoll -> ( Model, Cmd Message )
 init viewer poll =
     { viewer = viewer
     , poll = poll

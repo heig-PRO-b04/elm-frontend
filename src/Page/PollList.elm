@@ -7,7 +7,7 @@ module Page.PollList exposing
     , view
     )
 
-import Api.Polls exposing (Poll)
+import Api.Polls exposing (PollDiscriminator, ServerPoll)
 import Api.Sessions exposing (ServerSession)
 import Cmd exposing (withCmd, withNoCmd)
 import Dict exposing (Dict)
@@ -29,7 +29,7 @@ import Time
 
 type alias Model =
     { viewer : Viewer
-    , polls : List Poll
+    , polls : List ServerPoll
     , sessionStatuses : Dict ( Int, Int ) PollStatus
     , order : Sorting.Order
     }
@@ -50,13 +50,13 @@ init viewer =
 
 
 type Message
-    = GotAllPolls (List Poll)
-    | GotSessionStatus Poll (Maybe Api.Sessions.SessionStatus)
+    = GotAllPolls (List ServerPoll)
+    | GotSessionStatus ServerPoll (Maybe Api.Sessions.SessionStatus)
     | GotInvalidCredentials
     | NowRequestPolls
-    | NowDeletePoll Poll
+    | NowDeletePoll ServerPoll
     | NowSetOrder Sorting.Order
-    | NowDisplayPoll Poll
+    | NowDisplayPoll ServerPoll
 
 
 update : Message -> Model -> ( Model, Cmd Message )
@@ -91,7 +91,7 @@ update message model =
 
         GotAllPolls polls ->
             let
-                getSessionStatus : Poll -> Cmd Message
+                getSessionStatus : ServerPoll -> Cmd Message
                 getSessionStatus poll =
                     Api.Sessions.getSession (Session.viewerCredentials model.viewer) identity poll
                         |> Task.mapError (always <| GotSessionStatus poll Nothing)
@@ -127,7 +127,7 @@ update message model =
         NowDeletePoll poll ->
             model
                 |> withCmd
-                    [ Api.Polls.delete (Session.viewerCredentials model.viewer) poll NowRequestPolls
+                    [ Api.Polls.delete (Session.viewerCredentials model.viewer) (PollDiscriminator poll.idPoll) NowRequestPolls
                         |> Task.mapError
                             (\error ->
                                 case error of
@@ -171,8 +171,8 @@ view model =
     let
         pollToPair :
             Dict ( Int, Int ) PollStatus
-            -> Poll
-            -> ( Poll, PollStatus )
+            -> ServerPoll
+            -> ( ServerPoll, PollStatus )
         pollToPair dict poll =
             Dict.get ( poll.idModerator, poll.idPoll ) dict
                 |> Maybe.withDefault Loading
@@ -200,7 +200,7 @@ fab =
         ]
 
 
-viewTable : Sorting.Order -> List ( Poll, PollStatus ) -> Html Message
+viewTable : Sorting.Order -> List ( ServerPoll, PollStatus ) -> Html Message
 viewTable order polls =
     div [ class "align-middle mx-2 md:mx-8 mt-8 mb-32" ]
         [ Html.table [ class "min-w-full center border rounded-lg overflow-hidden shadow" ]
@@ -261,7 +261,7 @@ viewHeaderRow attrs html =
     Html.th (base ++ attrs) html
 
 
-viewPoll : Poll -> PollStatus -> Html Message
+viewPoll : ServerPoll -> PollStatus -> Html Message
 viewPoll poll status =
     Html.tr
         [ class " border-b active:shadow-inner hover:bg-gray-100"

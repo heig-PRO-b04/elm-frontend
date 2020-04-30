@@ -8,7 +8,7 @@ module Page.Poll exposing
     , view
     )
 
-import Api.Polls exposing (Poll, PollDiscriminator)
+import Api.Polls exposing (ClientPoll, PollDiscriminator, ServerPoll)
 import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, placeholder, value)
@@ -37,7 +37,7 @@ type PollError
 type State
     = CreatingNew
     | LoadingFromExisting
-    | Loaded Poll Questions.Model Sessions.Model
+    | Loaded ServerPoll Questions.Model Sessions.Model
     | Error PollError
 
 
@@ -87,9 +87,9 @@ initDisplay viewer pollDiscriminator =
 type Message
     = WriteNewTitle String
     | ClickPollTitleButton
-    | GotNewPoll Poll
+    | GotNewPoll ServerPoll
     | GotError PollError
-    | RequestNavigateToPoll Poll
+    | RequestNavigateToPoll ServerPoll
       -- Sub model
     | QuestionMessage Questions.Message
     | SessionMessage Sessions.Message
@@ -131,7 +131,7 @@ update message model =
                 CreatingNew ->
                     model
                         |> withCmd
-                            [ Api.Polls.create (Session.viewerCredentials model.viewer) model.titleInput RequestNavigateToPoll
+                            [ Api.Polls.create (Session.viewerCredentials model.viewer) (ClientPoll model.titleInput) RequestNavigateToPoll
                                 |> Task.mapError (always <| GotError CreateError)
                                 |> Task.Extra.execute
                             ]
@@ -142,7 +142,7 @@ update message model =
                 Loaded poll _ _ ->
                     model
                         |> withCmd
-                            [ Api.Polls.update (Session.viewerCredentials model.viewer) poll model.titleInput GotNewPoll
+                            [ Api.Polls.update (Session.viewerCredentials model.viewer) (PollDiscriminator poll.idPoll) (ClientPoll model.titleInput) GotNewPoll
                                 |> Task.mapError (always <| GotError UpdateError)
                                 |> Task.Extra.execute
                             ]

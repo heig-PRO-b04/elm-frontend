@@ -1,8 +1,7 @@
 module Api.Polls exposing
-    ( Poll, PollError(..)
+    ( ServerPoll, ClientPoll, PollDiscriminator, PollError(..)
     , getPollList, getPoll, delete, create, update
     , urlParser
-    , PollDiscriminator
     )
 
 {-| A module that provides ways to manipulate and to communicate with the
@@ -11,7 +10,7 @@ backend about everything polls
 
 # Types
 
-@docs Poll, PollIdentifier, PollError
+@docs ServerPoll, ClientPoll, PollDiscriminator, PollError
 
 
 # Endpoints
@@ -39,11 +38,15 @@ type PollError
     | GotBadNetwork
 
 
-type alias Poll =
+type alias ServerPoll =
     { idModerator : Int
     , idPoll : Int
     , title : String
     }
+
+
+type alias ClientPoll =
+    { title : String }
 
 
 type alias PollDiscriminator =
@@ -54,18 +57,16 @@ type alias PollDiscriminator =
 in moderator, and tell what
 the issue was if it did not work.
 -}
-getPollList : Credentials -> (List Poll -> a) -> Task PollError a
+getPollList : Credentials -> (List ServerPoll -> a) -> Task PollError a
 getPollList credentials transform =
     let
-        path =
-            "mod/" ++ String.fromInt (moderatorId credentials) ++ "/poll"
+        endpoint =
+            genericPollEndpoint credentials
     in
     get
         { body =
             Json.Encode.null
-        , endpoint =
-            authenticated credentials
-                |> withPath path
+        , endpoint = endpoint
         , decoder = pollListDecoder
         }
         |> Task.mapError
@@ -83,16 +84,16 @@ getPollList credentials transform =
         |> Task.map transform
 
 
-getPoll : Credentials -> PollDiscriminator -> (Poll -> a) -> Task PollError a
+getPoll : Credentials -> PollDiscriminator -> (ServerPoll -> a) -> Task PollError a
 getPoll credentials pollDiscriminator transform =
     let
-        path =
-            "mod/" ++ String.fromInt (Api.moderatorId credentials) ++ "/poll/" ++ String.fromInt pollDiscriminator.idPoll
+        endpoint =
+            specificPollEndpoint pollDiscriminator credentials
     in
     Api.get
         { body =
             Json.Encode.null
-        , endpoint = authenticated credentials |> withPath path
+        , endpoint = endpoint
         , decoder = pollDecoder
         }
         |> Task.mapError
@@ -109,15 +110,15 @@ getPoll credentials pollDiscriminator transform =
 
 {-| Deletes a provided poll from the backend, and returns the specified value on success.
 -}
-delete : Credentials -> Poll -> a -> Task PollError a
-delete credentials poll return =
+delete : Credentials -> PollDiscriminator -> a -> Task PollError a
+delete credentials pollDiscriminator return =
     let
-        path =
-            "mod/" ++ String.fromInt poll.idModerator ++ "/poll/" ++ String.fromInt poll.idPoll
+        endpoint =
+            specificPollEndpoint pollDiscriminator credentials
     in
     Api.delete
         { body = Json.Encode.null
-        , endpoint = authenticated credentials |> withPath path
+        , endpoint = endpoint
         , decoder = Json.Decode.succeed return
         }
         |> Task.mapError
@@ -136,17 +137,17 @@ delete credentials poll return =
 
 {-| Create a poll with a specified title, and returns the created poll on success
 -}
-create : Credentials -> String -> (Poll -> a) -> Task PollError a
-create credentials title transform =
+create : Credentials -> ClientPoll -> (ServerPoll -> a) -> Task PollError a
+create credentials clientPoll transform =
     let
-        path =
-            "mod/" ++ String.fromInt (Api.moderatorId credentials) ++ "/poll"
+        endpoint =
+            genericPollEndpoint credentials
     in
     Api.post
         { body =
             Json.Encode.object
-                [ ( "title", Json.Encode.string title ) ]
-        , endpoint = authenticated credentials |> withPath path
+                [ ( "title", Json.Encode.string clientPoll.title ) ]
+        , endpoint = endpoint
         , decoder = pollDecoder
         }
         |> Task.mapError
@@ -163,17 +164,17 @@ create credentials title transform =
 
 {-| Updates a poll with a specified title, and returns the created poll on success
 -}
-update : Credentials -> Poll -> String -> (Poll -> a) -> Task PollError a
-update credentials poll newTitle transform =
+update : Credentials -> PollDiscriminator -> ClientPoll -> (ServerPoll -> a) -> Task PollError a
+update credentials pollDiscriminator clientPoll transform =
     let
-        path =
-            "mod/" ++ String.fromInt poll.idModerator ++ "/poll/" ++ String.fromInt poll.idPoll
+        endpoint =
+            specificPollEndpoint pollDiscriminator credentials
     in
     Api.put
         { body =
             Json.Encode.object
-                [ ( "title", Json.Encode.string newTitle ) ]
-        , endpoint = authenticated credentials |> withPath path
+                [ ( "title", Json.Encode.string clientPoll.title ) ]
+        , endpoint = endpoint
         , decoder = pollDecoder
         }
         |> Task.mapError
@@ -188,15 +189,29 @@ update credentials poll newTitle transform =
         |> Task.map transform
 
 
-pollDecoder : Decoder Poll
+genericPollEndpoint : Credentials -> Api.Endpoint
+genericPollEndpoint credentials =
+    Api.authenticated credentials
+        |> Api.withPath "mod/"
+        |> Api.withPath (String.fromInt (Api.moderatorId credentials))
+        |> Api.withPath "/poll"
+
+
+specificPollEndpoint : PollDiscriminator -> (Credentials -> Api.Endpoint)
+specificPollEndpoint pollDiscriminator credentials =
+    genericPollEndpoint credentials
+        |> Api.withPath ("/" ++ String.fromInt pollDiscriminator.idPoll)
+
+
+pollDecoder : Decoder ServerPoll
 pollDecoder =
-    Json.Decode.map3 Poll
+    Json.Decode.map3 ServerPoll
         (field "idModerator" Json.Decode.int)
         (field "idPoll" Json.Decode.int)
         (field "title" Json.Decode.string)
 
 
-pollListDecoder : Decoder (List Poll)
+pollListDecoder : Decoder (List ServerPoll)
 pollListDecoder =
     Json.Decode.list <|
         pollDecoder
