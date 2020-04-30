@@ -71,11 +71,8 @@ in moderator, and tell what the issue was if it did not work.
 getQuestionList : Credentials -> PollDiscriminator -> (List ServerQuestion -> a) -> Task QuestionError a
 getQuestionList credentials pollDiscriminator transform =
     let
-        questionId =
-            Nothing
-
         endpoint =
-            questionEndpoint pollDiscriminator questionId credentials
+            genericQuestionEndpoint pollDiscriminator credentials
     in
     Api.get
         { body = Json.Encode.null
@@ -100,14 +97,8 @@ getQuestionList credentials pollDiscriminator transform =
 getQuestion : Credentials -> QuestionDiscriminator -> (ServerQuestion -> a) -> Task QuestionError a
 getQuestion credentials questionDiscriminator transform =
     let
-        pollDiscriminator =
-            PollDiscriminator questionDiscriminator.idPoll
-
-        questionId =
-            Just questionDiscriminator.idQuestion
-
         endpoint =
-            questionEndpoint pollDiscriminator questionId credentials
+            specificQuestionEndpoint questionDiscriminator credentials
     in
     Api.get
         { body =
@@ -135,11 +126,8 @@ getQuestion credentials questionDiscriminator transform =
 create : Credentials -> PollDiscriminator -> ClientQuestion -> (ServerQuestion -> a) -> Task QuestionError a
 create credentials pollDiscriminator clientQuestion transform =
     let
-        questionId =
-            Nothing
-
         endpoint =
-            questionEndpoint pollDiscriminator questionId credentials
+            genericQuestionEndpoint pollDiscriminator credentials
     in
     Api.post
         { body =
@@ -170,14 +158,8 @@ create credentials pollDiscriminator clientQuestion transform =
 delete : Credentials -> QuestionDiscriminator -> a -> Task QuestionError a
 delete credentials questionDiscriminator return =
     let
-        pollDiscriminator =
-            PollDiscriminator questionDiscriminator.idPoll
-
-        questionId =
-            Just questionDiscriminator.idQuestion
-
         endpoint =
-            questionEndpoint pollDiscriminator questionId credentials
+            specificQuestionEndpoint questionDiscriminator credentials
     in
     Api.delete
         { body = Json.Encode.null
@@ -203,14 +185,8 @@ delete credentials questionDiscriminator return =
 update : Credentials -> QuestionDiscriminator -> ClientQuestion -> (ServerQuestion -> a) -> Task QuestionError a
 update credentials questionDiscriminator clientQuestion transform =
     let
-        pollDiscriminator =
-            PollDiscriminator questionDiscriminator.idPoll
-
-        questionId =
-            Just questionDiscriminator.idQuestion
-
         endpoint =
-            questionEndpoint pollDiscriminator questionId credentials
+            specificQuestionEndpoint questionDiscriminator credentials
     in
     Api.put
         { body =
@@ -239,22 +215,24 @@ update credentials questionDiscriminator clientQuestion transform =
         |> Task.map transform
 
 
-questionEndpoint : PollDiscriminator -> Maybe Int -> (Credentials -> Api.Endpoint)
-questionEndpoint pollDiscriminator maybeIdQuestion credentials =
+genericQuestionEndpoint : PollDiscriminator -> (Credentials -> Api.Endpoint)
+genericQuestionEndpoint pollDiscriminator credentials =
     Api.authenticated credentials
         |> Api.withPath "mod/"
         |> Api.withPath (String.fromInt (Api.moderatorId credentials))
         |> Api.withPath "/poll/"
         |> Api.withPath (String.fromInt pollDiscriminator.idPoll)
         |> Api.withPath "/question"
-        |> Api.withPath
-            (case maybeIdQuestion of
-                Just idQuestion ->
-                    "/" ++ String.fromInt idQuestion
 
-                Nothing ->
-                    ""
-            )
+
+specificQuestionEndpoint : QuestionDiscriminator -> (Credentials -> Api.Endpoint)
+specificQuestionEndpoint questionDiscriminator credentials =
+    let
+        pollDiscriminator =
+            PollDiscriminator questionDiscriminator.idPoll
+    in
+    genericQuestionEndpoint pollDiscriminator credentials
+        |> Api.withPath ("/" ++ String.fromInt questionDiscriminator.idQuestion)
 
 
 questionVisibilityToString : QuestionVisibility -> String
