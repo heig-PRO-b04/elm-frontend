@@ -1,6 +1,6 @@
 module Api.Questions exposing
     ( ServerAnswer, ClientAnswer, AnswerDiscriminator, AnswerError(..)
-    , getAnswer, create, update, delete
+    , getAnswerList, getAnswer, create, update, delete
     )
 
 {-| A module that provides ways to manipulate and to communicate with the
@@ -199,7 +199,7 @@ update credentials answerDiscriminator clientAnswer transform =
         |> Task.map transform
 
 
-genericAnswerEndpoint : QuestionDiscriminator -> (Credentials -> Api.Endpoint)
+genericAnswerEndpoint : QuestionDiscriminator -> Credentials -> Api.Endpoint
 genericAnswerEndpoint questionDiscriminator credentials =
     Api.authenticated credentials
         |> Api.withPath "mod/"
@@ -211,7 +211,7 @@ genericAnswerEndpoint questionDiscriminator credentials =
         |> Api.withPath "/answer"
 
 
-specificAnswerEndpoint : AnswerDiscriminator -> (Credentials -> Api.Endpoint)
+specificAnswerEndpoint : AnswerDiscriminator -> Credentials -> Api.Endpoint
 specificAnswerEndpoint answerDiscriminator credentials =
     let
         questionDiscriminator =
