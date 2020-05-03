@@ -11,7 +11,7 @@ module Page.Poll.Session exposing
 import Api.Sessions as Api
 import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, text)
-import Html.Attributes exposing (class, target)
+import Html.Attributes as Attribute
 import Html.Events exposing (onClick)
 import List.Extra
 import Page.Poll.Session.Emoji as Emoji
@@ -88,63 +88,132 @@ subscriptions _ =
 -- VIEW
 
 
-participantView : Model -> List (Html Message)
-participantView model =
-    [ div
-        [ class "bg-white shadow m-0 mx-auto w-full md:w-1/2 md:max-w-lg"
-        , class "md:rounded-lg"
-        , class "flex flex-col items-center"
-        , class "p-8"
-        , class "mt-4"
-        ]
-        [ viewTitle [ class "self-start" ] model
-        , extractQrCode model |> Maybe.withDefault (div [] [])
-        , extractEmojiCode model |> Maybe.withDefault (div [] [])
-        ]
-    ]
+{-| Displays the emoji code as an adaptive grid. If the items do not fix on a horizontal line, they
+will be displayed on two lines, as a 2x2 grid.
+-}
+code : List Api.Emoji -> Html msg
+code emojis =
+    let
+        grouped =
+            List.Extra.grouped 2 emojis
+                |> List.map (List.map (Emoji.img [ Attribute.class "inline-block m-2 bg-seaside-050" ] []))
+                |> List.map (div [])
+    in
+    div [ Attribute.class "flex flex-wrap justify-center flex-row" ] grouped
+
+
+
+-- MODERATOR VIEW
 
 
 moderatorView : Model -> List (Html Message)
 moderatorView model =
-    [ div
-        [ class "bg-white shadow m-0 mx-auto w-full md:w-1/2 md:max-w-lg"
-        , class "md:rounded-lg"
-        , class "flex flex-col items-center"
-        , class "p-8"
-        , class "mt-4"
-        ]
-        [ viewTitle [ class "self-start" ] model
-        , extractEmojiCode model |> Maybe.withDefault (div [] [])
-        , moderatorViewButtons model
+    case model.session of
+        Nothing ->
+            moderatorClosedView
+
+        Just value ->
+            case value.status of
+                Api.Closed ->
+                    moderatorClosedView
+
+                Api.Open ->
+                    moderatorOpenView value
+
+                Api.Quarantined ->
+                    moderatorQuarantinedView
+
+
+moderatorClosedView : List (Html Message)
+moderatorClosedView =
+    [ Html.div [ Attribute.class "w-full bg-seaside-100 text-white font-archivo font-light p-4 shadow" ]
+        [ Html.div [ Attribute.class "w-full md:w-1/2 mx-auto" ]
+            [ Html.p
+                [ Attribute.class "text-seaside-800"
+                ]
+                [ Html.text "Your poll is currently closed. This means that participants will not be able to access it and gives you some time to prepare questions. "
+                , Html.span [ Attribute.class "block mt-4" ] [ Html.text "Once open, the poll will become available with a QR code or an emoji code !" ]
+                , Html.span
+                    [ Attribute.class "mt-4 mb-2 text-center block font-semibold hover:underline cursor-pointer"
+                    , onClick <| ClickStatus Api.Open
+                    ]
+                    [ Html.text "Open" ]
+                ]
+            ]
         ]
     ]
 
 
-moderatorViewButtons : Model -> Html Message
-moderatorViewButtons model =
-    let
-        status =
-            Maybe.map .status model.session |> Maybe.withDefault Api.Closed
-    in
-    case status of
-        Api.Closed ->
-            div [ class "flex flex-row justify-between" ]
-                [ switchMode Api.Open "Open"
-                , openParticipantView model
+moderatorOpenView : Api.ServerSession -> List (Html Message)
+moderatorOpenView session =
+    [ Html.div [ Attribute.class "w-full bg-white text-white font-archivo font-light p-4 shadow" ]
+        [ Html.div [ Attribute.class "w-full md:w-1/2 mx-auto" ]
+            [ Html.p
+                [ Attribute.class "text-gray-800"
                 ]
+                [ Html.text "Your poll is open and live ! Share the following emoji code to let participants join, or "
+                , Html.a
+                    [ Attribute.class "font-semibold underline cursor-pointer"
+                    , Route.href <| Route.LivePoll { idPoll = session.idPoll }
+                    , Attribute.target "_blank"
+                    ]
+                    [ Html.text "open up the participant view in a new window." ]
+                , Html.div [ Attribute.class "mt-8 w-full" ] [ code session.code ]
+                , Html.span
+                    [ Attribute.class "mt-8 mb-2 text-center block font-semibold hover:underline cursor-pointer"
+                    , onClick <| ClickStatus Api.Quarantined
+                    ]
+                    [ Html.text "Close to newcomers" ]
+                , Html.span
+                    [ Attribute.class "mt-4 mb-2 text-center block font-semibold hover:underline cursor-pointer"
+                    , Attribute.class "text-red-600"
+                    , onClick <| ClickStatus Api.Closed
+                    ]
+                    [ Html.text "Close" ]
+                ]
+            ]
+        ]
+    ]
 
-        Api.Quarantined ->
-            div [ class "flex flex-row justify-between" ]
-                [ switchMode Api.Closed "Close"
-                , openParticipantView model
-                ]
 
-        Api.Open ->
-            div [ class "flex flex-row justify-between" ]
-                [ switchMode Api.Closed "Close"
-                , switchMode Api.Quarantined "Close to newcomers"
-                , openParticipantView model
+moderatorQuarantinedView : List (Html Message)
+moderatorQuarantinedView =
+    [ Html.div [ Attribute.class "w-full bg-orange-100 text-white font-archivo font-light p-4 shadow" ]
+        [ Html.div [ Attribute.class "w-full md:w-1/2 mx-auto" ]
+            [ Html.p
+                [ Attribute.class "text-orange-800"
                 ]
+                [ Html.text "Your poll is closed to newcomers. You need to close it before you can accept new participants !"
+                , Html.span [ Attribute.class "block mt-4" ] [ Html.text "The current emoji and QR codes have been revoked. Closing the poll will kick out the current participants." ]
+                , Html.span
+                    [ Attribute.class "mt-4 mb-2 text-center block font-semibold hover:underline cursor-pointer"
+                    , onClick <| ClickStatus Api.Closed
+                    ]
+                    [ Html.text "Close" ]
+                ]
+            ]
+        ]
+    ]
+
+
+
+-- PARTICIPANT VIEW
+
+
+participantView : Model -> List (Html Message)
+participantView model =
+    [ div
+        [ Attribute.class "bg-white shadow m-0 mx-auto w-full md:w-1/2 md:max-w-lg"
+        , Attribute.class "md:rounded-lg"
+        , Attribute.class "flex flex-col items-center"
+        , Attribute.class "p-8"
+        , Attribute.class "mt-4"
+        ]
+        [ viewTitle [ Attribute.class "self-start" ] model
+        , extractQrCode model |> Maybe.withDefault (div [] [])
+        , extractEmojiCode model |> Maybe.withDefault (div [] [])
+        ]
+    ]
 
 
 viewTitle : List (Html.Attribute msg) -> Model -> Html msg
@@ -156,41 +225,23 @@ viewTitle attrs model =
                 |> Maybe.withDefault Api.Closed
 
         spanAttrs =
-            [ class "font-archivo text-2xl font-semibold" ]
+            [ Attribute.class "font-archivo text-2xl font-semibold" ]
 
         span =
             case state of
                 Api.Closed ->
-                    Html.span ([ class "text-red-500" ] ++ spanAttrs) [ text "closed ⛔️" ]
+                    Html.span ([ Attribute.class "text-red-500" ] ++ spanAttrs) [ text "closed ⛔️" ]
 
                 Api.Quarantined ->
-                    Html.span ([ class "text-orange-500" ] ++ spanAttrs) [ text "closed to newcomers ⚠️" ]
+                    Html.span ([ Attribute.class "text-orange-500" ] ++ spanAttrs) [ text "closed to newcomers ⚠️" ]
 
                 Api.Open ->
-                    Html.span ([ class "text-green-500" ] ++ spanAttrs) [ text "open ✅" ]
+                    Html.span ([ Attribute.class "text-green-500" ] ++ spanAttrs) [ text "open ✅" ]
     in
     div attrs
         [ Html.span spanAttrs [ text "This poll is " ]
         , span
         ]
-
-
-switchMode : Api.SessionStatus -> String -> Html Message
-switchMode status contents =
-    Picasso.button
-        (Picasso.filled ++ [ onClick (ClickStatus status) ])
-        [ text contents ]
-
-
-openParticipantView : Model -> Html Message
-openParticipantView model =
-    Picasso.a
-        (Picasso.filled
-            ++ [ Route.href <| Route.LivePoll { idPoll = model.idPoll }
-               , target "_blank"
-               ]
-        )
-        [ text "Participants" ]
 
 
 extractQrCode : Model -> Maybe (Html msg)
@@ -221,17 +272,3 @@ extractEmojiCode model =
 
         Nothing ->
             Nothing
-
-
-{-| Displays the emoji code as an adaptive grid. If the items do not fix on a horizontal line, they
-will be displayed on two lines, as a 2x2 grid.
--}
-code : List Api.Emoji -> Html msg
-code emojis =
-    let
-        grouped =
-            List.Extra.grouped 2 emojis
-                |> List.map (List.map (Emoji.img [ class "inline-block m-2 bg-seaside-050" ] []))
-                |> List.map (div [])
-    in
-    div [ class "flex flex-wrap flex-row" ] grouped
