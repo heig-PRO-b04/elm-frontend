@@ -72,7 +72,7 @@ getQuestionList : Credentials -> PollDiscriminator -> (List ServerQuestion -> a)
 getQuestionList credentials pollDiscriminator transform =
     let
         endpoint =
-            genericQuestionEndpoint pollDiscriminator credentials
+            anyQuestion pollDiscriminator credentials
     in
     Api.get
         { body = Json.Encode.null
@@ -98,7 +98,7 @@ getQuestion : Credentials -> QuestionDiscriminator -> (ServerQuestion -> a) -> T
 getQuestion credentials questionDiscriminator transform =
     let
         endpoint =
-            specificQuestionEndpoint questionDiscriminator credentials
+            someQuestion questionDiscriminator credentials
     in
     Api.get
         { body =
@@ -127,7 +127,7 @@ create : Credentials -> PollDiscriminator -> ClientQuestion -> (ServerQuestion -
 create credentials pollDiscriminator clientQuestion transform =
     let
         endpoint =
-            genericQuestionEndpoint pollDiscriminator credentials
+            anyQuestion pollDiscriminator credentials
     in
     Api.post
         { body =
@@ -159,7 +159,7 @@ delete : Credentials -> QuestionDiscriminator -> a -> Task QuestionError a
 delete credentials questionDiscriminator return =
     let
         endpoint =
-            specificQuestionEndpoint questionDiscriminator credentials
+            someQuestion questionDiscriminator credentials
     in
     Api.delete
         { body = Json.Encode.null
@@ -186,7 +186,7 @@ update : Credentials -> QuestionDiscriminator -> ClientQuestion -> (ServerQuesti
 update credentials questionDiscriminator clientQuestion transform =
     let
         endpoint =
-            specificQuestionEndpoint questionDiscriminator credentials
+            someQuestion questionDiscriminator credentials
     in
     Api.put
         { body =
@@ -215,8 +215,8 @@ update credentials questionDiscriminator clientQuestion transform =
         |> Task.map transform
 
 
-genericQuestionEndpoint : PollDiscriminator -> (Credentials -> Api.Endpoint)
-genericQuestionEndpoint pollDiscriminator credentials =
+anyQuestion : PollDiscriminator -> Credentials -> Api.Endpoint
+anyQuestion pollDiscriminator credentials =
     Api.authenticated credentials
         |> Api.withPath "mod/"
         |> Api.withPath (String.fromInt (Api.moderatorId credentials))
@@ -225,13 +225,13 @@ genericQuestionEndpoint pollDiscriminator credentials =
         |> Api.withPath "/question"
 
 
-specificQuestionEndpoint : QuestionDiscriminator -> (Credentials -> Api.Endpoint)
-specificQuestionEndpoint questionDiscriminator credentials =
+someQuestion : QuestionDiscriminator -> Credentials -> Api.Endpoint
+someQuestion questionDiscriminator credentials =
     let
         pollDiscriminator =
             PollDiscriminator questionDiscriminator.idPoll
     in
-    genericQuestionEndpoint pollDiscriminator credentials
+    anyQuestion pollDiscriminator credentials
         |> Api.withPath ("/" ++ String.fromInt questionDiscriminator.idQuestion)
 
 

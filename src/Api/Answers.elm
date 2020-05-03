@@ -62,7 +62,7 @@ getAnswerList : Credentials -> QuestionDiscriminator -> (List ServerAnswer -> a)
 getAnswerList credentials questionDiscriminator transform =
     let
         endpoint =
-            genericAnswerEndpoint questionDiscriminator credentials
+            anyAnswer questionDiscriminator credentials
     in
     Api.get
         { body = Json.Encode.null
@@ -88,7 +88,7 @@ getAnswer : Credentials -> AnswerDiscriminator -> (ServerAnswer -> a) -> Task An
 getAnswer credentials answerDiscriminator transform =
     let
         endpoint =
-            specificAnswerEndpoint answerDiscriminator credentials
+            someAnswer answerDiscriminator credentials
     in
     Api.get
         { body =
@@ -117,7 +117,7 @@ create : Credentials -> QuestionDiscriminator -> ClientAnswer -> (ServerAnswer -
 create credentials questionDiscriminator clientAnswer transform =
     let
         endpoint =
-            genericAnswerEndpoint questionDiscriminator credentials
+            anyAnswer questionDiscriminator credentials
     in
     Api.post
         { body =
@@ -146,7 +146,7 @@ delete : Credentials -> AnswerDiscriminator -> a -> Task AnswerError a
 delete credentials answerDiscriminator return =
     let
         endpoint =
-            specificAnswerEndpoint answerDiscriminator credentials
+            someAnswer answerDiscriminator credentials
     in
     Api.delete
         { body = Json.Encode.null
@@ -173,7 +173,7 @@ update : Credentials -> AnswerDiscriminator -> ClientAnswer -> (ServerAnswer -> 
 update credentials answerDiscriminator clientAnswer transform =
     let
         endpoint =
-            specificAnswerEndpoint answerDiscriminator credentials
+            someAnswer answerDiscriminator credentials
     in
     Api.put
         { body =
@@ -199,8 +199,8 @@ update credentials answerDiscriminator clientAnswer transform =
         |> Task.map transform
 
 
-genericAnswerEndpoint : QuestionDiscriminator -> Credentials -> Api.Endpoint
-genericAnswerEndpoint questionDiscriminator credentials =
+anyAnswer : QuestionDiscriminator -> Credentials -> Api.Endpoint
+anyAnswer questionDiscriminator credentials =
     Api.authenticated credentials
         |> Api.withPath "mod/"
         |> Api.withPath (String.fromInt (Api.moderatorId credentials))
@@ -211,13 +211,13 @@ genericAnswerEndpoint questionDiscriminator credentials =
         |> Api.withPath "/answer"
 
 
-specificAnswerEndpoint : AnswerDiscriminator -> Credentials -> Api.Endpoint
-specificAnswerEndpoint answerDiscriminator credentials =
+someAnswer : AnswerDiscriminator -> Credentials -> Api.Endpoint
+someAnswer answerDiscriminator credentials =
     let
         questionDiscriminator =
             QuestionDiscriminator answerDiscriminator.idPoll answerDiscriminator.idQuestion
     in
-    genericAnswerEndpoint questionDiscriminator credentials
+    anyAnswer questionDiscriminator credentials
         |> Api.withPath ("/" ++ String.fromInt answerDiscriminator.idQuestion)
 
 

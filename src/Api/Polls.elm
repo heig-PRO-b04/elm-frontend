@@ -61,7 +61,7 @@ getPollList : Credentials -> (List ServerPoll -> a) -> Task PollError a
 getPollList credentials transform =
     let
         endpoint =
-            genericPollEndpoint credentials
+            anyPoll credentials
     in
     get
         { body =
@@ -88,7 +88,7 @@ getPoll : Credentials -> PollDiscriminator -> (ServerPoll -> a) -> Task PollErro
 getPoll credentials pollDiscriminator transform =
     let
         endpoint =
-            specificPollEndpoint pollDiscriminator credentials
+            somePoll pollDiscriminator credentials
     in
     Api.get
         { body =
@@ -114,7 +114,7 @@ delete : Credentials -> PollDiscriminator -> a -> Task PollError a
 delete credentials pollDiscriminator return =
     let
         endpoint =
-            specificPollEndpoint pollDiscriminator credentials
+            somePoll pollDiscriminator credentials
     in
     Api.delete
         { body = Json.Encode.null
@@ -141,7 +141,7 @@ create : Credentials -> ClientPoll -> (ServerPoll -> a) -> Task PollError a
 create credentials clientPoll transform =
     let
         endpoint =
-            genericPollEndpoint credentials
+            anyPoll credentials
     in
     Api.post
         { body =
@@ -168,7 +168,7 @@ update : Credentials -> PollDiscriminator -> ClientPoll -> (ServerPoll -> a) -> 
 update credentials pollDiscriminator clientPoll transform =
     let
         endpoint =
-            specificPollEndpoint pollDiscriminator credentials
+            somePoll pollDiscriminator credentials
     in
     Api.put
         { body =
@@ -189,17 +189,17 @@ update credentials pollDiscriminator clientPoll transform =
         |> Task.map transform
 
 
-genericPollEndpoint : Credentials -> Api.Endpoint
-genericPollEndpoint credentials =
+anyPoll : Credentials -> Api.Endpoint
+anyPoll credentials =
     Api.authenticated credentials
         |> Api.withPath "mod/"
         |> Api.withPath (String.fromInt (Api.moderatorId credentials))
         |> Api.withPath "/poll"
 
 
-specificPollEndpoint : PollDiscriminator -> (Credentials -> Api.Endpoint)
-specificPollEndpoint pollDiscriminator credentials =
-    genericPollEndpoint credentials
+somePoll : PollDiscriminator -> Credentials -> Api.Endpoint
+somePoll pollDiscriminator credentials =
+    anyPoll credentials
         |> Api.withPath ("/" ++ String.fromInt pollDiscriminator.idPoll)
 
 
