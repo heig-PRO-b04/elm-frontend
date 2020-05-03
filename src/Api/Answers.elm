@@ -1,6 +1,6 @@
 module Api.Questions exposing
     ( ServerAnswer, ClientAnswer, AnswerDiscriminator, AnswerError(..)
-    , getAnswer, create, update, delete
+    , getAnswerList, getAnswer, create, update, delete
     )
 
 {-| A module that provides ways to manipulate and to communicate with the
@@ -211,7 +211,7 @@ genericAnswerEndpoint questionDiscriminator credentials =
         |> Api.withPath "/answer"
 
 
-specificAnswerEndpoint : AnswerDiscriminator -> (Credentials -> Api.Endpoint)
+specificAnswerEndpoint : AnswerDiscriminator -> Credentials -> Api.Endpoint
 specificAnswerEndpoint answerDiscriminator credentials =
     let
         questionDiscriminator =
