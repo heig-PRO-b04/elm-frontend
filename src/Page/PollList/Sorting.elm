@@ -11,7 +11,7 @@ type Order
     | TitleDes
 
 
-ordering : Order -> Api.Poll -> Api.Poll -> Basics.Order
+ordering : Order -> Api.ServerPoll -> Api.ServerPoll -> Basics.Order
 ordering order a b =
     case order of
         TitleAsc ->
