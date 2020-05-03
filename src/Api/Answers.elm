@@ -199,7 +199,7 @@ update credentials answerDiscriminator clientAnswer transform =
         |> Task.map transform
 
 
-genericAnswerEndpoint : QuestionDiscriminator -> (Credentials -> Api.Endpoint)
+genericAnswerEndpoint : QuestionDiscriminator -> Credentials -> Api.Endpoint
 genericAnswerEndpoint questionDiscriminator credentials =
     Api.authenticated credentials
         |> Api.withPath "mod/"
