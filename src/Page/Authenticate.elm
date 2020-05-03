@@ -24,6 +24,7 @@ import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, br, div, p, text)
 import Html.Attributes exposing (class, placeholder, type_, value)
 import Html.Events exposing (onClick, onInput)
+import Html.Events.Extra exposing (onEnterDown)
 import Picasso.Button exposing (button, elevated, filled, filledDisabled, outlinedLight)
 import Picasso.Input as Input
 import Picasso.Text exposing (styledH2)
@@ -280,6 +281,7 @@ inputPassword : String -> Html Message
 inputPassword content =
     Input.inputWithTitle "Password:"
         [ onInput WriteNewPassword
+        , onEnterDown ClickPerform
         , type_ "password"
         , placeholder "g3n3r4l_k4n0b1"
         , value content
