@@ -22,6 +22,7 @@ import Api exposing (Credentials)
 import Api.Polls exposing (PollDiscriminator)
 import Http
 import Json.Decode exposing (Decoder, field)
+import Json.Decode.Extra
 import Json.Encode
 import Task exposing (Task)
 
@@ -45,6 +46,7 @@ type alias ServerQuestion =
     , title : String
     , details : String
     , visibility : QuestionVisibility
+    , index : Float
     , answersMin : Int
     , answersMax : Int
     }
@@ -54,6 +56,7 @@ type alias ClientQuestion =
     { title : String
     , details : String
     , visibility : QuestionVisibility
+    , index : Float
     , answersMin : Int
     , answersMax : Int
     }
@@ -130,14 +133,7 @@ create credentials pollDiscriminator clientQuestion transform =
             anyQuestion pollDiscriminator credentials
     in
     Api.post
-        { body =
-            Json.Encode.object
-                [ ( "title", Json.Encode.string clientQuestion.title )
-                , ( "details", Json.Encode.string clientQuestion.details )
-                , ( "visibility", Json.Encode.string (questionVisibilityToString clientQuestion.visibility) )
-                , ( "answersMin", Json.Encode.int clientQuestion.answersMin )
-                , ( "answersMax", Json.Encode.int clientQuestion.answersMax )
-                ]
+        { body = questionEncode clientQuestion
         , endpoint = endpoint
         , decoder = questionDecoder
         }
@@ -189,14 +185,7 @@ update credentials questionDiscriminator clientQuestion transform =
             someQuestion questionDiscriminator credentials
     in
     Api.put
-        { body =
-            Json.Encode.object
-                [ ( "title", Json.Encode.string clientQuestion.title )
-                , ( "details", Json.Encode.string clientQuestion.details )
-                , ( "visibility", Json.Encode.string (questionVisibilityToString clientQuestion.visibility) )
-                , ( "answersMin", Json.Encode.int clientQuestion.answersMin )
-                , ( "answersMax", Json.Encode.int clientQuestion.answersMax )
-                ]
+        { body = questionEncode clientQuestion
         , endpoint = endpoint
         , decoder = questionDecoder
         }
@@ -268,15 +257,28 @@ questionVisibilityDecoder =
             )
 
 
+questionEncode : ClientQuestion -> Json.Encode.Value
+questionEncode clientQuestion =
+    Json.Encode.object
+        [ ( "title", Json.Encode.string clientQuestion.title )
+        , ( "details", Json.Encode.string clientQuestion.details )
+        , ( "visibility", Json.Encode.string (questionVisibilityToString clientQuestion.visibility) )
+        , ( "indexInPoll", Json.Encode.float clientQuestion.index )
+        , ( "answersMin", Json.Encode.int clientQuestion.answersMin )
+        , ( "answersMax", Json.Encode.int clientQuestion.answersMax )
+        ]
+
+
 questionDecoder : Decoder ServerQuestion
 questionDecoder =
-    Json.Decode.map8 ServerQuestion
+    Json.Decode.Extra.map9 ServerQuestion
         (field "idModerator" Json.Decode.int)
         (field "idPoll" Json.Decode.int)
         (field "idQuestion" Json.Decode.int)
         (field "title" Json.Decode.string)
         (field "details" Json.Decode.string)
         (field "visibility" questionVisibilityDecoder)
+        (field "indexInPoll" Json.Decode.float)
         (field "answerMin" Json.Decode.int)
         (field "answerMax" Json.Decode.int)
 
