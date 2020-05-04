@@ -88,7 +88,7 @@ filled =
 -}
 filledLight : List (Html.Attribute msg)
 filledLight =
-    [ class "hover:bg-seaside-050"
+    [ class "bg-seaside-050 hover:bg-seaside-100"
     , class "text-seaside-900"
     ]
 
