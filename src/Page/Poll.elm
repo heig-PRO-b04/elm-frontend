@@ -268,7 +268,7 @@ view model =
     prepended model
         ++ [ div
                 [ class "align-middle mx-2 md:mx-8 mt-8"
-                , class "bg-white shadow md:rounded-lg p-4"
+                , class "bg-white shadow rounded-lg p-4"
                 ]
                 [ Html.span
                     [ class "block font-archivo capitalize text-gray-500" ]
@@ -331,7 +331,7 @@ buttonPollTitle state =
                     "Create"
 
                 Editing poll _ _ ->
-                    "Save changes"
+                    "Save"
 
         style =
             case state of
