@@ -19,6 +19,7 @@ import Dict exposing (Dict)
 import Html exposing (Html, div, img, text)
 import Html.Attributes exposing (class, colspan, placeholder, src, value)
 import Html.Events exposing (onClick, onInput)
+import Page.Poll.Questions2
 import Page.Question as Question
 import Picasso.FloatingButton
 import Picasso.Input as Input
@@ -27,6 +28,22 @@ import Session exposing (Viewer)
 import Set exposing (Set)
 import Task
 import Task.Extra
+
+
+
+-- NEW MODEL
+
+
+type alias NewModel =
+    { viewer : Viewer
+    , poll : ServerPoll
+    , questions : List ( ServerQuestion, Question.Model )
+    , input : Maybe ClientQuestion
+    }
+
+
+
+-- MODEL
 
 
 type alias QuestionIdentifier =
@@ -41,16 +58,6 @@ type alias Model =
     }
 
 
-type Message
-    = WriteNewTitle String
-    | NowStartCreateQuestion
-    | NowCreateQuestion ClientQuestion
-    | NowRequestQuestions
-    | GotAllQuestions (List ServerQuestion)
-    | GotQuestionMessage QuestionIdentifier Question.Message
-    | GotInvalidCredentials
-
-
 init : Viewer -> Api.Polls.ServerPoll -> ( Model, Cmd Message )
 init viewer poll =
     { viewer = viewer
@@ -59,6 +66,20 @@ init viewer poll =
     , newQuestion = Nothing
     }
         |> withCmd [ Cmd.succeed <| NowRequestQuestions ]
+
+
+
+-- UPDATE
+
+
+type Message
+    = WriteNewTitle String
+    | NowStartCreateQuestion
+    | NowCreateQuestion ClientQuestion
+    | NowRequestQuestions
+    | GotAllQuestions (List ServerQuestion)
+    | GotQuestionMessage QuestionIdentifier Question.Message
+    | GotInvalidCredentials
 
 
 update : Message -> Model -> ( Model, Cmd Message )
@@ -210,6 +231,10 @@ update msg model =
                 |> withCmd [ Route.badCredentials viewer ]
 
 
+
+-- VIEW
+
+
 view : Model -> List (Html Message)
 view model =
     let
@@ -238,18 +263,20 @@ viewQuestionsTable model =
         questionView =
             case model.newQuestion of
                 Just question ->
-                    Html.tr [ class "border-b active:shadow-inner hover:bg-gray-100" ]
-                        [ Html.td
-                            [ class "py-3 pl-4", colspan 2, class "w-full" ]
-                            [ inputTitle <| question.title ]
-                        , Html.td
-                            [ class "text-right px-8 text-seaside-600" ]
-                            [ Html.button
-                                [ onClick <| NowCreateQuestion question
-                                , class "font-bold"
-                                ]
-                                [ text "Create" ]
+                    Html.tr [ class "border-b active:shadow-inner hover:bg-gray-100 flex flex-row" ]
+                        [ Input.input
+                            [ class "m-2 py-3 pl-4 flex-grow"
+                            , onInput WriteNewTitle
+                            , placeholder "🚀 New question..."
+                            , value question.title
                             ]
+                            []
+                        , Html.button
+                            [ onClick <| NowCreateQuestion question
+                            , class "font-bold"
+                            , class "text-right px-8 text-seaside-600 items-center"
+                            ]
+                            [ text "Create" ]
                         ]
 
                 Nothing ->
@@ -261,13 +288,23 @@ viewQuestionsTable model =
     div [ class "align-middle mx-2 md:mx-8 mt-8 mb-32" ]
         [ Html.table [ class "min-w-full center border rounded-lg overflow-hidden shadow" ]
             [ Html.thead [ class "bg-gray-100 border-b" ]
-                [ Html.td [ class "px-6 w-full", headerBase ] [ Html.text "Title" ]
-                , Html.td [ class "px-2", headerBase ] [ Html.text "Visibility" ]
-                , Html.td [] []
+                [ Html.td
+                    [ class "px-6 w-full", headerBase ]
+                    [ Html.text "Title" ]
                 ]
             , Html.tbody [ class "bg-white" ] (questionView :: viewQuestionList model.questions)
             ]
         ]
+
+
+order : ServerQuestion -> ServerQuestion -> Order
+order first second =
+    case compare first.index second.index of
+        EQ ->
+            compare first.title second.title
+
+        _ ->
+            compare first.index second.index
 
 
 viewQuestionList : Dict QuestionIdentifier Question.Model -> List (Html Message)
@@ -280,10 +317,15 @@ viewQuestionList questions =
 
 viewQuestion : ( QuestionIdentifier, Question.Model ) -> Html Message
 viewQuestion ( identifier, model ) =
-    Question.view model
-        |> Html.map (\msg -> GotQuestionMessage identifier msg)
-
-
-inputTitle : String -> Html Message
-inputTitle title =
-    Input.input [ onInput WriteNewTitle, placeholder "🚀 New question...", class "w-full", value title ] []
+    let
+        contents =
+            Question.view model
+                |> Html.map (\msg -> GotQuestionMessage identifier msg)
+    in
+    Html.tr
+        [ class "border-b hover:bg-gray-100" ]
+        [ Html.td [ class "flex flew-row" ]
+            [ Html.text "Where it goes"
+            , div [ class "flex-grow" ] [ contents ]
+            ]
+        ]

@@ -8,6 +8,9 @@ module Page.Poll.Questions2 exposing
 import Api.Polls exposing (ServerPoll)
 import Api.Questions exposing (ClientQuestion, ServerQuestion)
 import Cmd
+import Html exposing (Html)
+import Html.Attributes as Attribute
+import Html.Events as Event
 import Page.Question as Question
 import Route
 import Session exposing (Viewer)
@@ -258,3 +261,42 @@ taskAll viewer poll =
 
 
 -- VIEW
+
+
+view : Model -> List (Html Message)
+view model =
+    []
+        ++ viewInput model.input
+        ++ viewQuestions (List.map (\( a, b, _ ) -> ( a, b )) model.questions)
+
+
+viewInput : Maybe String -> List (Html Message)
+viewInput current =
+    case current of
+        Just text ->
+            let
+                created =
+                    { title = text
+                    , details = ""
+                    , visibility = Api.Questions.Visible
+                    , index = 0
+                    , answersMin = 0
+                    , answersMax = 0
+                    }
+            in
+            [ Html.input [ Attribute.value text ] []
+            , Html.button [ Event.onClick <| PerformCreate created ] [ Html.text "Save" ]
+            ]
+
+        Nothing ->
+            List.singleton <| Html.button [ Event.onClick PerformCreateStart ] [ Html.text "New question" ]
+
+
+viewQuestions : List ( ServerQuestion, Bool ) -> List (Html Message)
+viewQuestions list =
+    List.map (\( q, v ) -> viewQuestion q v) list
+
+
+viewQuestion : ServerQuestion -> Bool -> Html Message
+viewQuestion question expanded =
+    Html.p [] [ Html.text question.title ]
