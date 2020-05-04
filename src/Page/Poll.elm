@@ -260,10 +260,10 @@ view model =
 
         textColor =
             if editing then
-                "text-black font-semibold"
+                "text-black font-semibold border-seaside-500"
 
             else
-                "text-gray-500 font-semibold cursor-not-allowed"
+                "text-gray-500 font-semibold cursor-not-allowed border-dashed"
     in
     prepended model
         ++ [ div
