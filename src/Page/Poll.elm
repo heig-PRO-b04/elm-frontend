@@ -13,6 +13,7 @@ import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, placeholder, value)
 import Html.Events exposing (onClick, onInput)
+import Html.Events.Extra exposing (onEnterDown)
 import Page.Poll.Questions as Questions
 import Page.Poll.Session as Sessions
 import Picasso.Button exposing (button, elevated, filled)
@@ -22,6 +23,7 @@ import Route
 import Session exposing (Session, Viewer)
 import Task
 import Task.Extra
+import Time
 
 
 
@@ -35,24 +37,34 @@ type PollError
 
 
 type State
-    = CreatingNew
-    | LoadingFromExisting
-    | Loaded ServerPoll Questions.Model Sessions.Model
-    | Error PollError
+    = Creating
+    | LoadingExisting
+    | Editing ServerPoll Questions.Model Sessions.Model
+    | Ready ServerPoll Questions.Model Sessions.Model
 
 
 type alias Model =
     { viewer : Viewer
     , titleInput : String
     , state : State
+    , error : Maybe PollError
     }
 
 
 subscriptions : Model -> Sub Message
 subscriptions model =
     case model.state of
-        Loaded _ _ sessionModel ->
-            Sub.map SessionMessage (Sessions.subscriptions sessionModel)
+        Ready poll _ sessionModel ->
+            Sub.batch
+                [ Sub.map SessionMessage (Sessions.subscriptions sessionModel)
+                , Time.every (1000 * 20) (always (LoadPoll { idPoll = poll.idPoll }))
+                ]
+
+        Editing poll _ sessionModel ->
+            Sub.batch
+                [ Sub.map SessionMessage (Sessions.subscriptions sessionModel)
+                , Time.every (1000 * 20) (always (LoadPoll { idPoll = poll.idPoll }))
+                ]
 
         _ ->
             Sub.none
@@ -62,7 +74,8 @@ initCreate : Viewer -> ( Model, Cmd Message )
 initCreate viewer =
     { viewer = viewer
     , titleInput = ""
-    , state = CreatingNew
+    , state = Creating
+    , error = Nothing
     }
         |> withNoCmd
 
@@ -71,7 +84,8 @@ initDisplay : Viewer -> PollDiscriminator -> ( Model, Cmd Message )
 initDisplay viewer pollDiscriminator =
     { viewer = viewer
     , titleInput = ""
-    , state = LoadingFromExisting
+    , state = LoadingExisting
+    , error = Nothing
     }
         |> withCmd
             [ Api.Polls.getPoll (Session.viewerCredentials viewer) pollDiscriminator GotNewPoll
@@ -90,6 +104,7 @@ type Message
     | GotNewPoll ServerPoll
     | GotError PollError
     | RequestNavigateToPoll ServerPoll
+    | LoadPoll PollDiscriminator
       -- Sub model
     | QuestionMessage Questions.Message
     | SessionMessage Sessions.Message
@@ -98,26 +113,37 @@ type Message
 update : Message -> Model -> ( Model, Cmd Message )
 update message model =
     case message of
+        LoadPoll discriminator ->
+            model
+                |> withCmd
+                    [ Api.Polls.getPoll
+                        (Session.viewerCredentials model.viewer)
+                        discriminator
+                        GotNewPoll
+                        |> Task.mapError (always <| GotError UpdateError)
+                        |> Task.Extra.execute
+                    ]
+
         SessionMessage subMessage ->
             case model.state of
-                Loaded poll pModel sModel ->
+                Ready poll pModel sModel ->
                     let
                         ( updatedModel, cmd ) =
                             Sessions.update subMessage sModel
                     in
-                    ( { model | state = Loaded poll pModel updatedModel }, Cmd.map SessionMessage cmd )
+                    ( { model | state = Ready poll pModel updatedModel }, Cmd.map SessionMessage cmd )
 
                 _ ->
                     model |> withNoCmd
 
         QuestionMessage subMessage ->
             case model.state of
-                Loaded poll pollModel session ->
+                Ready poll pollModel session ->
                     let
                         ( updatedModel, cmd ) =
                             Questions.update subMessage pollModel
                     in
-                    ( { model | state = Loaded poll updatedModel session }, Cmd.map QuestionMessage cmd )
+                    ( { model | state = Ready poll updatedModel session }, Cmd.map QuestionMessage cmd )
 
                 _ ->
                     model |> withNoCmd
@@ -128,27 +154,35 @@ update message model =
 
         ClickPollTitleButton ->
             case model.state of
-                CreatingNew ->
+                Creating ->
                     model
                         |> withCmd
-                            [ Api.Polls.create (Session.viewerCredentials model.viewer) (ClientPoll model.titleInput) RequestNavigateToPoll
+                            [ Api.Polls.create
+                                (Session.viewerCredentials model.viewer)
+                                (ClientPoll model.titleInput)
+                                RequestNavigateToPoll
                                 |> Task.mapError (always <| GotError CreateError)
                                 |> Task.Extra.execute
                             ]
 
-                LoadingFromExisting ->
+                LoadingExisting ->
                     model |> withNoCmd
 
-                Loaded poll _ _ ->
-                    model
+                Ready poll q s ->
+                    { model | state = Editing poll q s }
+                        |> withNoCmd
+
+                Editing poll _ _ ->
+                    { model | state = LoadingExisting }
                         |> withCmd
-                            [ Api.Polls.update (Session.viewerCredentials model.viewer) (PollDiscriminator poll.idPoll) (ClientPoll model.titleInput) GotNewPoll
+                            [ Api.Polls.update
+                                (Session.viewerCredentials model.viewer)
+                                (PollDiscriminator poll.idPoll)
+                                (ClientPoll model.titleInput)
+                                GotNewPoll
                                 |> Task.mapError (always <| GotError UpdateError)
                                 |> Task.Extra.execute
                             ]
-
-                Error _ ->
-                    model |> withNoCmd
 
         RequestNavigateToPoll poll ->
             model
@@ -159,13 +193,7 @@ update message model =
                     ]
 
         GotError error ->
-            case model.state of
-                Loaded _ _ _ ->
-                    model |> withNoCmd
-
-                _ ->
-                    { model | state = Error error }
-                        |> withNoCmd
+            { model | error = Just error } |> withNoCmd
 
         GotNewPoll poll ->
             let
@@ -176,19 +204,36 @@ update message model =
                     Sessions.init model.viewer poll
 
                 updated =
-                    { model | state = Loaded poll questionModel sessionModel }
+                    case model.state of
+                        Editing _ _ _ ->
+                            { model | state = Editing poll questionModel sessionModel }
+
+                        _ ->
+                            { model | state = Ready poll questionModel sessionModel }
             in
             case model.state of
-                CreatingNew ->
+                Creating ->
                     updated
                         |> withCmd
                             [ Cmd.succeed <| RequestNavigateToPoll poll
-                            , Cmd.map QuestionMessage questionCmd
+                            ]
+
+                LoadingExisting ->
+                    { updated | titleInput = poll.title }
+                        |> withCmd
+                            [ Cmd.map QuestionMessage questionCmd
                             , Cmd.map SessionMessage sessionCmd
                             ]
 
-                _ ->
-                    updated
+                Ready _ _ _ ->
+                    { model | titleInput = poll.title }
+                        |> withCmd
+                            [ Cmd.map QuestionMessage questionCmd
+                            , Cmd.map SessionMessage sessionCmd
+                            ]
+
+                Editing _ _ _ ->
+                    model
                         |> withCmd
                             [ Cmd.map QuestionMessage questionCmd
                             , Cmd.map SessionMessage sessionCmd
@@ -202,60 +247,73 @@ update message model =
 view : Model -> List (Html Message)
 view model =
     let
-        prepended =
+        editing =
             case model.state of
-                Loaded _ _ sModel ->
-                    List.map (Html.map SessionMessage) (Sessions.moderatorView sModel)
+                Creating ->
+                    True
+
+                Editing _ _ _ ->
+                    True
 
                 _ ->
-                    []
+                    False
 
-        appended =
-            case model.state of
-                Loaded _ qModel _ ->
-                    List.map (Html.map QuestionMessage) (Questions.view qModel)
+        textColor =
+            if editing then
+                "text-black font-semibold"
 
-                _ ->
-                    []
+            else
+                "text-gray-500 font-semibold cursor-not-allowed"
     in
-    prepended
+    prepended model
         ++ [ div
-                [ class "flex flex-col"
-                , class "m-auto my-4 md:my-16"
-
-                -- Card appearance
-                , class "bg-white"
-                , class "shadow"
-                , class "p-8"
-                , class "md:rounded-lg"
-                , class "md:w-1/2"
-                , class "md:max-w-lg"
+                [ class "align-middle mx-2 md:mx-8 mt-8"
+                , class "bg-white shadow md:rounded-lg p-4"
                 ]
-                [ styledH2 <|
-                    case model.state of
-                        Loaded poll _ _ ->
-                            poll.title
-
-                        _ ->
-                            "Create a poll"
-                , inputTitle <| model
-                , buttonPollTitle model.state
+                [ Html.span
+                    [ class "block font-archivo capitalize text-gray-500" ]
+                    [ Html.text "Poll Title :" ]
+                , div [ class "flex flex-row items-center mt-2" ]
+                    [ Input.input
+                        [ onInput WriteNewTitle
+                        , onEnterDown ClickPollTitleButton
+                        , placeholder "What do unicorns dream of ? \u{1F984}"
+                        , value model.titleInput
+                        , class "flex-grow"
+                        , class "mr-4"
+                        , class textColor
+                        , Html.Attributes.readonly (not editing)
+                        ]
+                        []
+                    , buttonPollTitle model.state
+                    ]
                 ]
            ]
-        ++ appended
+        ++ appended model
 
 
-inputTitle : Model -> Html Message
-inputTitle model =
-    div []
-        [ Input.inputWithTitle "Poll title: "
-            [ onInput WriteNewTitle
-            , placeholder "Diu vivere Caesar"
-            , value model.titleInput
-            ]
+prepended model =
+    case model.state of
+        Ready _ _ sModel ->
+            List.map (Html.map SessionMessage) (Sessions.moderatorView sModel)
+
+        Editing _ _ sModel ->
+            List.map (Html.map SessionMessage) (Sessions.moderatorView sModel)
+
+        _ ->
             []
-            |> withMargin
-        ]
+
+
+appended model =
+    case model.state of
+        Ready _ qModel _ ->
+            List.map (Html.map QuestionMessage) (Questions.view qModel)
+
+        Editing _ qModel _ ->
+            List.map (Html.map QuestionMessage) (Questions.view qModel)
+
+        _ ->
+            []
 
 
 buttonPollTitle : State -> Html Message
@@ -263,24 +321,29 @@ buttonPollTitle state =
     let
         message =
             case state of
-                Loaded poll _ _ ->
-                    "Update title"
+                Ready poll _ _ ->
+                    "Edit"
 
-                LoadingFromExisting ->
-                    "Loading"
+                LoadingExisting ->
+                    "Loading..."
 
-                CreatingNew ->
+                Creating ->
                     "Create"
 
-                Error error ->
-                    "Update error"
+                Editing poll _ _ ->
+                    "Save changes"
+
+        style =
+            case state of
+                Creating ->
+                    Picasso.Button.filled ++ elevated
+
+                LoadingExisting ->
+                    Picasso.Button.filledDisabled ++ Picasso.Button.outlinedLight
+
+                _ ->
+                    Picasso.Button.filledLight ++ Picasso.Button.outlinedLight
     in
     button
-        (filled ++ elevated ++ [ onClick ClickPollTitleButton, class "mt-8" ])
+        (style ++ [ onClick ClickPollTitleButton ])
         [ text message ]
-
-
-withMargin : Html msg -> Html msg
-withMargin html =
-    div [ class "mt-8" ]
-        [ html ]
