@@ -8,7 +8,7 @@ import Html.Attributes exposing (class)
 img : List (Html.Attribute msg) -> List (Html msg) -> Api.Sessions.Emoji -> Html msg
 img attrs html emoji =
     Html.img
-        ([ src emoji, class "p-3 w-16 h-16 bg-white shadow rounded-lg overflow-hidden" ] ++ attrs)
+        ([ src emoji, class "p-1 md:p-3 w-12 h-12 md:w-16 md:h-16 bg-white shadow rounded-lg overflow-hidden" ] ++ attrs)
         html
 
 
