@@ -80,6 +80,7 @@ update msg model =
                         { title = ""
                         , details = ""
                         , visibility = Visible
+                        , index = 0
                         , answersMin = 1
                         , answersMax = 1
                         }
