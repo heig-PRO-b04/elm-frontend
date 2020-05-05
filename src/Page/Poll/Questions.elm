@@ -140,10 +140,6 @@ update message model =
                         |> Maybe.withDefault 1
 
                 generator =
-                    let
-                        s =
-                            Debug.log ("Generating between " ++ String.fromFloat lower ++ " and " ++ String.fromFloat upper) ""
-                    in
                     Random.float lower upper
 
                 ( floatingIndex, seed ) =
