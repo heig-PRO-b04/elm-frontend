@@ -96,9 +96,8 @@ update message model =
 
         GotAllQuestions retrieved ->
             let
-                -- TODO : Alter the model, rather than re-create it whenever updates are made.
                 ( questions, cmd ) =
-                    initQuestionList model.viewer retrieved
+                    initQuestionList model.viewer model.questions retrieved
             in
             ( { model | questions = questions }, cmd )
 
@@ -154,19 +153,34 @@ expand id list =
 
 initQuestionList :
     Viewer
+    -> List ( ServerQuestion, Bool, Question.Model )
     -> List ServerQuestion
     -> ( List ( ServerQuestion, Bool, Question.Model ), Cmd Message )
-initQuestionList viewer list =
+initQuestionList viewer existing list =
     let
         values : List ( ( ServerQuestion, Bool, Question.Model ), Cmd Message )
         values =
             List.map
                 (\question ->
+                    -- Reuse an existing model if it is found. Persist expanded states too.
                     let
-                        ( m, c ) =
+                        previous : Maybe ( ServerQuestion, Bool, Question.Model )
+                        previous =
+                            List.filter (\( id, _, _ ) -> question == id) existing
+                                |> List.head
+
+                        ( newModel, newCmd ) =
                             Question.init viewer question
+
+                        ( model, expanded, command ) =
+                            case previous of
+                                Just ( _, b, m ) ->
+                                    ( m, b, Cmd.none )
+
+                                Nothing ->
+                                    ( newModel, False, Cmd.map (MsgQuestion question) newCmd )
                     in
-                    ( ( question, False, m ), Cmd.map (MsgQuestion question) c )
+                    ( ( question, expanded, model ), command )
                 )
                 list
 
@@ -295,21 +309,32 @@ viewInput current =
 
 viewQuestions : List ( ServerQuestion, Bool ) -> List (Html Message)
 viewQuestions list =
-    List.map (\( q, v ) -> viewQuestion q v) list
+    List.singleton <|
+        Html.table [ Attribute.class "shadow bg-white p-4 w-full" ]
+            [ Html.thead [] [ Html.tr [] [ Html.td [ Attribute.colspan 3 ] [ Html.text "Title" ] ] ]
+            , Html.tbody [] <| List.concatMap (\( q, v ) -> viewQuestion q v) list
+            ]
 
 
-viewQuestion : ServerQuestion -> Bool -> Html Message
+viewQuestion : ServerQuestion -> Bool -> List (Html Message)
 viewQuestion question expanded =
     let
-        class =
+        expansion =
             if expanded then
-                Attribute.class "text-seaside-500"
+                List.singleton <| viewQuestionExpansion question
 
             else
-                Attribute.class "text-black"
+                []
     in
-    Html.p [ class ]
-        [ Html.text question.title
-        , Html.button [ Event.onClick <| PerformDelete question ] [ Html.text "**delete**" ]
-        , Html.button [ Event.onClick <| PerformExpand question ] [ Html.text "**expand**" ]
+    [ Html.tr []
+        [ Html.td [] [ Html.text question.title ]
+        , Html.td [] [ Html.button [ Event.onClick <| PerformExpand question ] [ Html.text "**expand**" ] ]
+        , Html.td [] [ Html.button [ Event.onClick <| PerformDelete question ] [ Html.text "**delete**" ] ]
         ]
+    ]
+        ++ expansion
+
+
+viewQuestionExpansion : ServerQuestion -> Html Message
+viewQuestionExpansion question =
+    Html.tr [] [ Html.td [ Attribute.cols 3 ] [ Html.text <| "Expansion content for " ++ question.title ] ]
