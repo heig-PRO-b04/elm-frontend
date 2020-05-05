@@ -192,7 +192,7 @@ update message model =
         MsgDragDrop subMessage ->
             let
                 ( updated, result ) =
-                    Html5.DragDrop.update subMessage model.dragDrop
+                    Html5.DragDrop.updateSticky subMessage model.dragDrop
 
                 cmd =
                     result
@@ -426,7 +426,7 @@ viewQuestions dragDropModel list =
                             [ Attribute.class "font-bold font-archivo text-gray-500"
                             , Attribute.class "text-left tracking-wider"
                             , Attribute.class "border-gray-200 select-none py-3 px-6"
-                            , Attribute.colspan 3
+                            , Attribute.colspan 4
                             ]
                             [ Html.text "Title" ]
                         ]
@@ -461,8 +461,8 @@ viewQuestion dragDropModel index question expanded =
                     (\( id, pos ) ->
                         case Html5.DragDrop.getDropId dragDropModel of
                             Just dropId ->
-                                if id /= question && index == dropId then
-                                    Just pos
+                                if index == dropId || index + 1 == dropId then
+                                    Just ( dropId, pos )
 
                                 else
                                     Nothing
@@ -471,17 +471,20 @@ viewQuestion dragDropModel index question expanded =
                                 Nothing
                     )
                 |> Maybe.map
-                    (\pos ->
+                    (\( dropId, pos ) ->
                         if pos.y <= 0 || pos.y >= pos.height then
-                            Attribute.class "border-b border-gray-200"
+                            Attribute.class "border-b-2 border-gray-200"
 
-                        else if pos.y < pos.height // 2 then
-                            Attribute.class "bg-seaside-050"
+                        else if pos.y > pos.height // 2 && index == dropId then
+                            Attribute.class "border-b-2 border-seaside-800"
+
+                        else if pos.y < pos.height // 2 && index + 1 == dropId then
+                            Attribute.class "border-b-2 border-seaside-800"
 
                         else
-                            Attribute.class "bg-seaside-100"
+                            Attribute.class "border-b-2 border-gray-200"
                     )
-                |> Maybe.withDefault (Attribute.class "border-b border-gray-200")
+                |> Maybe.withDefault (Attribute.class "border-b-2 border-gray-200")
 
         expansion =
             if expanded then
@@ -492,15 +495,17 @@ viewQuestion dragDropModel index question expanded =
     in
     [ Html.tr
         [ dropTargetStyling
+        , Attribute.class "hover:bg-gray-100"
         ]
         [ Html.td
             (List.concatMap identity
-                [ List.singleton <| Attribute.class "flex flex-row items-center hover:bg-gray-100"
+                [ List.singleton <| Attribute.class "flex flex-row items-center"
                 , Html5.DragDrop.droppable MsgDragDrop index
                 , Html5.DragDrop.draggable MsgDragDrop question
                 ]
             )
-            [ Html.div [ Attribute.class "font-bold font-archivo break-words py-3 px-4 flex-grow" ]
+            [ Html.img [ Attribute.class "ml-4 h-6 w-6 hidden md:block", Attribute.src "/icon/drag-horizontal-variant.svg" ] []
+            , Html.div [ Attribute.class "font-bold font-archivo break-words py-3 px-4 flex-grow" ]
                 [ Html.span [ Attribute.class "text-gray-500 mr-2" ] [ Html.text <| String.fromInt (index + 1) ++ "." ]
                 , Html.text question.title
                 ]
@@ -521,4 +526,4 @@ viewQuestion dragDropModel index question expanded =
 
 viewQuestionExpansion : ServerQuestion -> Html Message
 viewQuestionExpansion question =
-    Html.tr [] [ Html.td [ Attribute.colspan 3 ] [ Html.text <| "Expansion for : \"" ++ question.title ++ "\"" ] ]
+    Html.tr [] [ Html.td [ Attribute.colspan 4 ] [ Html.text <| "Expansion for : \"" ++ question.title ++ "\"" ] ]
