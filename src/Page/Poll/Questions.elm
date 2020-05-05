@@ -6,284 +6,362 @@ module Page.Poll.Questions exposing
     , view
     )
 
-import Api.Polls exposing (PollDiscriminator, ServerPoll)
-import Api.Questions
-    exposing
-        ( ClientQuestion
-        , QuestionDiscriminator
-        , QuestionVisibility(..)
-        , ServerQuestion
-        )
-import Cmd exposing (withCmd, withNoCmd)
-import Dict exposing (Dict)
-import Html exposing (Html, div, img, text)
-import Html.Attributes exposing (class, colspan, placeholder, src, value)
-import Html.Events exposing (onClick, onInput)
+import Api.Polls exposing (ServerPoll)
+import Api.Questions exposing (ClientQuestion, ServerQuestion)
+import Cmd
+import Html exposing (Html)
+import Html.Attributes as Attribute
+import Html.Events as Event
 import Page.Question as Question
-import Picasso.FloatingButton
-import Picasso.Input as Input
 import Route
 import Session exposing (Viewer)
-import Set exposing (Set)
-import Task
+import Task exposing (Task)
 import Task.Extra
 
 
-type alias QuestionIdentifier =
-    ( Int, Int )
+
+-- MODEL
 
 
 type alias Model =
     { viewer : Viewer
     , poll : ServerPoll
-    , questions : Dict QuestionIdentifier Question.Model
-    , newQuestion : Maybe ClientQuestion
+    , questions : List ( ServerQuestion, Bool, Question.Model )
+    , input : Maybe String
     }
+
+
+init : Viewer -> ServerPoll -> ( Model, Cmd Message )
+init viewer poll =
+    ( Model viewer poll [] Nothing, Cmd.succeed PerformReload )
+
+
+
+-- UPDATE
 
 
 type Message
     = WriteNewTitle String
-    | NowStartCreateQuestion
-    | NowCreateQuestion ClientQuestion
-    | NowRequestQuestions
+    | PerformCreateStart
+    | PerformCreate ClientQuestion
+    | PerformDelete ServerQuestion
+    | PerformExpand ServerQuestion
+    | PerformUpdate ServerQuestion ClientQuestion
+    | PerformReload
     | GotAllQuestions (List ServerQuestion)
-    | GotQuestionMessage QuestionIdentifier Question.Message
-    | GotInvalidCredentials
-
-
-init : Viewer -> Api.Polls.ServerPoll -> ( Model, Cmd Message )
-init viewer poll =
-    { viewer = viewer
-    , poll = poll
-    , questions = Dict.empty
-    , newQuestion = Nothing
-    }
-        |> withCmd [ Cmd.succeed <| NowRequestQuestions ]
+    | GotBadCredentials
+    | MsgQuestion ServerQuestion Question.Message
 
 
 update : Message -> Model -> ( Model, Cmd Message )
-update msg model =
-    case msg of
-        WriteNewTitle string ->
+update message model =
+    case message of
+        WriteNewTitle title ->
+            ( { model | input = Maybe.map (always title) model.input }, Cmd.none )
+
+        PerformCreateStart ->
+            ( { model | input = Just "" }, Cmd.none )
+
+        PerformCreate question ->
+            ( { model | input = Nothing }
+            , taskCreate model.viewer model.poll question
+                |> thenHandleErrorAndReload
+            )
+
+        PerformDelete question ->
+            ( model
+            , taskDelete model.viewer question
+                |> thenHandleErrorAndReload
+            )
+
+        PerformUpdate server client ->
+            ( model
+            , taskUpdate model.viewer server client
+                |> thenHandleErrorAndReload
+            )
+
+        PerformExpand question ->
+            ( { model | questions = expand question model.questions }, Cmd.none )
+
+        PerformReload ->
+            ( model
+            , taskAll model.viewer model.poll
+                |> Task.mapError handleError
+                |> Task.map GotAllQuestions
+                |> Task.Extra.execute
+            )
+
+        GotBadCredentials ->
+            ( model, cmdRouteToDisconnect model.viewer )
+
+        GotAllQuestions retrieved ->
             let
-                question =
-                    model.newQuestion
-                        |> Maybe.map (\x -> { x | title = string })
+                ( questions, cmd ) =
+                    initQuestionList model.viewer model.questions retrieved
             in
-            { model | newQuestion = question }
-                |> withNoCmd
+            ( { model | questions = questions }, cmd )
 
-        NowStartCreateQuestion ->
-            { model
-                | newQuestion =
-                    Just <|
-                        { title = ""
-                        , details = ""
-                        , visibility = Visible
-                        , index = 0
-                        , answersMin = 1
-                        , answersMax = 1
-                        }
-            }
-                |> withNoCmd
-
-        NowCreateQuestion clientQuestion ->
+        MsgQuestion identifier subMessage ->
             let
-                viewer =
-                    Session.viewerCredentials model.viewer
+                ( questions, cmd ) =
+                    updateQuestionList identifier subMessage model.questions
             in
-            { model | newQuestion = Nothing }
-                |> withCmd
-                    [ Api.Questions.create viewer { idPoll = model.poll.idPoll } clientQuestion identity
-                        |> Task.map (always NowRequestQuestions)
-                        |> Task.mapError
-                            (\error ->
-                                case error of
-                                    Api.Questions.GotBadCredentials ->
-                                        GotInvalidCredentials
+            ( { model | questions = questions }, cmd )
 
-                                    _ ->
-                                        GotAllQuestions []
-                            )
-                        |> Task.Extra.execute
-                    ]
 
-        GotAllQuestions serverQuestionList ->
-            let
-                keys : Set QuestionIdentifier
-                keys =
-                    serverQuestionList
-                        |> List.map (\question -> ( question.idPoll, question.idQuestion ))
-                        |> Set.fromList
+thenReload : Task x a -> Task x Message
+thenReload task =
+    task
+        |> Task.andThen (always <| Task.succeed PerformReload)
 
-                -- STEP 1 : Remove the extra keys.
-                withRemovals : Dict QuestionIdentifier Question.Model
-                withRemovals =
+
+handleError : Api.Questions.QuestionError -> Message
+handleError error =
+    case error of
+        Api.Questions.GotBadCredentials ->
+            GotBadCredentials
+
+        -- TODO : Display an error message ?
+        Api.Questions.GotBadNetwork ->
+            PerformReload
+
+        -- TODO : Quit instead ?
+        Api.Questions.GotNotFound ->
+            PerformReload
+
+
+thenHandleErrorAndReload : Task Api.Questions.QuestionError a -> Cmd Message
+thenHandleErrorAndReload task =
+    task
+        |> Task.mapError handleError
+        |> thenReload
+        |> Task.Extra.execute
+
+
+expand : identifier -> List ( identifier, Bool, model ) -> List ( identifier, Bool, model )
+expand id list =
+    List.map
+        (\( identifier, value, model ) ->
+            if identifier == id then
+                ( identifier, not value, model )
+
+            else
+                ( identifier, value, model )
+        )
+        list
+
+
+initQuestionList :
+    Viewer
+    -> List ( ServerQuestion, Bool, Question.Model )
+    -> List ServerQuestion
+    -> ( List ( ServerQuestion, Bool, Question.Model ), Cmd Message )
+initQuestionList viewer existing list =
+    let
+        values : List ( ( ServerQuestion, Bool, Question.Model ), Cmd Message )
+        values =
+            List.map
+                (\question ->
+                    -- Reuse an existing model if it is found. Persist expanded states too.
                     let
-                        toRemove : Set QuestionIdentifier
-                        toRemove =
-                            Dict.keys model.questions
-                                |> Set.fromList
-                                |> Set.diff keys
+                        previous : Maybe ( ServerQuestion, Bool, Question.Model )
+                        previous =
+                            List.filter (\( id, _, _ ) -> question == id) existing
+                                |> List.head
+
+                        ( newModel, newCmd ) =
+                            Question.init viewer question
+
+                        ( model, expanded, command ) =
+                            case previous of
+                                Just ( _, b, m ) ->
+                                    ( m, b, Cmd.none )
+
+                                Nothing ->
+                                    ( newModel, False, Cmd.map (MsgQuestion question) newCmd )
                     in
-                    Set.foldr
-                        (\id dict -> Dict.remove id dict)
-                        model.questions
-                        toRemove
+                    ( ( question, expanded, model ), command )
+                )
+                list
 
-                -- STEP 2 : Add the missing keys.
-                ( withInsertions, commands ) =
-                    let
-                        toInsert : Set QuestionIdentifier
-                        toInsert =
-                            Set.diff keys (Set.fromList (Dict.keys withRemovals))
-                    in
-                    Set.foldr
-                        (\( idPoll, idQuestion ) ( dict, cmd ) ->
-                            let
-                                id =
-                                    ( idPoll, idQuestion )
+        models : List ( ServerQuestion, Bool, Question.Model )
+        models =
+            List.map Tuple.first values
 
-                                ( m, c ) =
-                                    Question.init model.viewer
-                                        { idPoll = idPoll
-                                        , idQuestion = idQuestion
-                                        }
+        cmd : Cmd Message
+        cmd =
+            List.map Tuple.second values
+                |> Cmd.batch
+    in
+    ( models, cmd )
 
-                                newCmd =
-                                    Cmd.batch
-                                        [ c |> Cmd.map (GotQuestionMessage id)
-                                        , cmd
-                                        ]
-                            in
-                            ( Dict.insert id m dict, newCmd )
-                        )
-                        ( withRemovals, Cmd.none )
-                        toInsert
-            in
-            ( { model | questions = withInsertions }, commands )
 
-        GotQuestionMessage identifier message ->
-            let
-                updated : Maybe ( Question.Model, Cmd Question.Message )
-                updated =
-                    model.questions
-                        |> Dict.get identifier
-                        |> Maybe.map (\m -> Question.update message m)
-            in
-            case updated of
-                Just ( mod, cmd ) ->
-                    ( { model | questions = model.questions |> Dict.insert identifier mod }
-                    , Cmd.map (GotQuestionMessage identifier) cmd
-                    )
+updateQuestionList :
+    ServerQuestion
+    -> Question.Message
+    -> List ( ServerQuestion, x, Question.Model )
+    -> ( List ( ServerQuestion, x, Question.Model ), Cmd Message )
+updateQuestionList id message list =
+    let
+        values : List ( ( ServerQuestion, x, Question.Model ), Cmd Message )
+        values =
+            List.map
+                (\( identifier, value, model ) ->
+                    if identifier == id then
+                        let
+                            ( m, c ) =
+                                Question.update message model
+                        in
+                        ( ( identifier, value, m ), Cmd.map (MsgQuestion identifier) c )
 
-                Nothing ->
-                    ( model, Cmd.none )
+                    else
+                        ( ( identifier, value, model ), Cmd.none )
+                )
+                list
 
-        NowRequestQuestions ->
-            let
-                viewer =
-                    Session.viewerCredentials model.viewer
-            in
-            model
-                |> withCmd
-                    [ Api.Questions.getQuestionList viewer { idPoll = model.poll.idPoll } identity
-                        |> Task.map GotAllQuestions
-                        |> Task.mapError
-                            (\error ->
-                                case error of
-                                    Api.Questions.GotBadCredentials ->
-                                        GotInvalidCredentials
+        models : List ( ServerQuestion, x, Question.Model )
+        models =
+            List.map Tuple.first values
 
-                                    _ ->
-                                        GotAllQuestions []
-                            )
-                        |> Task.Extra.execute
-                    ]
+        cmd : Cmd Message
+        cmd =
+            List.map Tuple.second values
+                |> Cmd.batch
+    in
+    ( models, cmd )
 
-        GotInvalidCredentials ->
-            let
-                viewer =
-                    Session.viewerNavKey model.viewer
-            in
-            model
-                |> withCmd [ Route.badCredentials viewer ]
+
+
+-- EFFECTS
+
+
+cmdRouteToDisconnect : Viewer -> Cmd msg
+cmdRouteToDisconnect viewer =
+    Session.viewerNavKey viewer
+        |> Route.badCredentials
+
+
+taskCreate : Viewer -> ServerPoll -> ClientQuestion -> Task Api.Questions.QuestionError ServerQuestion
+taskCreate viewer poll question =
+    Api.Questions.create
+        (Session.viewerCredentials viewer)
+        { idPoll = poll.idPoll }
+        question
+        identity
+
+
+taskDelete : Viewer -> ServerQuestion -> Task Api.Questions.QuestionError ()
+taskDelete viewer question =
+    Api.Questions.delete
+        (Session.viewerCredentials viewer)
+        { idPoll = question.idPoll, idQuestion = question.idQuestion }
+        ()
+
+
+taskUpdate : Viewer -> ServerQuestion -> ClientQuestion -> Task Api.Questions.QuestionError ServerQuestion
+taskUpdate viewer server client =
+    Api.Questions.update
+        (Session.viewerCredentials viewer)
+        { idPoll = server.idPoll, idQuestion = server.idQuestion }
+        client
+        identity
+
+
+taskAll : Viewer -> ServerPoll -> Task Api.Questions.QuestionError (List ServerQuestion)
+taskAll viewer poll =
+    Api.Questions.getQuestionList (Session.viewerCredentials viewer)
+        { idPoll = poll.idPoll }
+        identity
+
+
+
+-- VIEW
 
 
 view : Model -> List (Html Message)
 view model =
-    let
-        fabView =
-            case model.newQuestion of
-                Just _ ->
-                    div [] []
-
-                Nothing ->
-                    Picasso.FloatingButton.button
-                        [ class "fixed right-0 bottom-0 m-8"
-                        , onClick NowStartCreateQuestion
-                        ]
-                        [ img [ src "/icon/action-button-plus.svg" ] []
-                        , div [ class "ml-4" ] [ text "New question" ]
-                        ]
-    in
-    [ viewQuestionsTable model
-    , fabView
-    ]
+    []
+        ++ viewInput model.input
+        ++ viewQuestions (List.map (\( a, b, _ ) -> ( a, b )) model.questions)
 
 
-viewQuestionsTable : Model -> Html Message
-viewQuestionsTable model =
-    let
-        questionView =
-            case model.newQuestion of
-                Just question ->
-                    Html.tr [ class "border-b active:shadow-inner hover:bg-gray-100" ]
-                        [ Html.td
-                            [ class "py-3 pl-4", colspan 2, class "w-full" ]
-                            [ inputTitle <| question.title ]
-                        , Html.td
-                            [ class "text-right px-8 text-seaside-600" ]
-                            [ Html.button
-                                [ onClick <| NowCreateQuestion question
-                                , class "font-bold"
-                                ]
-                                [ text "Create" ]
-                            ]
-                        ]
+viewInput : Maybe String -> List (Html Message)
+viewInput current =
+    case current of
+        Just text ->
+            let
+                created =
+                    { title = text
+                    , details = ""
+                    , visibility = Api.Questions.Visible
+                    , index = 0
+                    , answersMin = 0
+                    , answersMax = 0
+                    }
+            in
+            [ Html.input [ Attribute.value text, Event.onInput WriteNewTitle ] []
+            , Html.button [ Event.onClick <| PerformCreate created ] [ Html.text "**save**" ]
+            ]
 
-                Nothing ->
-                    div [] []
+        Nothing ->
+            List.singleton <| Html.button [ Event.onClick PerformCreateStart ] [ Html.text "**new question**" ]
 
-        headerBase =
-            class "font-bold font-archivo text-gray-500 text-left tracking-wider border-gray-200 select-none py-3"
-    in
-    div [ class "align-middle mx-2 md:mx-8 mt-8 mb-32" ]
-        [ Html.table [ class "min-w-full center border rounded-lg overflow-hidden shadow" ]
-            [ Html.thead [ class "bg-gray-100 border-b" ]
-                [ Html.td [ class "px-6 w-full", headerBase ] [ Html.text "Title" ]
-                , Html.td [ class "px-2", headerBase ] [ Html.text "Visibility" ]
-                , Html.td [] []
+
+viewQuestions : List ( ServerQuestion, Bool ) -> List (Html Message)
+viewQuestions list =
+    List.singleton <|
+        Html.div [ Attribute.class "block align-middle mx-2 md:mx-8 mt-8 mb-32" ]
+            [ Html.table
+                [ Attribute.class "min-w-full center border rounded-lg overflow-hidden shadow"
                 ]
-            , Html.tbody [ class "bg-white" ] (questionView :: viewQuestionList model.questions)
+                [ Html.thead
+                    [ Attribute.class "bg-gray-100 border-b" ]
+                    [ Html.tr []
+                        [ Html.td
+                            [ Attribute.class "font-bold font-archivo text-gray-500"
+                            , Attribute.class "text-left tracking-wider"
+                            , Attribute.class "border-gray-200 select-none py-3 px-6"
+                            , Attribute.colspan 3
+                            ]
+                            [ Html.text "Title" ]
+                        ]
+                    ]
+                , List.indexedMap (\i ( q, v ) -> ( i, q, v )) list
+                    |> List.concatMap (\( i, q, v ) -> viewQuestion i q v)
+                    |> Html.tbody [ Attribute.class "bg-white" ]
+                ]
+            ]
+
+
+viewQuestion : Int -> ServerQuestion -> Bool -> List (Html Message)
+viewQuestion index question expanded =
+    let
+        expansion =
+            if expanded then
+                List.singleton <| viewQuestionExpansion question
+
+            else
+                []
+    in
+    [ Html.tr [ Attribute.class "border-b hover:bg-gray-100" ]
+        [ Html.td [ Attribute.class "font-bold font-archivo break-words py-3 px-4" ]
+            [ Html.span [ Attribute.class "text-gray-500 mr-2" ] [ Html.text <| String.fromInt (index + 1) ++ "." ]
+            , Html.text question.title
+            ]
+        , Html.td [] [ Html.button [ Event.onClick <| PerformExpand question ] [ Html.text "**expand**" ] ]
+        , Html.td []
+            [ Html.button
+                [ Attribute.class "text-gray-500 hover:text-red-500 capitalize font-archivo"
+                , Attribute.class "text-right px-8"
+                , Event.onClick <| PerformDelete question
+                ]
+                [ Html.text "Delete" ]
             ]
         ]
+    ]
+        ++ expansion
 
 
-viewQuestionList : Dict QuestionIdentifier Question.Model -> List (Html Message)
-viewQuestionList questions =
-    questions
-        |> Dict.toList
-        |> List.sortBy Tuple.first
-        |> List.map (\serverQuestion -> viewQuestion serverQuestion)
-
-
-viewQuestion : ( QuestionIdentifier, Question.Model ) -> Html Message
-viewQuestion ( identifier, model ) =
-    Question.view model
-        |> Html.map (\msg -> GotQuestionMessage identifier msg)
-
-
-inputTitle : String -> Html Message
-inputTitle title =
-    Input.input [ onInput WriteNewTitle, placeholder "🚀 New question...", class "w-full", value title ] []
+viewQuestionExpansion : ServerQuestion -> Html Message
+viewQuestionExpansion question =
+    Html.tr [] [ Html.td [ Attribute.colspan 3 ] [ Html.text <| "Expansion for : \"" ++ question.title ++ "\"" ] ]
