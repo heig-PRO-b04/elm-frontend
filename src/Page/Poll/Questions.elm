@@ -55,7 +55,7 @@ type Message
 
 update : Message -> Model -> ( Model, Cmd Message )
 update message model =
-    case Debug.log (Debug.toString message) message of
+    case message of
         WriteNewTitle title ->
             ( { model | input = Maybe.map (always title) model.input }, Cmd.none )
 
