@@ -1,4 +1,4 @@
-module Api.Questions exposing
+module Api.Answers exposing
     ( ServerAnswer, ClientAnswer, AnswerDiscriminator, AnswerError(..)
     , getAnswerList, getAnswer, create, update, delete
     )
