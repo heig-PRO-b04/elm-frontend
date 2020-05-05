@@ -310,14 +310,31 @@ viewInput current =
 viewQuestions : List ( ServerQuestion, Bool ) -> List (Html Message)
 viewQuestions list =
     List.singleton <|
-        Html.table [ Attribute.class "shadow bg-white p-4 w-full" ]
-            [ Html.thead [] [ Html.tr [] [ Html.td [ Attribute.colspan 3 ] [ Html.text "Title" ] ] ]
-            , Html.tbody [] <| List.concatMap (\( q, v ) -> viewQuestion q v) list
+        Html.div [ Attribute.class "block align-middle mx-2 md:mx-8 mt-8 mb-32" ]
+            [ Html.table
+                [ Attribute.class "min-w-full center border rounded-lg overflow-hidden shadow"
+                ]
+                [ Html.thead
+                    [ Attribute.class "bg-gray-100 border-b" ]
+                    [ Html.tr []
+                        [ Html.td
+                            [ Attribute.class "font-bold font-archivo text-gray-500"
+                            , Attribute.class "text-left tracking-wider"
+                            , Attribute.class "border-gray-200 select-none py-3 px-6"
+                            , Attribute.colspan 3
+                            ]
+                            [ Html.text "Title" ]
+                        ]
+                    ]
+                , List.indexedMap (\i ( q, v ) -> ( i, q, v )) list
+                    |> List.concatMap (\( i, q, v ) -> viewQuestion i q v)
+                    |> Html.tbody [ Attribute.class "bg-white" ]
+                ]
             ]
 
 
-viewQuestion : ServerQuestion -> Bool -> List (Html Message)
-viewQuestion question expanded =
+viewQuestion : Int -> ServerQuestion -> Bool -> List (Html Message)
+viewQuestion index question expanded =
     let
         expansion =
             if expanded then
@@ -326,10 +343,20 @@ viewQuestion question expanded =
             else
                 []
     in
-    [ Html.tr []
-        [ Html.td [] [ Html.text question.title ]
+    [ Html.tr [ Attribute.class "border-b hover:bg-gray-100" ]
+        [ Html.td [ Attribute.class "font-bold font-archivo break-words py-3 px-4" ]
+            [ Html.span [ Attribute.class "text-gray-500 mr-2" ] [ Html.text <| String.fromInt (index + 1) ++ "." ]
+            , Html.text question.title
+            ]
         , Html.td [] [ Html.button [ Event.onClick <| PerformExpand question ] [ Html.text "**expand**" ] ]
-        , Html.td [] [ Html.button [ Event.onClick <| PerformDelete question ] [ Html.text "**delete**" ] ]
+        , Html.td []
+            [ Html.button
+                [ Attribute.class "text-gray-500 hover:text-red-500 capitalize font-archivo"
+                , Attribute.class "text-right px-8"
+                , Event.onClick <| PerformDelete question
+                ]
+                [ Html.text "Delete" ]
+            ]
         ]
     ]
         ++ expansion
@@ -337,4 +364,4 @@ viewQuestion question expanded =
 
 viewQuestionExpansion : ServerQuestion -> Html Message
 viewQuestionExpansion question =
-    Html.tr [] [ Html.td [ Attribute.cols 3 ] [ Html.text <| "Expansion content for " ++ question.title ] ]
+    Html.tr [] [ Html.td [ Attribute.colspan 3 ] [ Html.text <| "Expansion for : \"" ++ question.title ++ "\"" ] ]
