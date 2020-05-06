@@ -15,6 +15,8 @@ import Html.Attributes as Attribute
 import Html.Events as Event
 import Html5.DragDrop
 import Page.Question as Question
+import Picasso.FloatingButton
+import Picasso.Input as Input
 import Random
 import Route
 import Session exposing (Viewer)
@@ -382,38 +384,39 @@ taskAll viewer poll =
 
 view : Model -> List (Html Message)
 view model =
-    []
-        ++ viewInput model.input
-        ++ viewQuestions model.dragDrop (List.map (\( a, b, _ ) -> ( a, b )) <| Array.toList model.questions)
-
-
-viewInput : Maybe String -> List (Html Message)
-viewInput current =
-    case current of
-        Just text ->
-            let
-                created =
-                    { title = text
-                    , details = ""
-                    , visibility = Api.Questions.Visible
-                    , index = 0.5
-                    , answersMin = 0
-                    , answersMax = 0
-                    }
-            in
-            [ Html.input [ Attribute.value text, Event.onInput WriteNewTitle ] []
-            , Html.button [ Event.onClick <| PerformCreate created ] [ Html.text "**save**" ]
-            ]
-
-        Nothing ->
-            List.singleton <| Html.button [ Event.onClick PerformCreateStart ] [ Html.text "**new question**" ]
+    let
+        button =
+            Maybe.map (always []) model.input
+                |> (Maybe.withDefault <|
+                        List.singleton <|
+                            Picasso.FloatingButton.button
+                                [ Attribute.class "fixed right-0 bottom-0 m-8"
+                                , Event.onClick PerformCreateStart
+                                ]
+                                [ Html.img [ Attribute.src "/icon/action-button-plus.svg" ] []
+                                , Html.div [ Attribute.class "ml-4" ] [ Html.text "New question" ]
+                                ]
+                   )
+    in
+    viewQuestions
+        model.dragDrop
+        model.input
+        (List.map (\( a, b, _ ) -> ( a, b )) <| Array.toList model.questions)
+        |> List.append button
 
 
 viewQuestions :
     Html5.DragDrop.Model ServerQuestion DropIndex
+    -> Maybe String
     -> List ( ServerQuestion, Bool )
     -> List (Html Message)
-viewQuestions dragDropModel list =
+viewQuestions dragDropModel input list =
+    let
+        header =
+            Maybe.map viewInput input
+                |> Maybe.map List.singleton
+                |> Maybe.withDefault []
+    in
     List.singleton <|
         Html.div [ Attribute.class "block align-middle mx-2 md:mx-8 mt-8 mb-32" ]
             [ Html.table
@@ -433,6 +436,7 @@ viewQuestions dragDropModel list =
                     ]
                 , List.indexedMap (\i ( q, v ) -> ( i, q, v )) list
                     |> List.concatMap (\( i, q, v ) -> viewQuestion dragDropModel i q v)
+                    |> List.append header
                     |> Html.tbody [ Attribute.class "bg-white" ]
                 ]
             ]
@@ -527,3 +531,35 @@ viewQuestion dragDropModel index question expanded =
 viewQuestionExpansion : ServerQuestion -> Html Message
 viewQuestionExpansion question =
     Html.tr [] [ Html.td [ Attribute.colspan 4 ] [ Html.text <| "Expansion for : \"" ++ question.title ++ "\"" ] ]
+
+
+viewInput : String -> Html Message
+viewInput current =
+    let
+        created =
+            { title = current
+            , details = ""
+            , visibility = Api.Questions.Visible
+            , index = 0.5
+            , answersMin = 0
+            , answersMax = 0
+            }
+    in
+    Html.tr [ Attribute.class "border-b active:shadow-inner hover:bg-gray-100" ]
+        [ Html.td
+            [ Attribute.class "py-3 pl-4", Attribute.class "w-full flex flex-row items-center" ]
+            [ Input.input
+                [ Event.onInput WriteNewTitle
+                , Attribute.placeholder "🚀 New question..."
+                , Attribute.class "w-full"
+                , Attribute.value current
+                ]
+                []
+            , Html.button
+                [ Event.onClick <| PerformCreate created
+                , Attribute.class "font-bold"
+                , Attribute.class "text-right px-8 text-seaside-600"
+                ]
+                [ Html.text "Create" ]
+            ]
+        ]
