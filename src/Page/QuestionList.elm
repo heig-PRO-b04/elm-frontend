@@ -22,6 +22,7 @@ import Route
 import Session exposing (Viewer)
 import Task exposing (Task)
 import Task.Extra
+import Time
 
 
 
@@ -55,7 +56,10 @@ init viewer poll =
       , dragDrop = Html5.DragDrop.init
       , seed = Random.initialSeed 42
       }
-    , Cmd.succeed PerformReload
+    , Cmd.batch
+        [ Cmd.succeed PerformReload
+        , cmdNewSeed
+        ]
     )
 
 
@@ -73,6 +77,7 @@ type Message
     | PerformMoveToIndex Int ServerQuestion
     | PerformReload
     | GotAllQuestions (List ServerQuestion)
+    | GotNewSeed Random.Seed
     | GotBadCredentials
     | MsgQuestion ServerQuestion Answers.Message
     | MsgDragDrop (Html5.DragDrop.Msg ServerQuestion DropIndex)
@@ -183,6 +188,9 @@ update message model =
                     initQuestionList model.viewer model.questions sorted
             in
             ( { model | questions = questions }, cmd )
+
+        GotNewSeed seed ->
+            ( { model | seed = seed }, Cmd.none )
 
         MsgQuestion identifier subMessage ->
             let
@@ -337,6 +345,15 @@ updateQuestionList id message list =
 
 
 -- EFFECTS
+
+
+cmdNewSeed : Cmd Message
+cmdNewSeed =
+    Time.now
+        |> Task.map (Time.toMillis Time.utc)
+        |> Task.map Random.initialSeed
+        |> Task.map GotNewSeed
+        |> Task.Extra.execute
 
 
 cmdRouteToDisconnect : Viewer -> Cmd msg
@@ -497,6 +514,13 @@ viewQuestion dragDropModel index question expanded model =
 
             else
                 []
+
+        expansionStyling =
+            if expanded then
+                Attribute.class "transform duration-200 rotate-90"
+
+            else
+                Attribute.class "transform duration-200"
     in
     [ Html.tr
         [ dropTargetStyling
@@ -510,11 +534,21 @@ viewQuestion dragDropModel index question expanded model =
                 ]
             )
             [ Html.img [ Attribute.class "ml-4 h-6 w-6 hidden md:block", Attribute.src "/icon/drag-horizontal-variant.svg" ] []
-            , Html.div [ Attribute.class "font-bold font-archivo break-words py-3 px-4 flex-grow" ]
+            , Html.div
+                [ Attribute.class "font-bold font-archivo break-words py-3 px-4 flex-grow"
+                , Event.onClick <| PerformExpand question
+                ]
                 [ Html.span [ Attribute.class "text-gray-500 mr-2" ] [ Html.text <| String.fromInt (index + 1) ++ "." ]
                 , Html.text question.title
                 ]
-            , Html.div [] [ Html.button [ Event.onClick <| PerformExpand question ] [ Html.text "**expand**" ] ]
+            , Html.div []
+                [ Html.img
+                    [ Attribute.src "/icon/chevron-right.svg"
+                    , expansionStyling
+                    , Event.onClick <| PerformExpand question
+                    ]
+                    []
+                ]
             , Html.div []
                 [ Html.button
                     [ Attribute.class "text-gray-500 hover:text-red-500 capitalize font-archivo"
