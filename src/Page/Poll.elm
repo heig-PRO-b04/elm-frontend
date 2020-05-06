@@ -14,11 +14,10 @@ import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, placeholder, value)
 import Html.Events exposing (onClick, onInput)
 import Html.Events.Extra exposing (onEnterDown)
-import Page.Poll.Questions as Questions
 import Page.Poll.Session as Sessions
-import Picasso.Button exposing (button, elevated, filled)
+import Page.QuestionList as Questions
+import Picasso.Button exposing (button, elevated)
 import Picasso.Input as Input
-import Picasso.Text exposing (styledH2)
 import Route
 import Session exposing (Session, Viewer)
 import Task

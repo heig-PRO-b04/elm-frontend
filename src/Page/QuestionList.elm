@@ -1,4 +1,4 @@
-module Page.Poll.Questions exposing
+module Page.QuestionList exposing
     ( Message
     , Model
     , init
@@ -14,7 +14,7 @@ import Html exposing (Html)
 import Html.Attributes as Attribute
 import Html.Events as Event
 import Html5.DragDrop
-import Page.Question as Question
+import Page.Answers as Answers
 import Picasso.FloatingButton
 import Picasso.Input as Input
 import Random
@@ -39,7 +39,7 @@ type alias DropIndex =
 type alias Model =
     { viewer : Viewer
     , poll : ServerPoll
-    , questions : Array ( ServerQuestion, Bool, Question.Model )
+    , questions : Array ( ServerQuestion, Bool, Answers.Model )
     , input : Maybe String
     , dragDrop : Html5.DragDrop.Model ServerQuestion DropIndex
     , seed : Random.Seed
@@ -74,7 +74,7 @@ type Message
     | PerformReload
     | GotAllQuestions (List ServerQuestion)
     | GotBadCredentials
-    | MsgQuestion ServerQuestion Question.Message
+    | MsgQuestion ServerQuestion Answers.Message
     | MsgDragDrop (Html5.DragDrop.Msg ServerQuestion DropIndex)
 
 
@@ -255,25 +255,25 @@ expand id list =
 
 initQuestionList :
     Viewer
-    -> Array ( ServerQuestion, Bool, Question.Model )
+    -> Array ( ServerQuestion, Bool, Answers.Model )
     -> List ServerQuestion
-    -> ( Array ( ServerQuestion, Bool, Question.Model ), Cmd Message )
+    -> ( Array ( ServerQuestion, Bool, Answers.Model ), Cmd Message )
 initQuestionList viewer existing list =
     let
-        values : Array ( ( ServerQuestion, Bool, Question.Model ), Cmd Message )
+        values : Array ( ( ServerQuestion, Bool, Answers.Model ), Cmd Message )
         values =
             Array.fromList list
                 |> Array.map
                     (\question ->
                         -- Reuse an existing model if it is found. Persist expanded states too.
                         let
-                            previous : Maybe ( ServerQuestion, Bool, Question.Model )
+                            previous : Maybe ( ServerQuestion, Bool, Answers.Model )
                             previous =
                                 Array.filter (\( id, _, _ ) -> question == id) existing
                                     |> Array.get 0
 
                             ( newModel, newCmd ) =
-                                Question.init viewer question
+                                Answers.init viewer question
 
                             ( model, expanded, command ) =
                                 case previous of
@@ -286,7 +286,7 @@ initQuestionList viewer existing list =
                         ( ( question, expanded, model ), command )
                     )
 
-        models : Array ( ServerQuestion, Bool, Question.Model )
+        models : Array ( ServerQuestion, Bool, Answers.Model )
         models =
             Array.map Tuple.first values
 
@@ -301,19 +301,19 @@ initQuestionList viewer existing list =
 
 updateQuestionList :
     ServerQuestion
-    -> Question.Message
-    -> Array ( ServerQuestion, x, Question.Model )
-    -> ( Array ( ServerQuestion, x, Question.Model ), Cmd Message )
+    -> Answers.Message
+    -> Array ( ServerQuestion, x, Answers.Model )
+    -> ( Array ( ServerQuestion, x, Answers.Model ), Cmd Message )
 updateQuestionList id message list =
     let
-        values : Array ( ( ServerQuestion, x, Question.Model ), Cmd Message )
+        values : Array ( ( ServerQuestion, x, Answers.Model ), Cmd Message )
         values =
             Array.map
                 (\( identifier, value, model ) ->
                     if identifier == id then
                         let
                             ( m, c ) =
-                                Question.update message model
+                                Answers.update message model
                         in
                         ( ( identifier, value, m ), Cmd.map (MsgQuestion identifier) c )
 
@@ -322,7 +322,7 @@ updateQuestionList id message list =
                 )
                 list
 
-        models : Array ( ServerQuestion, x, Question.Model )
+        models : Array ( ServerQuestion, x, Answers.Model )
         models =
             Array.map Tuple.first values
 
@@ -401,14 +401,14 @@ view model =
     viewQuestions
         model.dragDrop
         model.input
-        (List.map (\( a, b, _ ) -> ( a, b )) <| Array.toList model.questions)
+        (List.map (\( a, b, m ) -> ( a, b, m )) <| Array.toList model.questions)
         |> List.append button
 
 
 viewQuestions :
     Html5.DragDrop.Model ServerQuestion DropIndex
     -> Maybe String
-    -> List ( ServerQuestion, Bool )
+    -> List ( ServerQuestion, Bool, Answers.Model )
     -> List (Html Message)
 viewQuestions dragDropModel input list =
     let
@@ -434,8 +434,8 @@ viewQuestions dragDropModel input list =
                             [ Html.text "Title" ]
                         ]
                     ]
-                , List.indexedMap (\i ( q, v ) -> ( i, q, v )) list
-                    |> List.concatMap (\( i, q, v ) -> viewQuestion dragDropModel i q v)
+                , List.indexedMap (\i ( q, v, m ) -> ( i, ( q, v, m ) )) list
+                    |> List.concatMap (\( i, ( q, v, m ) ) -> viewQuestion dragDropModel i q v m)
                     |> List.append header
                     |> Html.tbody [ Attribute.class "bg-white" ]
                 ]
@@ -447,8 +447,9 @@ viewQuestion :
     -> Int
     -> ServerQuestion
     -> Bool
+    -> Answers.Model
     -> List (Html Message)
-viewQuestion dragDropModel index question expanded =
+viewQuestion dragDropModel index question expanded model =
     let
         -- Style the upper or the lower border of the cell with the right color.
         dropTargetStyling : Html.Attribute msg
@@ -492,7 +493,7 @@ viewQuestion dragDropModel index question expanded =
 
         expansion =
             if expanded then
-                List.singleton <| viewQuestionExpansion question
+                List.singleton <| viewQuestionExpansion question model
 
             else
                 []
@@ -528,9 +529,10 @@ viewQuestion dragDropModel index question expanded =
         ++ expansion
 
 
-viewQuestionExpansion : ServerQuestion -> Html Message
-viewQuestionExpansion question =
-    Html.tr [] [ Html.td [ Attribute.colspan 4 ] [ Html.text <| "Expansion for : \"" ++ question.title ++ "\"" ] ]
+viewQuestionExpansion : ServerQuestion -> Answers.Model -> Html Message
+viewQuestionExpansion question model =
+    Answers.view model
+        |> Html.map (\msg -> MsgQuestion question msg)
 
 
 viewInput : String -> Html Message
