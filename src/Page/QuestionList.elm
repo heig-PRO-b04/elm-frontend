@@ -1,4 +1,4 @@
-module Page.Poll.Questions exposing
+module Page.QuestionList exposing
     ( Message
     , Model
     , init
@@ -14,7 +14,9 @@ import Html exposing (Html)
 import Html.Attributes as Attribute
 import Html.Events as Event
 import Html5.DragDrop
-import Page.Question as Question
+import Page.Answers as Answers
+import Picasso.FloatingButton
+import Picasso.Input as Input
 import Random
 import Route
 import Session exposing (Viewer)
@@ -37,7 +39,7 @@ type alias DropIndex =
 type alias Model =
     { viewer : Viewer
     , poll : ServerPoll
-    , questions : Array ( ServerQuestion, Bool, Question.Model )
+    , questions : Array ( ServerQuestion, Bool, Answers.Model )
     , input : Maybe String
     , dragDrop : Html5.DragDrop.Model ServerQuestion DropIndex
     , seed : Random.Seed
@@ -72,7 +74,7 @@ type Message
     | PerformReload
     | GotAllQuestions (List ServerQuestion)
     | GotBadCredentials
-    | MsgQuestion ServerQuestion Question.Message
+    | MsgQuestion ServerQuestion Answers.Message
     | MsgDragDrop (Html5.DragDrop.Msg ServerQuestion DropIndex)
 
 
@@ -192,7 +194,7 @@ update message model =
         MsgDragDrop subMessage ->
             let
                 ( updated, result ) =
-                    Html5.DragDrop.update subMessage model.dragDrop
+                    Html5.DragDrop.updateSticky subMessage model.dragDrop
 
                 cmd =
                     result
@@ -253,25 +255,25 @@ expand id list =
 
 initQuestionList :
     Viewer
-    -> Array ( ServerQuestion, Bool, Question.Model )
+    -> Array ( ServerQuestion, Bool, Answers.Model )
     -> List ServerQuestion
-    -> ( Array ( ServerQuestion, Bool, Question.Model ), Cmd Message )
+    -> ( Array ( ServerQuestion, Bool, Answers.Model ), Cmd Message )
 initQuestionList viewer existing list =
     let
-        values : Array ( ( ServerQuestion, Bool, Question.Model ), Cmd Message )
+        values : Array ( ( ServerQuestion, Bool, Answers.Model ), Cmd Message )
         values =
             Array.fromList list
                 |> Array.map
                     (\question ->
                         -- Reuse an existing model if it is found. Persist expanded states too.
                         let
-                            previous : Maybe ( ServerQuestion, Bool, Question.Model )
+                            previous : Maybe ( ServerQuestion, Bool, Answers.Model )
                             previous =
                                 Array.filter (\( id, _, _ ) -> question == id) existing
                                     |> Array.get 0
 
                             ( newModel, newCmd ) =
-                                Question.init viewer question
+                                Answers.init viewer question
 
                             ( model, expanded, command ) =
                                 case previous of
@@ -284,7 +286,7 @@ initQuestionList viewer existing list =
                         ( ( question, expanded, model ), command )
                     )
 
-        models : Array ( ServerQuestion, Bool, Question.Model )
+        models : Array ( ServerQuestion, Bool, Answers.Model )
         models =
             Array.map Tuple.first values
 
@@ -299,19 +301,19 @@ initQuestionList viewer existing list =
 
 updateQuestionList :
     ServerQuestion
-    -> Question.Message
-    -> Array ( ServerQuestion, x, Question.Model )
-    -> ( Array ( ServerQuestion, x, Question.Model ), Cmd Message )
+    -> Answers.Message
+    -> Array ( ServerQuestion, x, Answers.Model )
+    -> ( Array ( ServerQuestion, x, Answers.Model ), Cmd Message )
 updateQuestionList id message list =
     let
-        values : Array ( ( ServerQuestion, x, Question.Model ), Cmd Message )
+        values : Array ( ( ServerQuestion, x, Answers.Model ), Cmd Message )
         values =
             Array.map
                 (\( identifier, value, model ) ->
                     if identifier == id then
                         let
                             ( m, c ) =
-                                Question.update message model
+                                Answers.update message model
                         in
                         ( ( identifier, value, m ), Cmd.map (MsgQuestion identifier) c )
 
@@ -320,7 +322,7 @@ updateQuestionList id message list =
                 )
                 list
 
-        models : Array ( ServerQuestion, x, Question.Model )
+        models : Array ( ServerQuestion, x, Answers.Model )
         models =
             Array.map Tuple.first values
 
@@ -382,38 +384,39 @@ taskAll viewer poll =
 
 view : Model -> List (Html Message)
 view model =
-    []
-        ++ viewInput model.input
-        ++ viewQuestions model.dragDrop (List.map (\( a, b, _ ) -> ( a, b )) <| Array.toList model.questions)
-
-
-viewInput : Maybe String -> List (Html Message)
-viewInput current =
-    case current of
-        Just text ->
-            let
-                created =
-                    { title = text
-                    , details = ""
-                    , visibility = Api.Questions.Visible
-                    , index = 0.5
-                    , answersMin = 0
-                    , answersMax = 0
-                    }
-            in
-            [ Html.input [ Attribute.value text, Event.onInput WriteNewTitle ] []
-            , Html.button [ Event.onClick <| PerformCreate created ] [ Html.text "**save**" ]
-            ]
-
-        Nothing ->
-            List.singleton <| Html.button [ Event.onClick PerformCreateStart ] [ Html.text "**new question**" ]
+    let
+        button =
+            Maybe.map (always []) model.input
+                |> (Maybe.withDefault <|
+                        List.singleton <|
+                            Picasso.FloatingButton.button
+                                [ Attribute.class "fixed right-0 bottom-0 m-8"
+                                , Event.onClick PerformCreateStart
+                                ]
+                                [ Html.img [ Attribute.src "/icon/action-button-plus.svg" ] []
+                                , Html.div [ Attribute.class "ml-4" ] [ Html.text "New question" ]
+                                ]
+                   )
+    in
+    viewQuestions
+        model.dragDrop
+        model.input
+        (List.map (\( a, b, m ) -> ( a, b, m )) <| Array.toList model.questions)
+        |> List.append button
 
 
 viewQuestions :
     Html5.DragDrop.Model ServerQuestion DropIndex
-    -> List ( ServerQuestion, Bool )
+    -> Maybe String
+    -> List ( ServerQuestion, Bool, Answers.Model )
     -> List (Html Message)
-viewQuestions dragDropModel list =
+viewQuestions dragDropModel input list =
+    let
+        header =
+            Maybe.map viewInput input
+                |> Maybe.map List.singleton
+                |> Maybe.withDefault []
+    in
     List.singleton <|
         Html.div [ Attribute.class "block align-middle mx-2 md:mx-8 mt-8 mb-32" ]
             [ Html.table
@@ -426,13 +429,14 @@ viewQuestions dragDropModel list =
                             [ Attribute.class "font-bold font-archivo text-gray-500"
                             , Attribute.class "text-left tracking-wider"
                             , Attribute.class "border-gray-200 select-none py-3 px-6"
-                            , Attribute.colspan 3
+                            , Attribute.colspan 4
                             ]
                             [ Html.text "Title" ]
                         ]
                     ]
-                , List.indexedMap (\i ( q, v ) -> ( i, q, v )) list
-                    |> List.concatMap (\( i, q, v ) -> viewQuestion dragDropModel i q v)
+                , List.indexedMap (\i ( q, v, m ) -> ( i, ( q, v, m ) )) list
+                    |> List.concatMap (\( i, ( q, v, m ) ) -> viewQuestion dragDropModel i q v m)
+                    |> List.append header
                     |> Html.tbody [ Attribute.class "bg-white" ]
                 ]
             ]
@@ -443,8 +447,9 @@ viewQuestion :
     -> Int
     -> ServerQuestion
     -> Bool
+    -> Answers.Model
     -> List (Html Message)
-viewQuestion dragDropModel index question expanded =
+viewQuestion dragDropModel index question expanded model =
     let
         -- Style the upper or the lower border of the cell with the right color.
         dropTargetStyling : Html.Attribute msg
@@ -461,8 +466,8 @@ viewQuestion dragDropModel index question expanded =
                     (\( id, pos ) ->
                         case Html5.DragDrop.getDropId dragDropModel of
                             Just dropId ->
-                                if id /= question && index == dropId then
-                                    Just pos
+                                if index == dropId || index + 1 == dropId then
+                                    Just ( dropId, pos )
 
                                 else
                                     Nothing
@@ -471,36 +476,41 @@ viewQuestion dragDropModel index question expanded =
                                 Nothing
                     )
                 |> Maybe.map
-                    (\pos ->
+                    (\( dropId, pos ) ->
                         if pos.y <= 0 || pos.y >= pos.height then
-                            Attribute.class "border-b border-gray-200"
+                            Attribute.class "border-b-2 border-gray-200"
 
-                        else if pos.y < pos.height // 2 then
-                            Attribute.class "bg-seaside-050"
+                        else if pos.y > pos.height // 2 && index == dropId then
+                            Attribute.class "border-b-2 border-seaside-800"
+
+                        else if pos.y < pos.height // 2 && index + 1 == dropId then
+                            Attribute.class "border-b-2 border-seaside-800"
 
                         else
-                            Attribute.class "bg-seaside-100"
+                            Attribute.class "border-b-2 border-gray-200"
                     )
-                |> Maybe.withDefault (Attribute.class "border-b border-gray-200")
+                |> Maybe.withDefault (Attribute.class "border-b-2 border-gray-200")
 
         expansion =
             if expanded then
-                List.singleton <| viewQuestionExpansion question
+                List.singleton <| viewQuestionExpansion question model
 
             else
                 []
     in
     [ Html.tr
         [ dropTargetStyling
+        , Attribute.class "hover:bg-gray-100"
         ]
         [ Html.td
             (List.concatMap identity
-                [ List.singleton <| Attribute.class "flex flex-row items-center hover:bg-gray-100"
+                [ List.singleton <| Attribute.class "flex flex-row items-center"
                 , Html5.DragDrop.droppable MsgDragDrop index
                 , Html5.DragDrop.draggable MsgDragDrop question
                 ]
             )
-            [ Html.div [ Attribute.class "font-bold font-archivo break-words py-3 px-4 flex-grow" ]
+            [ Html.img [ Attribute.class "ml-4 h-6 w-6 hidden md:block", Attribute.src "/icon/drag-horizontal-variant.svg" ] []
+            , Html.div [ Attribute.class "font-bold font-archivo break-words py-3 px-4 flex-grow" ]
                 [ Html.span [ Attribute.class "text-gray-500 mr-2" ] [ Html.text <| String.fromInt (index + 1) ++ "." ]
                 , Html.text question.title
                 ]
@@ -519,6 +529,39 @@ viewQuestion dragDropModel index question expanded =
         ++ expansion
 
 
-viewQuestionExpansion : ServerQuestion -> Html Message
-viewQuestionExpansion question =
-    Html.tr [] [ Html.td [ Attribute.colspan 3 ] [ Html.text <| "Expansion for : \"" ++ question.title ++ "\"" ] ]
+viewQuestionExpansion : ServerQuestion -> Answers.Model -> Html Message
+viewQuestionExpansion question model =
+    Answers.view model
+        |> Html.map (\msg -> MsgQuestion question msg)
+
+
+viewInput : String -> Html Message
+viewInput current =
+    let
+        created =
+            { title = current
+            , details = ""
+            , visibility = Api.Questions.Visible
+            , index = 0.5
+            , answersMin = 0
+            , answersMax = 0
+            }
+    in
+    Html.tr [ Attribute.class "border-b active:shadow-inner hover:bg-gray-100" ]
+        [ Html.td
+            [ Attribute.class "py-3 pl-4", Attribute.class "w-full flex flex-row items-center" ]
+            [ Input.input
+                [ Event.onInput WriteNewTitle
+                , Attribute.placeholder "🚀 New question..."
+                , Attribute.class "w-full"
+                , Attribute.value current
+                ]
+                []
+            , Html.button
+                [ Event.onClick <| PerformCreate created
+                , Attribute.class "font-bold"
+                , Attribute.class "text-right px-8 text-seaside-600"
+                ]
+                [ Html.text "Create" ]
+            ]
+        ]
