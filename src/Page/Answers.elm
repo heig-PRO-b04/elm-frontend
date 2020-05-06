@@ -135,18 +135,6 @@ view model =
         ]
 
 
-inputAnswerTitle : Model -> Html Message
-inputAnswerTitle model =
-    div []
-        [ Input.inputWithTitle "Answer title: "
-            [ onInput WriteNewTitle
-            , placeholder "placeholder"
-            , value model.titleInput
-            ]
-            []
-        ]
-
-
 showAnswerList : Model -> Html msg
 showAnswerList model =
     case model.state of

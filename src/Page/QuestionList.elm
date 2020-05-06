@@ -532,6 +532,7 @@ viewQuestion dragDropModel index question expanded model =
 viewQuestionExpansion : ServerQuestion -> Answers.Model -> Html Message
 viewQuestionExpansion question model =
     -- Answers.view model
+    -- TODO: Help needed here, can't figure out what to do with my Html Answer.Message. (Could pass an Html.text with no problem, but a div with Messages won't work)
     Html.tr [] [ Html.td [ Attribute.colspan 4 ] [ Html.text <| "Expansion for : \"" ++ question.title ++ "\"" ] ]
 
 
