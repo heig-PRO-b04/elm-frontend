@@ -22,6 +22,7 @@ import Route
 import Session exposing (Viewer)
 import Task exposing (Task)
 import Task.Extra
+import Time
 
 
 
@@ -55,7 +56,10 @@ init viewer poll =
       , dragDrop = Html5.DragDrop.init
       , seed = Random.initialSeed 42
       }
-    , Cmd.succeed PerformReload
+    , Cmd.batch
+        [ Cmd.succeed PerformReload
+        , cmdNewSeed
+        ]
     )
 
 
@@ -73,6 +77,7 @@ type Message
     | PerformMoveToIndex Int ServerQuestion
     | PerformReload
     | GotAllQuestions (List ServerQuestion)
+    | GotNewSeed Random.Seed
     | GotBadCredentials
     | MsgQuestion ServerQuestion Answers.Message
     | MsgDragDrop (Html5.DragDrop.Msg ServerQuestion DropIndex)
@@ -183,6 +188,9 @@ update message model =
                     initQuestionList model.viewer model.questions sorted
             in
             ( { model | questions = questions }, cmd )
+
+        GotNewSeed seed ->
+            ( { model | seed = seed }, Cmd.none )
 
         MsgQuestion identifier subMessage ->
             let
@@ -337,6 +345,15 @@ updateQuestionList id message list =
 
 
 -- EFFECTS
+
+
+cmdNewSeed : Cmd Message
+cmdNewSeed =
+    Time.now
+        |> Task.map (Time.toMillis Time.utc)
+        |> Task.map Random.initialSeed
+        |> Task.map GotNewSeed
+        |> Task.Extra.execute
 
 
 cmdRouteToDisconnect : Viewer -> Cmd msg
