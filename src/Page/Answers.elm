@@ -132,10 +132,11 @@ view model =
         []
         [ Html.input [ value model.titleInput, onInput WriteNewTitle ] []
         , Html.button [ onClick <| NowCreateAnswer <| ClientAnswer model.titleInput "" ] [ Html.text "**save**" ]
+        , showAnswerList model
         ]
 
 
-showAnswerList : Model -> Html msg
+showAnswerList : Model -> Html Message
 showAnswerList model =
     case model.state of
         Loading ->
@@ -148,6 +149,6 @@ showAnswerList model =
             div [] [ Html.text "Error" ]
 
 
-showAnswer : ServerAnswer -> Html msg
+showAnswer : ServerAnswer -> Html Message
 showAnswer answer =
     Html.text answer.title
