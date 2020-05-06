@@ -6,12 +6,12 @@ module Page.Answers exposing
     , view
     )
 
-import Api.Answers exposing (ClientAnswer, ServerAnswer)
+import Api.Answers exposing (AnswerDiscriminator, ClientAnswer, ServerAnswer)
 import Api.Questions exposing (QuestionDiscriminator, QuestionVisibility(..), ServerQuestion)
 import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, text)
-import Html.Attributes exposing (class, placeholder, value)
-import Html.Events exposing (onClick, onInput)
+import Html.Attributes as Attribute exposing (class, placeholder, value)
+import Html.Events as Event exposing (onClick, onInput)
 import Picasso.Input as Input
 import Session exposing (Viewer)
 import Task exposing (Task)
@@ -33,6 +33,7 @@ type alias Model =
     , state : AnswersState
     , question : QuestionDiscriminator
     , titleInput : String
+    , descriptionInput : String
     }
 
 
@@ -41,9 +42,10 @@ init viewer discriminator =
     ( { viewer = viewer
       , state = Loading
       , question = QuestionDiscriminator discriminator.idPoll discriminator.idQuestion
-      , titleInput = "AnswerTitleText"
+      , titleInput = ""
+      , descriptionInput = ""
       }
-    , Cmd.succeed NowRequestAnswers
+    , Cmd.succeed PerformReload
     )
 
 
@@ -52,18 +54,29 @@ init viewer discriminator =
 
 
 type Message
-    = NowRequestAnswers
+    = WriteNewTitle String
+    | WriteNewDescription String
+    | PerformReload
+    | PerformCreate ClientAnswer
+    | PerformUpdate ServerAnswer ClientAnswer
+    | PerformDelete ServerAnswer
     | GotAnswerList (List ServerAnswer)
-    | NowCreateAnswer ClientAnswer
     | GotInvalidCredentials
     | GotError
-    | WriteNewTitle String
 
 
 update : Message -> Model -> ( Model, Cmd Message )
 update msg model =
     case msg of
-        NowRequestAnswers ->
+        WriteNewTitle string ->
+            { model | titleInput = string }
+                |> withNoCmd
+
+        WriteNewDescription string ->
+            { model | descriptionInput = string }
+                |> withNoCmd
+
+        PerformReload ->
             let
                 viewer =
                     Session.viewerCredentials model.viewer
@@ -84,6 +97,69 @@ update msg model =
                         |> Task.Extra.execute
                     ]
 
+        PerformCreate clientAnswer ->
+            let
+                viewer =
+                    Session.viewerCredentials model.viewer
+            in
+            { model | titleInput = "", descriptionInput = "" }
+                |> withCmd
+                    [ Api.Answers.create viewer model.question clientAnswer identity
+                        |> Task.mapError
+                            (\error ->
+                                case error of
+                                    Api.Answers.GotBadCredentials ->
+                                        GotInvalidCredentials
+
+                                    _ ->
+                                        GotError
+                            )
+                        |> Task.andThen (always <| Task.succeed PerformReload)
+                        |> Task.Extra.execute
+                    ]
+
+        PerformUpdate serverAnswer clientAnswer ->
+            let
+                viewer =
+                    Session.viewerCredentials model.viewer
+            in
+            model
+                |> withCmd
+                    [ Api.Answers.update viewer (AnswerDiscriminator serverAnswer.idPoll serverAnswer.idQuestion serverAnswer.idAnswer) clientAnswer identity
+                        |> Task.mapError
+                            (\error ->
+                                case error of
+                                    Api.Answers.GotBadCredentials ->
+                                        GotInvalidCredentials
+
+                                    _ ->
+                                        GotError
+                            )
+                        |> Task.andThen (always <| Task.succeed PerformReload)
+                        |> Task.Extra.execute
+                    ]
+
+        PerformDelete serverAnswer ->
+            let
+                viewer =
+                    Session.viewerCredentials model.viewer
+            in
+            model
+                |> withCmd
+                    [ Api.Answers.delete viewer (AnswerDiscriminator serverAnswer.idPoll serverAnswer.idQuestion serverAnswer.idAnswer) identity
+                        |> Task.mapError
+                            (\error ->
+                                case error of
+                                    Api.Answers.GotBadCredentials ->
+                                        GotInvalidCredentials
+
+                                    _ ->
+                                        GotError
+                            )
+                        |> Task.andThen (always <| Task.succeed PerformReload)
+                        |> Task.Extra.execute
+                    ]
+
         GotAnswerList serverAnswerList ->
             { model | state = Loaded serverAnswerList }
                 |> withNoCmd
@@ -96,31 +172,6 @@ update msg model =
             { model | state = Error model.viewer }
                 |> withNoCmd
 
-        WriteNewTitle string ->
-            { model | titleInput = string }
-                |> withNoCmd
-
-        NowCreateAnswer clientAnswer ->
-            let
-                viewer =
-                    Session.viewerCredentials model.viewer
-            in
-            model
-                |> withCmd
-                    [ Api.Answers.create viewer model.question clientAnswer identity
-                        |> Task.mapError
-                            (\error ->
-                                case error of
-                                    Api.Answers.GotBadCredentials ->
-                                        GotInvalidCredentials
-
-                                    _ ->
-                                        GotError
-                            )
-                        |> Task.andThen (always <| Task.succeed NowRequestAnswers)
-                        |> Task.Extra.execute
-                    ]
-
 
 
 -- VIEW
@@ -130,9 +181,44 @@ view : Model -> Html Message
 view model =
     div
         []
-        [ Html.input [ value model.titleInput, onInput WriteNewTitle ] []
-        , Html.button [ onClick <| NowCreateAnswer <| ClientAnswer model.titleInput "" ] [ Html.text "**Create new answer**" ]
+        [ createNewAnswer model
         , showAnswerList model
+        ]
+
+
+createNewAnswer : Model -> Html Message
+createNewAnswer model =
+    let
+        created =
+            ClientAnswer model.titleInput model.descriptionInput
+    in
+    div
+        [ class "w-full flex flex-row items-center"
+        , class "border-b active:shadow-inner hover:bg-gray-100"
+        , class "py-3 pl-4"
+        ]
+        [ Input.input
+            [ Event.onInput WriteNewTitle
+            , Attribute.placeholder "✍️  New answer title..."
+            , class "flex-grow"
+            , class "mr-3"
+            , Attribute.value model.titleInput
+            ]
+            []
+        , Input.input
+            [ Event.onInput WriteNewDescription
+            , Attribute.placeholder "📄️  New answer description..."
+            , class "flex-grow"
+            , Attribute.value model.descriptionInput
+            ]
+            []
+        , Html.button
+            [ Event.onClick <| PerformCreate created
+            , class "flex-end"
+            , class "font-bold"
+            , class "text-right px-8 text-seaside-600"
+            ]
+            [ Html.text "Create" ]
         ]
 
 
@@ -152,5 +238,35 @@ showAnswerList model =
 showAnswer : ServerAnswer -> Html Message
 showAnswer answer =
     div
-        []
-        [ Html.text answer.title ]
+        [ class "flex flex-row"
+        , class "border-b active:shadow-inner hover:bg-gray-100"
+        , class "py-3 pl-4"
+        ]
+        [ div [ class "mx-3 ml-10" ] [ Html.text "▪️" ]
+        , div [] [ Html.text answer.title ]
+        , div [ class "px-1" ] [ Html.text ":" ]
+        , div [] [ Html.text answer.description ]
+        , div [ class "flex-grow" ] []
+        , div [] [ editButton answer ]
+        , div [] [ deleteButton answer ]
+        ]
+
+
+editButton : ServerAnswer -> Html Message
+editButton answer =
+    Html.button
+        [ Attribute.class "text-gray-500 hover:text-red-500 capitalize font-archivo"
+        , Attribute.class "text-right px-8"
+        , Event.onClick <| PerformUpdate answer (ClientAnswer "hardcoded title" "hardcoded description")
+        ]
+        [ Html.text "✏️" ]
+
+
+deleteButton : ServerAnswer -> Html Message
+deleteButton answer =
+    Html.button
+        [ Attribute.class "text-gray-500 hover:text-red-500 capitalize font-archivo"
+        , Attribute.class "text-right px-8"
+        , Event.onClick <| PerformDelete answer
+        ]
+        [ Html.text "Delete" ]

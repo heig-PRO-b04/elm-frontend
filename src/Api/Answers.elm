@@ -218,7 +218,7 @@ someAnswer answerDiscriminator credentials =
             QuestionDiscriminator answerDiscriminator.idPoll answerDiscriminator.idQuestion
     in
     anyAnswer questionDiscriminator credentials
-        |> Api.withPath ("/" ++ String.fromInt answerDiscriminator.idQuestion)
+        |> Api.withPath ("/" ++ String.fromInt answerDiscriminator.idAnswer)
 
 
 answerDecoder : Decoder ServerAnswer
