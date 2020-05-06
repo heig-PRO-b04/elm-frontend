@@ -41,7 +41,7 @@ init viewer discriminator =
     ( { viewer = viewer
       , state = Loading
       , question = QuestionDiscriminator discriminator.idPoll discriminator.idQuestion
-      , titleInput = "placeholder text"
+      , titleInput = "AnswerTitleText"
       }
     , Cmd.succeed NowRequestAnswers
     )
@@ -131,7 +131,7 @@ view model =
     div
         []
         [ Html.input [ value model.titleInput, onInput WriteNewTitle ] []
-        , Html.button [ onClick <| NowCreateAnswer <| ClientAnswer model.titleInput "" ] [ Html.text "**save**" ]
+        , Html.button [ onClick <| NowCreateAnswer <| ClientAnswer model.titleInput "" ] [ Html.text "**Create new answer**" ]
         , showAnswerList model
         ]
 
@@ -143,7 +143,7 @@ showAnswerList model =
             div [] [ Html.text "Loading" ]
 
         Loaded serverAnswers ->
-            div [] (List.map (\answer -> showAnswer answer) serverAnswers)
+            div [ class "flex-col" ] (List.map (\answer -> showAnswer answer) serverAnswers)
 
         Error viewer ->
             div [] [ Html.text "Error" ]
@@ -151,4 +151,6 @@ showAnswerList model =
 
 showAnswer : ServerAnswer -> Html Message
 showAnswer answer =
-    Html.text answer.title
+    div
+        []
+        [ Html.text answer.title ]
