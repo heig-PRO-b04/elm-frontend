@@ -321,16 +321,22 @@ answerOrEdit title desc answer maybeModify =
 
 showAnswer : ServerAnswer -> Html Message
 showAnswer answer =
+    let
+        hidden =
+            if String.isEmpty answer.description then
+                class "hidden"
+
+            else
+                class ""
+    in
     div
         [ class "flex flex-row"
         , class "border-b active:shadow-inner bg-gray-100"
         , class "py-3 pl-4"
         ]
-        [ div [ class "mx-3 ml-10" ] [ Html.text "▪️" ]
-        , div [] [ Html.text answer.title ]
-        , div [ class "px-1" ] [ Html.text ":" ]
-        , div [] [ Html.text answer.description ]
-        , div [ class "flex-grow" ] []
+        [ span [ class "ml-10" ] [ Html.text ("▪ " ++ answer.title) ]
+        , span [ class "px-1", hidden ] [ Html.text (": " ++ answer.description) ]
+        , span [ class "flex-grow" ] []
         , div [] [ modifyAnswerButton answer ]
         , div [] [ deleteAnswerButton answer ]
         ]
