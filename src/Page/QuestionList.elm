@@ -417,6 +417,21 @@ taskAll viewer poll =
 
 
 
+-- UTILS
+
+
+clientFromServer : ServerQuestion -> ClientQuestion
+clientFromServer server =
+    { title = server.title
+    , details = server.details
+    , index = server.index
+    , answersMin = server.answersMin
+    , answersMax = server.answersMax
+    , visibility = server.visibility
+    }
+
+
+
 -- VIEW
 
 
