@@ -497,7 +497,7 @@ viewQuestions model =
                 , Array.toList model.questions
                     |> List.filter (\( q, _, _ ) -> Visibility.display model.visibility q)
                     |> List.indexedMap (\i ( q, v, m ) -> ( i, ( q, v, m ) ))
-                    |> List.concatMap (\( i, ( q, v, m ) ) -> viewQuestion model.dragDrop i q v m)
+                    |> List.concatMap (\( i, ( q, v, m ) ) -> viewQuestion model.dragDrop i model.visibility q v m)
                     |> viewNoQuestions (not <| List.isEmpty (Array.toList model.questions))
                     |> List.append header
                     |> Html.tbody [ Attribute.class "bg-white rounded-b overflow-hidden" ]
@@ -558,11 +558,12 @@ viewVisibilityTray visible selected =
 viewQuestion :
     Html5.DragDrop.Model ServerQuestion DropIndex
     -> Int
+    -> Visibility
     -> ServerQuestion
     -> Bool
     -> Answers.Model
     -> List (Html Message)
-viewQuestion dragDropModel index question expanded model =
+viewQuestion dragDropModel index visibility question expanded model =
     let
         -- Style the upper or the lower border of the cell with the right color.
         dropTargetStyling : Html.Attribute msg
@@ -606,7 +607,9 @@ viewQuestion dragDropModel index question expanded model =
 
         expansion =
             if expanded then
-                List.singleton <| viewQuestionExpansion question model
+                [ viewQuestionDetails visibility question
+                , viewQuestionExpansion question model
+                ]
 
             else
                 []
@@ -657,6 +660,54 @@ viewQuestion dragDropModel index question expanded model =
         ]
     ]
         ++ expansion
+
+
+viewQuestionDetails : Visibility -> ServerQuestion -> Html Message
+viewQuestionDetails visibility question =
+    let
+        actionsAndIcons =
+            let
+                client =
+                    clientFromServer question
+            in
+            case question.visibility of
+                Api.Questions.Visible ->
+                    [ [ Attribute.src "/icon/visibility-hide.svg"
+                      , Attribute.class "w-6 h-6 m-4"
+                      , Event.onClick <|
+                            PerformUpdate question { client | visibility = Api.Questions.Hidden }
+                      ]
+                    , [ Attribute.src "/icon/visibility-archive.svg"
+                      , Attribute.class "w-6 h-6 m-4"
+                      , Event.onClick <|
+                            PerformUpdate question { client | visibility = Api.Questions.Archived }
+                      ]
+                    ]
+
+                Api.Questions.Archived ->
+                    [ [ Attribute.src "/icon/visibility-unarchive.svg"
+                      , Attribute.class "w-6 h-6 m-4"
+                      , Event.onClick <|
+                            PerformUpdate question { client | visibility = Api.Questions.Visible }
+                      ]
+                    ]
+
+                Api.Questions.Hidden ->
+                    [ [ Attribute.src "/icon/visibility-show.svg"
+                      , Attribute.class "w-6 h-6 m-4"
+                      , Event.onClick <|
+                            PerformUpdate question { client | visibility = Api.Questions.Visible }
+                      ]
+                    , [ Attribute.src "/icon/visibility-archive.svg"
+                      , Attribute.class "w-6 h-6 m-4"
+                      , Event.onClick <|
+                            PerformUpdate question { client | visibility = Api.Questions.Archived }
+                      ]
+                    ]
+    in
+    Html.tr
+        [ Attribute.class "flex flex-row bg-gray-100 justify-end pr-2" ]
+        (List.map (\attrs -> Html.img attrs []) actionsAndIcons)
 
 
 viewQuestionExpansion : ServerQuestion -> Answers.Model -> Html Message
