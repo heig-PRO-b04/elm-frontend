@@ -15,6 +15,7 @@ import Html.Attributes as Attribute
 import Html.Events as Event
 import Html5.DragDrop
 import Page.Answers as Answers
+import Page.QuestionList.Visibility as Visibility exposing (Visibility)
 import Picasso.FloatingButton
 import Picasso.Input as Input
 import Random
@@ -41,6 +42,8 @@ type alias Model =
     { viewer : Viewer
     , poll : ServerPoll
     , questions : Array ( ServerQuestion, Bool, Answers.Model )
+    , visibility : Visibility
+    , visibilityTrayOpen : Bool
     , input : Maybe String
     , dragDrop : Html5.DragDrop.Model ServerQuestion DropIndex
     , seed : Random.Seed
@@ -52,6 +55,8 @@ init viewer poll =
     ( { viewer = viewer
       , poll = poll
       , questions = Array.empty
+      , visibility = Visibility.Active
+      , visibilityTrayOpen = False
       , input = Nothing
       , dragDrop = Html5.DragDrop.init
       , seed = Random.initialSeed 42
@@ -69,7 +74,9 @@ init viewer poll =
 
 type Message
     = WriteNewTitle String
-    | PerformCreateStart
+    | SelectVisibility Visibility
+    | SelectVisibilityTray
+    | PerformCreateMode Bool
     | PerformCreate ClientQuestion
     | PerformDelete ServerQuestion
     | PerformExpand ServerQuestion
@@ -89,8 +96,22 @@ update message model =
         WriteNewTitle title ->
             ( { model | input = Maybe.map (always title) model.input }, Cmd.none )
 
-        PerformCreateStart ->
-            ( { model | input = Just "" }, Cmd.none )
+        SelectVisibility visibility ->
+            ( { model | visibility = visibility, visibilityTrayOpen = False }, Cmd.none )
+
+        SelectVisibilityTray ->
+            ( { model | visibilityTrayOpen = not model.visibilityTrayOpen }, Cmd.none )
+
+        PerformCreateMode visible ->
+            let
+                state =
+                    if visible then
+                        Just ""
+
+                    else
+                        Nothing
+            in
+            ( { model | input = state }, Cmd.none )
 
         PerformCreate question ->
             let
@@ -408,7 +429,7 @@ view model =
                         List.singleton <|
                             Picasso.FloatingButton.button
                                 [ Attribute.class "fixed right-0 bottom-0 m-8"
-                                , Event.onClick PerformCreateStart
+                                , Event.onClick <| PerformCreateMode True
                                 ]
                                 [ Html.img [ Attribute.src "/icon/action-button-plus.svg" ] []
                                 , Html.div [ Attribute.class "ml-4" ] [ Html.text "New question" ]
@@ -416,46 +437,106 @@ view model =
                    )
     in
     viewQuestions
-        model.dragDrop
-        model.input
-        (List.map (\( a, b, m ) -> ( a, b, m )) <| Array.toList model.questions)
+        model
         |> List.append button
 
 
-viewQuestions :
-    Html5.DragDrop.Model ServerQuestion DropIndex
-    -> Maybe String
-    -> List ( ServerQuestion, Bool, Answers.Model )
-    -> List (Html Message)
-viewQuestions dragDropModel input list =
+viewQuestions : Model -> List (Html Message)
+viewQuestions model =
     let
         header =
-            Maybe.map viewInput input
+            Maybe.map viewInput model.input
                 |> Maybe.map List.singleton
                 |> Maybe.withDefault []
     in
     List.singleton <|
         Html.div [ Attribute.class "block align-middle mx-2 md:mx-8 mt-8 mb-32" ]
             [ Html.table
-                [ Attribute.class "min-w-full center border rounded-lg overflow-hidden shadow"
+                [ Attribute.class "min-w-full bg-gray-100 center rounded-lg shadow"
                 ]
                 [ Html.thead
-                    [ Attribute.class "bg-gray-100 border-b" ]
+                    [ Attribute.class "rounded" ]
                     [ Html.tr []
                         [ Html.td
                             [ Attribute.class "font-bold font-archivo text-gray-500"
                             , Attribute.class "text-left tracking-wider"
                             , Attribute.class "border-gray-200 select-none py-3 px-6"
+                            , Attribute.class "flex flex-row items-center border-b-2"
                             , Attribute.colspan 4
                             ]
-                            [ Html.text "Title" ]
+                            [ Html.span [ Attribute.class "flex-grow" ] [ Html.text "Title" ]
+                            , Html.div
+                                [ Attribute.class "relative"
+                                ]
+                                [ Html.img
+                                    [ Attribute.src "/icon/filter-variant.svg"
+                                    , Attribute.class "h-6 w-6 cursor-pointer"
+                                    , Event.onClick SelectVisibilityTray
+                                    ]
+                                    []
+                                , viewVisibilityTray model.visibilityTrayOpen model.visibility
+                                ]
+                            ]
                         ]
                     ]
-                , List.indexedMap (\i ( q, v, m ) -> ( i, ( q, v, m ) )) list
-                    |> List.concatMap (\( i, ( q, v, m ) ) -> viewQuestion dragDropModel i q v m)
+                , Array.toList model.questions
+                    |> List.filter (\( q, _, _ ) -> Visibility.display model.visibility q)
+                    |> List.indexedMap (\i ( q, v, m ) -> ( i, ( q, v, m ) ))
+                    |> List.concatMap (\( i, ( q, v, m ) ) -> viewQuestion model.dragDrop i q v m)
+                    |> viewNoQuestions (not <| List.isEmpty (Array.toList model.questions))
                     |> List.append header
-                    |> Html.tbody [ Attribute.class "bg-white" ]
+                    |> Html.tbody [ Attribute.class "bg-white rounded-b overflow-hidden" ]
+                , Html.div [ Attribute.class "h-4" ] []
                 ]
+            ]
+
+
+viewNoQuestions : Bool -> List (Html Message) -> List (Html Message)
+viewNoQuestions hasSomeQuestions maybeEmpty =
+    case maybeEmpty of
+        [] ->
+            let
+                contents =
+                    if hasSomeQuestions then
+                        "You've hidden all your questions ! You can change the view visibility in the upper right corner 👻"
+
+                    else
+                        "You have not added any question yet ! Press the NEW QUESTION button to do that now 👏"
+            in
+            [ Html.span [ Attribute.class "font-archivo font-semibold text-gray-600 p-4 block border-b" ] [ Html.text contents ] ]
+
+        _ ->
+            maybeEmpty
+
+
+viewVisibilityTray : Bool -> Visibility -> Html Message
+viewVisibilityTray visible selected =
+    let
+        row text visibility =
+            let
+                textColor =
+                    if selected == visibility then
+                        Attribute.class "text-seaside-500"
+
+                    else
+                        Attribute.class "text-black"
+            in
+            Html.button
+                [ Attribute.class "px-4 py-2 block font-semibold hover:bg-seaside-100 w-full"
+                , textColor
+                , Event.onClick <| SelectVisibility visibility
+                ]
+                [ Html.text text ]
+    in
+    if not visible then
+        Html.div [] []
+
+    else
+        Html.div
+            [ Attribute.class "block absolute shadow-xl bg-white right-0 w-48 z-10 mt-2 rounded-lg overflow-hidden border-2 border-seaside-050" ]
+            [ row "Visible + Hidden" Visibility.Active
+            , row "Archived" Visibility.Archived
+            , row "All" Visibility.All
             ]
 
 
@@ -581,7 +662,7 @@ viewInput current =
             , answersMax = 0
             }
     in
-    Html.tr [ Attribute.class "border-b active:shadow-inner hover:bg-gray-100" ]
+    Html.tr [ Attribute.class "border-b active:shadow-inner" ]
         [ Html.td
             [ Attribute.class "py-3 pl-4", Attribute.class "w-full flex flex-row items-center" ]
             [ Input.input
@@ -592,9 +673,15 @@ viewInput current =
                 ]
                 []
             , Html.button
+                [ Event.onClick <| PerformCreateMode False
+                , Attribute.class "font-bold"
+                , Attribute.class "text-right pl-8 text-gray-500 hover:text-gray-600"
+                ]
+                [ Html.text "Cancel" ]
+            , Html.button
                 [ Event.onClick <| PerformCreate created
                 , Attribute.class "font-bold"
-                , Attribute.class "text-right px-8 text-seaside-600"
+                , Attribute.class "text-right px-8 text-seaside-600 hover:text-seaside-700"
                 ]
                 [ Html.text "Create" ]
             ]
