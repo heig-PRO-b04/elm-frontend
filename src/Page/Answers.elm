@@ -121,8 +121,8 @@ update msg model =
             { model | creating = bool }
                 |> withNoCmd
 
-        PerformModifyMode maybe ->
-            case maybe of
+        PerformModifyMode maybeId ->
+            case maybeId of
                 Just id ->
                     case model.state of
                         Loaded serverAnswers ->
@@ -156,7 +156,7 @@ update msg model =
                             { model | modifying = Nothing, titleModify = "", descriptionModify = "" }
                                 |> withNoCmd
 
-                Nothing ->
+                _ ->
                     { model | modifying = Nothing, titleModify = "", descriptionModify = "" }
                         |> withNoCmd
 
@@ -165,7 +165,7 @@ update msg model =
                 viewer =
                     Session.viewerCredentials model.viewer
             in
-            { model | titleCreate = "", descriptionCreate = "" }
+            { model | creating = False, titleCreate = "", descriptionCreate = "" }
                 |> withCmd
                     [ Api.Answers.create viewer model.question clientAnswer identity
                         |> Task.mapError
@@ -186,7 +186,7 @@ update msg model =
                 viewer =
                     Session.viewerCredentials model.viewer
             in
-            model
+            { model | modifying = Nothing, titleModify = "", descriptionModify = "" }
                 |> withCmd
                     [ Api.Answers.update viewer (AnswerDiscriminator serverAnswer.idPoll serverAnswer.idQuestion serverAnswer.idAnswer) clientAnswer identity
                         |> Task.mapError
@@ -261,7 +261,9 @@ answerHeader model =
                     [ class "flex flex-row"
                     , class "active:shadow-inner bg-gray-100"
                     ]
-                    [ headerText model
+                    [ span
+                        [ class "bg-gray-100 font-archivo font-semibold text-gray-600 p-4" ]
+                        [ Html.text (headerText model.state) ]
                     , div [ class "flex-grow" ] []
                     , newAnswerButton
                     ]
@@ -269,49 +271,69 @@ answerHeader model =
     header
 
 
-headerText : Model -> Html Message
-headerText model =
+headerText : AnswersState -> String
+headerText state =
     let
         empty =
             "Your answers for this question will appear here! Press the \"New Answer\" button to get started!"
 
         notEmpty =
-            case model.modifying of
-                Just i ->
-                    "Modifying" ++ String.fromInt i
-
-                Nothing ->
-                    "Not modifying"
-
-        content =
-            case model.state of
-                Loading ->
-                    "Loading answers..."
-
-                Loaded serverAnswers ->
-                    if List.length serverAnswers == 0 then
-                        empty
-
-                    else
-                        notEmpty
-
-                Error viewer ->
-                    "An error has occured. Please try again later"
+            "Here are the answers for this question! You can modify them by clicking on the ✏️ icon next to them!"
     in
-    span
-        [ class "bg-gray-100 font-archivo font-semibold text-gray-600 p-4" ]
-        [ Html.text content ]
+    case state of
+        Loading ->
+            "Loading answers..."
+
+        Loaded serverAnswers ->
+            if List.length serverAnswers == 0 then
+                empty
+
+            else
+                notEmpty
+
+        Error viewer ->
+            "An error has occured. Please try again later"
 
 
-newAnswerButton : Html Message
-newAnswerButton =
-    Html.button
-        [ Event.onClick <| PerformCreateMode True
-        , class "flex-end"
-        , class "font-bold"
-        , class "text-right px-8 text-seaside-600"
+showAnswerList : Model -> Html Message
+showAnswerList model =
+    case model.state of
+        Loaded serverAnswers ->
+            div [ class "flex-col" ] (List.map (\answer -> answerOrEdit model.titleModify model.descriptionModify answer model.modifying) serverAnswers)
+
+        _ ->
+            div [] []
+
+
+answerOrEdit : String -> String -> ServerAnswer -> Maybe Int -> Html Message
+answerOrEdit title desc answer maybeModify =
+    case maybeModify of
+        Just id ->
+            if answer.idAnswer == id then
+                modifyAnswerInput title desc answer
+
+            else
+                showAnswer answer
+
+        Nothing ->
+            showAnswer answer
+
+
+showAnswer : ServerAnswer -> Html Message
+showAnswer answer =
+    div
+        [ class "flex flex-row"
+        , class "border-b active:shadow-inner bg-gray-100"
+        , class "py-3 pl-4"
         ]
-        [ Html.text "New answer" ]
+        [ div [ class "mx-3 ml-10" ] [ Html.text "▪️" ]
+        , div [] [ Html.text answer.title ]
+        , div [ class "px-1" ] [ Html.text ":" ]
+        , div [] [ Html.text answer.description ]
+        , div [ class "flex-grow" ] []
+        , div [] [ modifyAnswerButton answer ]
+        , div [] [ deleteAnswerButton answer ]
+        ]
 
 
 newAnswerInput : Model -> Html Message
@@ -400,59 +422,29 @@ modifyAnswerInput title desc answer =
         ]
 
 
-showAnswerList : Model -> Html Message
-showAnswerList model =
-    case model.state of
-        Loaded serverAnswers ->
-            div [ class "flex-col" ] (List.map (\answer -> answerOrEdit model.titleModify model.descriptionModify answer model.modifying) serverAnswers)
-
-        _ ->
-            div [] []
-
-
-answerOrEdit : String -> String -> ServerAnswer -> Maybe Int -> Html Message
-answerOrEdit title desc answer maybeModify =
-    case maybeModify of
-        Just id ->
-            if answer.idAnswer == id then
-                modifyAnswerInput title desc answer
-
-            else
-                showAnswer answer
-
-        Nothing ->
-            showAnswer answer
-
-
-showAnswer : ServerAnswer -> Html Message
-showAnswer answer =
-    div
-        [ class "flex flex-row"
-        , class "border-b active:shadow-inner bg-gray-100"
-        , class "py-3 pl-4"
-        ]
-        [ div [ class "mx-3 ml-10" ] [ Html.text "▪️" ]
-        , div [] [ Html.text answer.title ]
-        , div [ class "px-1" ] [ Html.text ":" ]
-        , div [] [ Html.text answer.description ]
-        , div [ class "flex-grow" ] []
-        , div [] [ editButton answer ]
-        , div [] [ deleteButton answer ]
-        ]
-
-
-editButton : ServerAnswer -> Html Message
-editButton answer =
+newAnswerButton : Html Message
+newAnswerButton =
     Html.button
-        [ Attribute.class "text-gray-500 hover:text-red-500 capitalize font-archivo"
-        , Attribute.class "text-right px-8"
+        [ Event.onClick <| PerformCreateMode True
+        , class "flex-end"
+        , class "font-bold"
+        , class "text-right px-8 text-seaside-600"
+        ]
+        [ Html.text "New answer" ]
+
+
+modifyAnswerButton : ServerAnswer -> Html Message
+modifyAnswerButton answer =
+    Html.img
+        [ Attribute.src "/icon/pencil.svg"
+        , class "h-6 w-6 cursor-pointer"
         , Event.onClick <| PerformModifyMode (Just answer.idAnswer)
         ]
-        [ Html.text "✏️" ]
+        []
 
 
-deleteButton : ServerAnswer -> Html Message
-deleteButton answer =
+deleteAnswerButton : ServerAnswer -> Html Message
+deleteAnswerButton answer =
     Html.button
         [ Attribute.class "text-gray-500 hover:text-red-500 capitalize font-archivo"
         , Attribute.class "text-right px-8"
