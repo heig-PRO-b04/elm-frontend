@@ -443,7 +443,7 @@ view model =
                 |> (Maybe.withDefault <|
                         List.singleton <|
                             Picasso.FloatingButton.button
-                                [ Attribute.class "fixed right-0 bottom-0 m-8"
+                                [ Attribute.class "fixed right-0 bottom-0 m-8 z-50"
                                 , Event.onClick <| PerformCreateMode True
                                 ]
                                 [ Html.img [ Attribute.src "/icon/action-button-plus.svg" ] []
@@ -479,7 +479,7 @@ viewQuestions model =
                             , Attribute.class "flex flex-row items-center border-b-2"
                             , Attribute.colspan 4
                             ]
-                            [ Html.span [ Attribute.class "flex-grow" ] [ Html.text "Title" ]
+                            [ Html.span [ Attribute.class "flex-grow" ] [ Html.text "Questions" ]
                             , Html.div
                                 [ Attribute.class "relative"
                                 ]
@@ -634,20 +634,31 @@ viewQuestion dragDropModel index visibility question expanded model =
             )
             [ Html.img [ Attribute.class "ml-4 h-6 w-6 hidden md:block", Attribute.src "/icon/drag-horizontal-variant.svg" ] []
             , Html.div
-                [ Attribute.class "font-bold font-archivo break-words py-3 px-4 flex-grow"
+                [ Attribute.class "font-bold font-archivo break-words py-3 px-4 flex-grow flex flex-row items-center"
                 , Event.onClick <| PerformExpand question
                 ]
                 [ Html.span [ Attribute.class "text-gray-500 mr-2" ] [ Html.text <| String.fromInt (index + 1) ++ "." ]
-                , Html.text question.title
-                ]
-            , Html.div []
-                [ Html.img
-                    [ Attribute.src "/icon/chevron-right.svg"
-                    , expansionStyling
-                    , Event.onClick <| PerformExpand question
+                , Html.span
+                    [ if question.visibility /= Api.Questions.Visible then
+                        Attribute.class "text-gray-500"
+
+                      else
+                        Attribute.class "text-black"
                     ]
-                    []
+                    [ Html.text question.title ]
+                , if question.visibility /= Api.Questions.Visible then
+                    Html.img [ Attribute.src "/icon/visibility-hide.svg", Attribute.class "h-4 w-4 mx-2" ] []
+
+                  else
+                    Html.div [] []
                 ]
+            , Html.img
+                [ Attribute.src "/icon/chevron-right.svg"
+                , Attribute.class "w-6 h-6 flex-none"
+                , expansionStyling
+                , Event.onClick <| PerformExpand question
+                ]
+                []
             , Html.div []
                 [ Html.button
                     [ Attribute.class "text-gray-500 hover:text-red-500 capitalize font-archivo"
@@ -669,16 +680,21 @@ viewQuestionDetails visibility question =
             let
                 client =
                     clientFromServer question
+
+                animation =
+                    Attribute.class "transform duration-200 hover:scale-110"
             in
             case question.visibility of
                 Api.Questions.Visible ->
                     [ [ Attribute.src "/icon/visibility-hide.svg"
-                      , Attribute.class "w-6 h-6 m-4"
+                      , Attribute.class "w-6 h-6 m-4 cursor-pointer"
+                      , animation
                       , Event.onClick <|
                             PerformUpdate question { client | visibility = Api.Questions.Hidden }
                       ]
                     , [ Attribute.src "/icon/visibility-archive.svg"
-                      , Attribute.class "w-6 h-6 m-4"
+                      , Attribute.class "w-6 h-6 m-4 cursor-pointer"
+                      , animation
                       , Event.onClick <|
                             PerformUpdate question { client | visibility = Api.Questions.Archived }
                       ]
@@ -686,7 +702,8 @@ viewQuestionDetails visibility question =
 
                 Api.Questions.Archived ->
                     [ [ Attribute.src "/icon/visibility-unarchive.svg"
-                      , Attribute.class "w-6 h-6 m-4"
+                      , Attribute.class "w-6 h-6 m-4 cursor-pointer"
+                      , animation
                       , Event.onClick <|
                             PerformUpdate question { client | visibility = Api.Questions.Visible }
                       ]
@@ -694,12 +711,14 @@ viewQuestionDetails visibility question =
 
                 Api.Questions.Hidden ->
                     [ [ Attribute.src "/icon/visibility-show.svg"
-                      , Attribute.class "w-6 h-6 m-4"
+                      , Attribute.class "w-6 h-6 m-4 cursor-pointer"
+                      , animation
                       , Event.onClick <|
                             PerformUpdate question { client | visibility = Api.Questions.Visible }
                       ]
                     , [ Attribute.src "/icon/visibility-archive.svg"
-                      , Attribute.class "w-6 h-6 m-4"
+                      , Attribute.class "w-6 h-6 m-4 cursor-pointer"
+                      , animation
                       , Event.onClick <|
                             PerformUpdate question { client | visibility = Api.Questions.Archived }
                       ]
@@ -722,7 +741,7 @@ viewInput current =
         created =
             { title = current
             , details = ""
-            , visibility = Api.Questions.Visible
+            , visibility = Api.Questions.Hidden
             , index = 0.5
             , answersMin = 0
             , answersMax = 0

@@ -154,7 +154,7 @@ view model =
                 class "flex flex-row items-center"
     in
     Html.header
-        [ class "bg-white shadow w-full"
+        [ class "bg-white shadow w-full z-40"
         , navigationClass
         , class "relative"
         , class "sticky top-0"
