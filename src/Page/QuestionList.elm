@@ -479,7 +479,7 @@ viewQuestions model =
                             , Attribute.class "flex flex-row items-center border-b-2"
                             , Attribute.colspan 4
                             ]
-                            [ Html.span [ Attribute.class "flex-grow" ] [ Html.text "Title" ]
+                            [ Html.span [ Attribute.class "flex-grow" ] [ Html.text "Questions" ]
                             , Html.div
                                 [ Attribute.class "relative"
                                 ]
