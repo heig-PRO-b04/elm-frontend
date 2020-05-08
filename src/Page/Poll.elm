@@ -300,7 +300,7 @@ view model =
                         , onEnterDown ClickPollTitleButton
                         , placeholder "What do unicorns dream of ? \u{1F984}"
                         , value model.titleInput
-                        , class "flex-grow"
+                        , class "w-full"
                         , class "mr-4"
                         , class textColor
                         , Html.Attributes.readonly (not editing)
