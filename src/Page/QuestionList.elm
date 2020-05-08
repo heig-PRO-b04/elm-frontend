@@ -465,7 +465,7 @@ viewQuestions model =
                 |> Maybe.withDefault []
     in
     List.singleton <|
-        Html.div [ Attribute.class "block align-middle mx-2 md:mx-8 mt-8 mb-32" ]
+        Html.div [ Attribute.class "block align-middle mx-2 md:mx-8 mt-8 mb-8" ]
             [ Html.table
                 [ Attribute.class "min-w-full bg-gray-100 center rounded-lg shadow"
                 ]
