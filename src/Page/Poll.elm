@@ -15,6 +15,7 @@ import Html.Attributes exposing (class, placeholder, value)
 import Html.Events exposing (onClick, onInput)
 import Html.Events.Extra exposing (onEnterDown)
 import Page.Poll.Session as Sessions
+import Page.PollStatistics as Statistics
 import Page.QuestionList as Questions
 import Picasso.Button exposing (button, elevated)
 import Picasso.Input as Input
@@ -38,8 +39,8 @@ type PollError
 type State
     = Creating
     | LoadingExisting
-    | Editing ServerPoll Questions.Model Sessions.Model
-    | Ready ServerPoll Questions.Model Sessions.Model
+    | Editing ServerPoll Questions.Model Sessions.Model Statistics.Model
+    | Ready ServerPoll Questions.Model Sessions.Model Statistics.Model
 
 
 type alias Model =
@@ -53,15 +54,17 @@ type alias Model =
 subscriptions : Model -> Sub Message
 subscriptions model =
     case model.state of
-        Ready poll _ sessionModel ->
+        Ready poll _ sessionModel statisticsModel ->
             Sub.batch
                 [ Sub.map SessionMessage (Sessions.subscriptions sessionModel)
+                , Sub.map StatisticsMessage (Statistics.subscriptions statisticsModel)
                 , Time.every (1000 * 20) (always (LoadPoll { idPoll = poll.idPoll }))
                 ]
 
-        Editing poll _ sessionModel ->
+        Editing poll _ sessionModel statisticsModel ->
             Sub.batch
                 [ Sub.map SessionMessage (Sessions.subscriptions sessionModel)
+                , Sub.map StatisticsMessage (Statistics.subscriptions statisticsModel)
                 , Time.every (1000 * 20) (always (LoadPoll { idPoll = poll.idPoll }))
                 ]
 
@@ -107,6 +110,7 @@ type Message
       -- Sub model
     | QuestionMessage Questions.Message
     | SessionMessage Sessions.Message
+    | StatisticsMessage Statistics.Message
 
 
 update : Message -> Model -> ( Model, Cmd Message )
@@ -125,24 +129,36 @@ update message model =
 
         SessionMessage subMessage ->
             case model.state of
-                Ready poll pModel sModel ->
+                Ready poll pModel sModel iModel ->
                     let
                         ( updatedModel, cmd ) =
                             Sessions.update subMessage sModel
                     in
-                    ( { model | state = Ready poll pModel updatedModel }, Cmd.map SessionMessage cmd )
+                    ( { model | state = Ready poll pModel updatedModel iModel }, Cmd.map SessionMessage cmd )
 
                 _ ->
                     model |> withNoCmd
 
         QuestionMessage subMessage ->
             case model.state of
-                Ready poll pollModel session ->
+                Ready poll pollModel session iModel ->
                     let
                         ( updatedModel, cmd ) =
                             Questions.update subMessage pollModel
                     in
-                    ( { model | state = Ready poll updatedModel session }, Cmd.map QuestionMessage cmd )
+                    ( { model | state = Ready poll updatedModel session iModel }, Cmd.map QuestionMessage cmd )
+
+                _ ->
+                    model |> withNoCmd
+
+        StatisticsMessage subMessage ->
+            case model.state of
+                Ready poll pModel sModel iModel ->
+                    let
+                        ( updatedModel, cmd ) =
+                            Statistics.update subMessage iModel
+                    in
+                    ( { model | state = Ready poll pModel sModel updatedModel }, Cmd.map StatisticsMessage cmd )
 
                 _ ->
                     model |> withNoCmd
@@ -167,11 +183,11 @@ update message model =
                 LoadingExisting ->
                     model |> withNoCmd
 
-                Ready poll q s ->
-                    { model | state = Editing poll q s }
+                Ready poll q s i ->
+                    { model | state = Editing poll q s i }
                         |> withNoCmd
 
-                Editing poll _ _ ->
+                Editing poll _ _ _ ->
                     { model | state = LoadingExisting }
                         |> withCmd
                             [ Api.Polls.update
@@ -202,13 +218,16 @@ update message model =
                 ( sessionModel, sessionCmd ) =
                     Sessions.init model.viewer poll
 
+                ( statisticsModel, statisticsCmd ) =
+                    Statistics.init model.viewer poll
+
                 updated =
                     case model.state of
-                        Editing _ _ _ ->
-                            { model | state = Editing poll questionModel sessionModel }
+                        Editing _ _ _ _ ->
+                            { model | state = Editing poll questionModel sessionModel statisticsModel }
 
                         _ ->
-                            { model | state = Ready poll questionModel sessionModel }
+                            { model | state = Ready poll questionModel sessionModel statisticsModel }
             in
             case model.state of
                 Creating ->
@@ -222,20 +241,23 @@ update message model =
                         |> withCmd
                             [ Cmd.map QuestionMessage questionCmd
                             , Cmd.map SessionMessage sessionCmd
+                            , Cmd.map StatisticsMessage statisticsCmd
                             ]
 
-                Ready _ _ _ ->
+                Ready _ _ _ _ ->
                     { model | titleInput = poll.title }
                         |> withCmd
                             [ Cmd.map QuestionMessage questionCmd
                             , Cmd.map SessionMessage sessionCmd
+                            , Cmd.map StatisticsMessage statisticsCmd
                             ]
 
-                Editing _ _ _ ->
+                Editing _ _ _ _ ->
                     model
                         |> withCmd
                             [ Cmd.map QuestionMessage questionCmd
                             , Cmd.map SessionMessage sessionCmd
+                            , Cmd.map StatisticsMessage statisticsCmd
                             ]
 
 
@@ -251,7 +273,7 @@ view model =
                 Creating ->
                     True
 
-                Editing _ _ _ ->
+                Editing _ _ _ _ ->
                     True
 
                 _ ->
@@ -293,10 +315,10 @@ view model =
 
 prepended model =
     case model.state of
-        Ready _ _ sModel ->
+        Ready _ _ sModel _ ->
             List.map (Html.map SessionMessage) (Sessions.moderatorView sModel)
 
-        Editing _ _ sModel ->
+        Editing _ _ sModel _ ->
             List.map (Html.map SessionMessage) (Sessions.moderatorView sModel)
 
         _ ->
@@ -305,11 +327,13 @@ prepended model =
 
 appended model =
     case model.state of
-        Ready _ qModel _ ->
+        Ready _ qModel _ iModel ->
             List.map (Html.map QuestionMessage) (Questions.view qModel)
+                ++ List.map (Html.map StatisticsMessage) (Statistics.view iModel)
 
-        Editing _ qModel _ ->
+        Editing _ qModel _ iModel ->
             List.map (Html.map QuestionMessage) (Questions.view qModel)
+                ++ List.map (Html.map StatisticsMessage) (Statistics.view iModel)
 
         _ ->
             []
@@ -320,7 +344,7 @@ buttonPollTitle state =
     let
         message =
             case state of
-                Ready poll _ _ ->
+                Ready poll _ _ _ ->
                     "Edit"
 
                 LoadingExisting ->
@@ -329,7 +353,7 @@ buttonPollTitle state =
                 Creating ->
                     "Create"
 
-                Editing poll _ _ ->
+                Editing poll _ _ _ ->
                     "Save"
 
         style =
