@@ -73,7 +73,7 @@ rects answers =
     if (List.map .positive answers |> List.sum) == 0 then
         List.singleton <|
             Svg.rect
-                [ SAttribute.fill "#80D8FF"
+                [ SAttribute.fill "#E2E8F0"
                 , SAttribute.width "100%"
                 , SAttribute.height "25"
                 ]
