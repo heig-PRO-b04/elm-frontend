@@ -105,7 +105,7 @@ viewStatisticsFooter =
 viewStatisticsEmptyState : Html Message
 viewStatisticsEmptyState =
     Html.div
-        [ Attribute.class "p-4 font-bold text-gray-600 border-b-2" ]
+        [ Attribute.class "p-4 font-bold text-gray-600 border-b-2 w-full" ]
         [ Html.text "Real-time statistics for this poll will be displayed right here 🎯" ]
 
 
