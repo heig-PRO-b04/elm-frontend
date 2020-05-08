@@ -669,16 +669,21 @@ viewQuestionDetails visibility question =
             let
                 client =
                     clientFromServer question
+
+                animation =
+                    Attribute.class "transform duration-200 hover:scale-110"
             in
             case question.visibility of
                 Api.Questions.Visible ->
                     [ [ Attribute.src "/icon/visibility-hide.svg"
-                      , Attribute.class "w-6 h-6 m-4"
+                      , Attribute.class "w-6 h-6 m-4 cursor-pointer"
+                      , animation
                       , Event.onClick <|
                             PerformUpdate question { client | visibility = Api.Questions.Hidden }
                       ]
                     , [ Attribute.src "/icon/visibility-archive.svg"
-                      , Attribute.class "w-6 h-6 m-4"
+                      , Attribute.class "w-6 h-6 m-4 cursor-pointer"
+                      , animation
                       , Event.onClick <|
                             PerformUpdate question { client | visibility = Api.Questions.Archived }
                       ]
@@ -686,7 +691,8 @@ viewQuestionDetails visibility question =
 
                 Api.Questions.Archived ->
                     [ [ Attribute.src "/icon/visibility-unarchive.svg"
-                      , Attribute.class "w-6 h-6 m-4"
+                      , Attribute.class "w-6 h-6 m-4 cursor-pointer"
+                      , animation
                       , Event.onClick <|
                             PerformUpdate question { client | visibility = Api.Questions.Visible }
                       ]
@@ -694,12 +700,14 @@ viewQuestionDetails visibility question =
 
                 Api.Questions.Hidden ->
                     [ [ Attribute.src "/icon/visibility-show.svg"
-                      , Attribute.class "w-6 h-6 m-4"
+                      , Attribute.class "w-6 h-6 m-4 cursor-pointer"
+                      , animation
                       , Event.onClick <|
                             PerformUpdate question { client | visibility = Api.Questions.Visible }
                       ]
                     , [ Attribute.src "/icon/visibility-archive.svg"
-                      , Attribute.class "w-6 h-6 m-4"
+                      , Attribute.class "w-6 h-6 m-4 cursor-pointer"
+                      , animation
                       , Event.onClick <|
                             PerformUpdate question { client | visibility = Api.Questions.Archived }
                       ]
