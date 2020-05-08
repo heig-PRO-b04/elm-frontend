@@ -9,7 +9,7 @@ module Page.Answers exposing
 import Api.Answers exposing (AnswerDiscriminator, ClientAnswer, ServerAnswer)
 import Api.Questions exposing (QuestionDiscriminator, QuestionVisibility(..), ServerQuestion)
 import Cmd exposing (withCmd, withNoCmd)
-import Html exposing (Html, div, text)
+import Html exposing (Html, div, span, text)
 import Html.Attributes as Attribute exposing (class, placeholder, value)
 import Html.Events as Event exposing (onClick, onInput)
 import Picasso.Input as Input
@@ -32,8 +32,12 @@ type alias Model =
     { viewer : Viewer
     , state : AnswersState
     , question : QuestionDiscriminator
-    , titleInput : String
-    , descriptionInput : String
+    , creating : Bool
+    , modifying : Maybe Int
+    , titleCreate : String
+    , descriptionCreate : String
+    , titleModify : String
+    , descriptionModify : String
     }
 
 
@@ -42,8 +46,12 @@ init viewer discriminator =
     ( { viewer = viewer
       , state = Loading
       , question = QuestionDiscriminator discriminator.idPoll discriminator.idQuestion
-      , titleInput = ""
-      , descriptionInput = ""
+      , creating = False
+      , modifying = Nothing
+      , titleCreate = ""
+      , descriptionCreate = ""
+      , titleModify = ""
+      , descriptionModify = ""
       }
     , Cmd.succeed PerformReload
     )
@@ -54,9 +62,13 @@ init viewer discriminator =
 
 
 type Message
-    = WriteNewTitle String
-    | WriteNewDescription String
+    = WriteCreateTitle String
+    | WriteCreateDescription String
+    | WriteModifyTitle String
+    | WriteModifyDescription String
     | PerformReload
+    | PerformCreateMode Bool
+    | PerformModifyMode (Maybe Int)
     | PerformCreate ClientAnswer
     | PerformUpdate ServerAnswer ClientAnswer
     | PerformDelete ServerAnswer
@@ -68,12 +80,20 @@ type Message
 update : Message -> Model -> ( Model, Cmd Message )
 update msg model =
     case msg of
-        WriteNewTitle string ->
-            { model | titleInput = string }
+        WriteCreateTitle string ->
+            { model | titleCreate = string }
                 |> withNoCmd
 
-        WriteNewDescription string ->
-            { model | descriptionInput = string }
+        WriteCreateDescription string ->
+            { model | descriptionCreate = string }
+                |> withNoCmd
+
+        WriteModifyTitle string ->
+            { model | titleModify = string }
+                |> withNoCmd
+
+        WriteModifyDescription string ->
+            { model | descriptionModify = string }
                 |> withNoCmd
 
         PerformReload ->
@@ -97,12 +117,55 @@ update msg model =
                         |> Task.Extra.execute
                     ]
 
+        PerformCreateMode bool ->
+            { model | creating = bool }
+                |> withNoCmd
+
+        PerformModifyMode maybeId ->
+            case maybeId of
+                Just id ->
+                    case model.state of
+                        Loaded serverAnswers ->
+                            let
+                                answerSingleton =
+                                    List.filter (\ans -> ans.idAnswer == id) serverAnswers
+
+                                probablyAnswer =
+                                    List.head answerSingleton
+
+                                title =
+                                    case probablyAnswer of
+                                        Just answer ->
+                                            answer.title
+
+                                        Nothing ->
+                                            ""
+
+                                desc =
+                                    case probablyAnswer of
+                                        Just answer ->
+                                            answer.description
+
+                                        Nothing ->
+                                            ""
+                            in
+                            { model | modifying = Just id, titleModify = title, descriptionModify = desc }
+                                |> withNoCmd
+
+                        _ ->
+                            { model | modifying = Nothing, titleModify = "", descriptionModify = "" }
+                                |> withNoCmd
+
+                _ ->
+                    { model | modifying = Nothing, titleModify = "", descriptionModify = "" }
+                        |> withNoCmd
+
         PerformCreate clientAnswer ->
             let
                 viewer =
                     Session.viewerCredentials model.viewer
             in
-            { model | titleInput = "", descriptionInput = "" }
+            { model | creating = False, titleCreate = "", descriptionCreate = "" }
                 |> withCmd
                     [ Api.Answers.create viewer model.question clientAnswer identity
                         |> Task.mapError
@@ -123,7 +186,7 @@ update msg model =
                 viewer =
                     Session.viewerCredentials model.viewer
             in
-            model
+            { model | modifying = Nothing, titleModify = "", descriptionModify = "" }
                 |> withCmd
                     [ Api.Answers.update viewer (AnswerDiscriminator serverAnswer.idPoll serverAnswer.idQuestion serverAnswer.idAnswer) clientAnswer identity
                         |> Task.mapError
@@ -180,90 +243,214 @@ update msg model =
 view : Model -> Html Message
 view model =
     div
-        []
-        [ createNewAnswer model
+        [ class "border-b border-t" ]
+        [ answerHeader model
         , showAnswerList model
         ]
 
 
-createNewAnswer : Model -> Html Message
-createNewAnswer model =
+answerHeader : Model -> Html Message
+answerHeader model =
     let
-        created =
-            ClientAnswer model.titleInput model.descriptionInput
+        header =
+            if model.creating then
+                newAnswerInput model
+
+            else
+                div
+                    [ class "flex flex-row"
+                    , class "active:shadow-inner bg-gray-100"
+                    ]
+                    [ span
+                        [ class "bg-gray-100 font-archivo font-semibold text-gray-600 p-4" ]
+                        [ Html.text (headerText model.state) ]
+                    , div [ class "flex-grow" ] []
+                    , newAnswerButton
+                    ]
     in
-    div
-        [ class "w-full flex flex-row items-center"
-        , class "border-b active:shadow-inner hover:bg-gray-100"
-        , class "py-3 pl-4"
-        ]
-        [ Input.input
-            [ Event.onInput WriteNewTitle
-            , Attribute.placeholder "✍️  New answer title..."
-            , class "flex-grow"
-            , class "mr-3"
-            , Attribute.value model.titleInput
-            ]
-            []
-        , Input.input
-            [ Event.onInput WriteNewDescription
-            , Attribute.placeholder "📄️  New answer description..."
-            , class "flex-grow"
-            , Attribute.value model.descriptionInput
-            ]
-            []
-        , Html.button
-            [ Event.onClick <| PerformCreate created
-            , class "flex-end"
-            , class "font-bold"
-            , class "text-right px-8 text-seaside-600"
-            ]
-            [ Html.text "Create" ]
-        ]
+    header
+
+
+headerText : AnswersState -> String
+headerText state =
+    let
+        empty =
+            "Your answers for this question will appear here! Press the \"New Answer\" button to get started!"
+
+        notEmpty =
+            "Here are the answers for this question! You can modify them by clicking on the ✏️ icon next to them!"
+    in
+    case state of
+        Loading ->
+            "Loading answers..."
+
+        Loaded serverAnswers ->
+            if List.length serverAnswers == 0 then
+                empty
+
+            else
+                notEmpty
+
+        Error viewer ->
+            "An error has occured. Please try again later"
 
 
 showAnswerList : Model -> Html Message
 showAnswerList model =
     case model.state of
-        Loading ->
-            div [] [ Html.text "Loading" ]
-
         Loaded serverAnswers ->
-            div [ class "flex-col" ] (List.map (\answer -> showAnswer answer) serverAnswers)
+            div [ class "flex-col" ] (List.map (\answer -> answerOrEdit model.titleModify model.descriptionModify answer model.modifying) serverAnswers)
 
-        Error viewer ->
-            div [] [ Html.text "Error" ]
+        _ ->
+            div [] []
+
+
+answerOrEdit : String -> String -> ServerAnswer -> Maybe Int -> Html Message
+answerOrEdit title desc answer maybeModify =
+    case maybeModify of
+        Just id ->
+            if answer.idAnswer == id then
+                modifyAnswerInput title desc answer
+
+            else
+                showAnswer answer
+
+        Nothing ->
+            showAnswer answer
 
 
 showAnswer : ServerAnswer -> Html Message
 showAnswer answer =
+    let
+        hidden =
+            if String.isEmpty answer.description then
+                class "hidden"
+
+            else
+                class ""
+    in
     div
         [ class "flex flex-row"
-        , class "border-b active:shadow-inner hover:bg-gray-100"
+        , class "border-b active:shadow-inner bg-gray-100"
         , class "py-3 pl-4"
         ]
-        [ div [ class "mx-3 ml-10" ] [ Html.text "▪️" ]
-        , div [] [ Html.text answer.title ]
-        , div [ class "px-1" ] [ Html.text ":" ]
-        , div [] [ Html.text answer.description ]
-        , div [ class "flex-grow" ] []
-        , div [] [ editButton answer ]
-        , div [] [ deleteButton answer ]
+        [ span [ class "ml-10" ] [ Html.text ("▪ " ++ answer.title) ]
+        , span [ class "px-1", hidden ] [ Html.text (": " ++ answer.description) ]
+        , span [ class "flex-grow" ] []
+        , div [] [ modifyAnswerButton answer ]
+        , div [] [ deleteAnswerButton answer ]
         ]
 
 
-editButton : ServerAnswer -> Html Message
-editButton answer =
+newAnswerInput : Model -> Html Message
+newAnswerInput model =
+    let
+        created =
+            ClientAnswer model.titleCreate model.descriptionCreate
+    in
+    div
+        [ class "w-full flex flex-row items-center"
+        , class "border-b active:shadow-inner bg-gray-100"
+        , class "py-3 pl-4"
+        ]
+        [ Input.input
+            [ Event.onInput WriteCreateTitle
+            , Attribute.placeholder "✍️  New answer title..."
+            , class "flex-grow"
+            , class "mr-3"
+            , Attribute.value model.titleCreate
+            ]
+            []
+        , Input.input
+            [ Event.onInput WriteCreateDescription
+            , Attribute.placeholder "📄️  New answer description..."
+            , class "flex-grow"
+            , Attribute.value model.descriptionCreate
+            ]
+            []
+        , Html.button
+            [ Event.onClick <| PerformCreateMode False
+            , class "flex-end"
+            , class "font-bold"
+            , class "text-right pl-8 text-gray-500 hover:text-gray-600"
+            ]
+            [ Html.text "Cancel" ]
+        , Html.button
+            [ Event.onClick <| PerformCreate created
+            , class "flex-end"
+            , class "font-bold"
+            , class "text-right px-8 text-seaside-600 hover:text-seaside-700"
+            ]
+            [ Html.text "Create" ]
+        ]
+
+
+modifyAnswerInput : String -> String -> ServerAnswer -> Html Message
+modifyAnswerInput title desc answer =
+    let
+        modified =
+            ClientAnswer title desc
+    in
+    div
+        [ class "w-full flex flex-row items-center"
+        , class "border-b active:shadow-inner bg-gray-100"
+        , class "py-3 pl-4"
+        ]
+        [ Input.input
+            [ Event.onInput WriteModifyTitle
+            , Attribute.placeholder "✍️  Modify answer title..."
+            , class "flex-grow"
+            , class "mr-3"
+            , Attribute.value title
+            ]
+            []
+        , Input.input
+            [ Event.onInput WriteModifyDescription
+            , Attribute.placeholder "📄️  Modify answer description..."
+            , class "flex-grow"
+            , Attribute.value desc
+            ]
+            []
+        , Html.button
+            [ Event.onClick <| PerformModifyMode Nothing
+            , class "flex-end"
+            , class "font-bold"
+            , class "text-right pl-8 text-gray-500 hover:text-gray-600"
+            ]
+            [ Html.text "Cancel" ]
+        , Html.button
+            [ Event.onClick <| PerformUpdate answer modified
+            , class "flex-end"
+            , class "font-bold"
+            , class "text-right px-8 text-seaside-600 hover:text-seaside-700"
+            ]
+            [ Html.text "Modify" ]
+        ]
+
+
+newAnswerButton : Html Message
+newAnswerButton =
     Html.button
-        [ Attribute.class "text-gray-500 hover:text-red-500 capitalize font-archivo"
-        , Attribute.class "text-right px-8"
-        , Event.onClick <| PerformUpdate answer (ClientAnswer "hardcoded title" "hardcoded description")
+        [ Event.onClick <| PerformCreateMode True
+        , class "flex-end"
+        , class "font-bold"
+        , class "text-right px-8 text-seaside-600"
         ]
-        [ Html.text "✏️" ]
+        [ Html.text "New answer" ]
 
 
-deleteButton : ServerAnswer -> Html Message
-deleteButton answer =
+modifyAnswerButton : ServerAnswer -> Html Message
+modifyAnswerButton answer =
+    Html.img
+        [ Attribute.src "/icon/pencil.svg"
+        , class "h-6 w-6 cursor-pointer"
+        , Event.onClick <| PerformModifyMode (Just answer.idAnswer)
+        ]
+        []
+
+
+deleteAnswerButton : ServerAnswer -> Html Message
+deleteAnswerButton answer =
     Html.button
         [ Attribute.class "text-gray-500 hover:text-red-500 capitalize font-archivo"
         , Attribute.class "text-right px-8"
