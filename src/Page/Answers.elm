@@ -9,9 +9,10 @@ module Page.Answers exposing
 import Api.Answers exposing (AnswerDiscriminator, ClientAnswer, ServerAnswer)
 import Api.Questions exposing (QuestionDiscriminator, QuestionVisibility(..), ServerQuestion)
 import Cmd exposing (withCmd, withNoCmd)
-import Html exposing (Html, div, span, text)
-import Html.Attributes as Attribute exposing (class, placeholder, value)
-import Html.Events as Event exposing (onClick, onInput)
+import Html exposing (Html, div, span)
+import Html.Attributes as Attribute exposing (class)
+import Html.Events as Event
+import Page.Answers.Indices as Indices
 import Picasso.Input as Input
 import Session exposing (Viewer)
 import Task exposing (Task)
@@ -243,7 +244,7 @@ update msg model =
 view : Model -> Html Message
 view model =
     div
-        [ class "border-b border-t" ]
+        [ class "border-b bg-gray-100" ]
         [ answerHeader model
         , showAnswerList model
         ]
@@ -259,10 +260,9 @@ answerHeader model =
             else
                 div
                     [ class "flex flex-row"
-                    , class "active:shadow-inner bg-gray-100"
                     ]
                     [ span
-                        [ class "bg-gray-100 font-archivo font-semibold text-gray-600 p-4" ]
+                        [ class "font-archivo font-semibold text-gray-600 p-4" ]
                         [ Html.text (headerText model.state) ]
                     , div [ class "flex-grow" ] []
                     , newAnswerButton
@@ -299,44 +299,55 @@ showAnswerList : Model -> Html Message
 showAnswerList model =
     case model.state of
         Loaded serverAnswers ->
-            div [ class "flex-col" ] (List.map (\answer -> answerOrEdit model.titleModify model.descriptionModify answer model.modifying) serverAnswers)
+            div [ class "flex-col" ]
+                (List.sortBy .idAnswer serverAnswers
+                    |> List.indexedMap
+                        (\index answer ->
+                            answerOrEdit
+                                index
+                                model.titleModify
+                                model.descriptionModify
+                                answer
+                                model.modifying
+                        )
+                )
 
         _ ->
             div [] []
 
 
-answerOrEdit : String -> String -> ServerAnswer -> Maybe Int -> Html Message
-answerOrEdit title desc answer maybeModify =
+answerOrEdit : Int -> String -> String -> ServerAnswer -> Maybe Int -> Html Message
+answerOrEdit index title desc answer maybeModify =
     case maybeModify of
         Just id ->
             if answer.idAnswer == id then
                 modifyAnswerInput title desc answer
 
             else
-                showAnswer answer
+                showAnswer index answer
 
         Nothing ->
-            showAnswer answer
+            showAnswer index answer
 
 
-showAnswer : ServerAnswer -> Html Message
-showAnswer answer =
-    let
-        hidden =
-            if String.isEmpty answer.description then
-                class "hidden"
-
-            else
-                class ""
-    in
+showAnswer : Int -> ServerAnswer -> Html Message
+showAnswer index answer =
     div
-        [ class "flex flex-row"
-        , class "border-b active:shadow-inner bg-gray-100"
-        , class "py-3 pl-4"
+        [ class "flex flex-row items-center py-3 pl-4"
+        , class "font-archivo font-semibold text-gray-700"
         ]
-        [ span [ class "ml-10" ] [ Html.text ("▪ " ++ answer.title) ]
-        , span [ class "px-1", hidden ] [ Html.text (": " ++ answer.description) ]
-        , span [ class "flex-grow" ] []
+        [ span [ class "ml-10 text-gray-500" ] [ Html.text <| Indices.forIndex index ++ ".\u{00A0}" ]
+        , span [] [ Html.text answer.title ]
+        , span [ class "text-gray-400" ] [ Html.text "\u{00A0}/\u{00A0}" ]
+        , span [ class "text-gray-500" ]
+            [ Html.text <|
+                if String.isEmpty answer.description then
+                    "-"
+
+                else
+                    answer.description
+            ]
+        , div [ class "flex-grow" ] []
         , div [] [ modifyAnswerButton answer ]
         , div [] [ deleteAnswerButton answer ]
         ]
