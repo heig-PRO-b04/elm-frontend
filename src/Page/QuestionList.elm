@@ -634,7 +634,7 @@ viewQuestion dragDropModel index visibility question expanded model =
             )
             [ Html.img [ Attribute.class "ml-4 h-6 w-6 hidden md:block", Attribute.src "/icon/drag-horizontal-variant.svg" ] []
             , Html.div
-                [ Attribute.class "font-bold font-archivo break-words py-3 px-4 flex-grow flex flew-row items-center"
+                [ Attribute.class "font-bold font-archivo break-words py-3 px-4 flex-grow flex flex-row items-center"
                 , Event.onClick <| PerformExpand question
                 ]
                 [ Html.span [ Attribute.class "text-gray-500 mr-2" ] [ Html.text <| String.fromInt (index + 1) ++ "." ]
@@ -652,14 +652,13 @@ viewQuestion dragDropModel index visibility question expanded model =
                   else
                     Html.div [] []
                 ]
-            , Html.div []
-                [ Html.img
-                    [ Attribute.src "/icon/chevron-right.svg"
-                    , expansionStyling
-                    , Event.onClick <| PerformExpand question
-                    ]
-                    []
+            , Html.img
+                [ Attribute.src "/icon/chevron-right.svg"
+                , Attribute.class "w-6 h-6 flex-none"
+                , expansionStyling
+                , Event.onClick <| PerformExpand question
                 ]
+                []
             , Html.div []
                 [ Html.button
                     [ Attribute.class "text-gray-500 hover:text-red-500 capitalize font-archivo"
