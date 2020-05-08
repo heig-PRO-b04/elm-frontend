@@ -443,7 +443,7 @@ view model =
                 |> (Maybe.withDefault <|
                         List.singleton <|
                             Picasso.FloatingButton.button
-                                [ Attribute.class "fixed right-0 bottom-0 m-8"
+                                [ Attribute.class "fixed right-0 bottom-0 m-8 z-50"
                                 , Event.onClick <| PerformCreateMode True
                                 ]
                                 [ Html.img [ Attribute.src "/icon/action-button-plus.svg" ] []
