@@ -634,11 +634,23 @@ viewQuestion dragDropModel index visibility question expanded model =
             )
             [ Html.img [ Attribute.class "ml-4 h-6 w-6 hidden md:block", Attribute.src "/icon/drag-horizontal-variant.svg" ] []
             , Html.div
-                [ Attribute.class "font-bold font-archivo break-words py-3 px-4 flex-grow"
+                [ Attribute.class "font-bold font-archivo break-words py-3 px-4 flex-grow flex flew-row items-center"
                 , Event.onClick <| PerformExpand question
                 ]
                 [ Html.span [ Attribute.class "text-gray-500 mr-2" ] [ Html.text <| String.fromInt (index + 1) ++ "." ]
-                , Html.text question.title
+                , Html.span
+                    [ if question.visibility /= Api.Questions.Visible then
+                        Attribute.class "text-gray-500"
+
+                      else
+                        Attribute.class "text-black"
+                    ]
+                    [ Html.text question.title ]
+                , if question.visibility /= Api.Questions.Visible then
+                    Html.img [ Attribute.src "/icon/visibility-hide.svg", Attribute.class "h-4 w-4 mx-2" ] []
+
+                  else
+                    Html.div [] []
                 ]
             , Html.div []
                 [ Html.img
@@ -730,7 +742,7 @@ viewInput current =
         created =
             { title = current
             , details = ""
-            , visibility = Api.Questions.Visible
+            , visibility = Api.Questions.Hidden
             , index = 0.5
             , answersMin = 0
             , answersMax = 0
