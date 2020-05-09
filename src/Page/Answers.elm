@@ -2,6 +2,7 @@ module Page.Answers exposing
     ( Message
     , Model
     , init
+    , subscriptions
     , update
     , view
     )
@@ -17,6 +18,7 @@ import Picasso.Input as Input
 import Session exposing (Viewer)
 import Task exposing (Task)
 import Task.Extra
+import Time
 
 
 
@@ -76,6 +78,11 @@ type Message
     | GotAnswerList (List ServerAnswer)
     | GotInvalidCredentials
     | GotError
+
+
+subscriptions : Model -> Sub Message
+subscriptions _ =
+    Time.every (10 * 1000) (always PerformReload)
 
 
 update : Message -> Model -> ( Model, Cmd Message )
