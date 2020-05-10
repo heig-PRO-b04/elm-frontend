@@ -38,10 +38,18 @@ type alias DropIndex =
     Int
 
 
+{-| A type representing the current expansion status of a certain question. Expanded questions
+display some details about answers etc.
+-}
+type Expansion
+    = Collapsed
+    | Expanded Answers.Model
+
+
 type alias Model =
     { viewer : Viewer
     , poll : ServerPoll
-    , questions : Array ( ServerQuestion, Bool, Answers.Model )
+    , questions : Array ( ServerQuestion, Expansion )
     , visibility : Visibility
     , visibilityTrayOpen : Bool
     , input : Maybe String
@@ -117,13 +125,13 @@ update message model =
             let
                 lower =
                     Array.get (Array.length model.questions - 1) model.questions
-                        |> Maybe.map (\( q, _, _ ) -> q)
+                        |> Maybe.map (\( q, _ ) -> q)
                         |> Maybe.map .index
                         |> Maybe.withDefault 0
 
                 upper =
                     Array.get (Array.length model.questions) model.questions
-                        |> Maybe.map (\( q, _, _ ) -> q)
+                        |> Maybe.map (\( q, _ ) -> q)
                         |> Maybe.map .index
                         |> Maybe.withDefault 1
 
@@ -157,13 +165,13 @@ update message model =
             let
                 lower =
                     Array.get (index - 1) model.questions
-                        |> Maybe.map (\( q, _, _ ) -> q)
+                        |> Maybe.map (\( q, _ ) -> q)
                         |> Maybe.map .index
                         |> Maybe.withDefault 0
 
                 upper =
                     Array.get index model.questions
-                        |> Maybe.map (\( q, _, _ ) -> q)
+                        |> Maybe.map (\( q, _ ) -> q)
                         |> Maybe.map .index
                         |> Maybe.withDefault 1
 
@@ -187,7 +195,11 @@ update message model =
             )
 
         PerformExpand question ->
-            ( { model | questions = expand question model.questions }, Cmd.none )
+            let
+                ( questions, cmd ) =
+                    expand model.viewer question model.questions
+            in
+            ( { model | questions = questions }, cmd )
 
         PerformReload ->
             ( model
@@ -205,10 +217,10 @@ update message model =
                 sorted =
                     List.sortBy .index retrieved
 
-                ( questions, cmd ) =
-                    initQuestionList model.viewer model.questions sorted
+                questions =
+                    initQuestionList model.questions sorted
             in
-            ( { model | questions = questions }, cmd )
+            ( { model | questions = questions }, Cmd.none )
 
         GotNewSeed seed ->
             ( { model | seed = seed }, Cmd.none )
@@ -269,53 +281,40 @@ thenHandleErrorAndReload task =
         |> Task.Extra.execute
 
 
-expand : identifier -> Array ( identifier, Bool, model ) -> Array ( identifier, Bool, model )
-expand id list =
-    Array.map
-        (\( identifier, value, model ) ->
-            if identifier == id then
-                ( identifier, not value, model )
-
-            else
-                ( identifier, value, model )
-        )
-        list
-
-
-initQuestionList :
+expand :
     Viewer
-    -> Array ( ServerQuestion, Bool, Answers.Model )
-    -> List ServerQuestion
-    -> ( Array ( ServerQuestion, Bool, Answers.Model ), Cmd Message )
-initQuestionList viewer existing list =
+    -> ServerQuestion
+    -> Array ( ServerQuestion, Expansion )
+    -> ( Array ( ServerQuestion, Expansion ), Cmd Message )
+expand viewer id list =
     let
-        values : Array ( ( ServerQuestion, Bool, Answers.Model ), Cmd Message )
+        values : Array ( ( ServerQuestion, Expansion ), Cmd Message )
         values =
-            Array.fromList list
-                |> Array.map
-                    (\question ->
+            Array.map
+                (\( question, expansion ) ->
+                    -- Do not expand non-matching views.
+                    if id /= question then
+                        ( ( question, expansion ), Cmd.none )
+
+                    else
                         -- Reuse an existing model if it is found. Persist expanded states too.
                         let
-                            previous : Maybe ( ServerQuestion, Bool, Answers.Model )
-                            previous =
-                                Array.filter (\( id, _, _ ) -> question == id) existing
-                                    |> Array.get 0
-
                             ( newModel, newCmd ) =
                                 Answers.init viewer question
 
-                            ( model, expanded, command ) =
-                                case previous of
-                                    Just ( _, b, m ) ->
-                                        ( m, b, Cmd.none )
+                            ( expanded, command ) =
+                                case expansion of
+                                    Expanded _ ->
+                                        ( Collapsed, Cmd.none )
 
-                                    Nothing ->
-                                        ( newModel, False, Cmd.map (MsgQuestion question) newCmd )
+                                    Collapsed ->
+                                        ( Expanded newModel, Cmd.map (MsgQuestion question) newCmd )
                         in
-                        ( ( question, expanded, model ), command )
-                    )
+                        ( ( question, expanded ), command )
+                )
+                list
 
-        models : Array ( ServerQuestion, Bool, Answers.Model )
+        models : Array ( ServerQuestion, Expansion )
         models =
             Array.map Tuple.first values
 
@@ -328,30 +327,58 @@ initQuestionList viewer existing list =
     ( models, cmd )
 
 
+initQuestionList :
+    Array ( ServerQuestion, Expansion )
+    -> List ServerQuestion
+    -> Array ( ServerQuestion, Expansion )
+initQuestionList existing list =
+    Array.fromList list
+        |> Array.map
+            (\question ->
+                let
+                    expansion =
+                        Array.filter (\( id, _ ) -> id.idQuestion == question.idQuestion) existing
+                            |> Array.get 0
+                            |> Maybe.map Tuple.second
+                            |> Maybe.withDefault Collapsed
+                in
+                ( question, expansion )
+            )
+
+
 updateQuestionList :
     ServerQuestion
     -> Answers.Message
-    -> Array ( ServerQuestion, x, Answers.Model )
-    -> ( Array ( ServerQuestion, x, Answers.Model ), Cmd Message )
+    -> Array ( ServerQuestion, Expansion )
+    -> ( Array ( ServerQuestion, Expansion ), Cmd Message )
 updateQuestionList id message list =
     let
-        values : Array ( ( ServerQuestion, x, Answers.Model ), Cmd Message )
+        values : Array ( ( ServerQuestion, Expansion ), Cmd Message )
         values =
             Array.map
-                (\( identifier, value, model ) ->
-                    if identifier == id then
-                        let
-                            ( m, c ) =
-                                Answers.update message model
-                        in
-                        ( ( identifier, value, m ), Cmd.map (MsgQuestion identifier) c )
+                (\( question, expansion ) ->
+                    if id /= question then
+                        ( ( question, expansion ), Cmd.none )
 
                     else
-                        ( ( identifier, value, model ), Cmd.none )
+                        let
+                            ( newExpansion, command ) =
+                                case expansion of
+                                    Collapsed ->
+                                        ( Collapsed, Cmd.none )
+
+                                    Expanded model ->
+                                        let
+                                            ( m, c ) =
+                                                Answers.update message model
+                                        in
+                                        ( Expanded m, Cmd.map (MsgQuestion question) c )
+                        in
+                        ( ( question, newExpansion ), command )
                 )
                 list
 
-        models : Array ( ServerQuestion, x, Answers.Model )
+        models : Array ( ServerQuestion, Expansion )
         models =
             Array.map Tuple.first values
 
@@ -495,9 +522,9 @@ viewQuestions model =
                         ]
                     ]
                 , Array.toList model.questions
-                    |> List.filter (\( q, _, _ ) -> Visibility.display model.visibility q)
-                    |> List.indexedMap (\i ( q, v, m ) -> ( i, ( q, v, m ) ))
-                    |> List.concatMap (\( i, ( q, v, m ) ) -> viewQuestion model.dragDrop i model.visibility q v m)
+                    |> List.filter (\( q, _ ) -> Visibility.display model.visibility q)
+                    |> List.indexedMap (\i ( q, e ) -> ( i, ( q, e ) ))
+                    |> List.concatMap (\( i, ( q, e ) ) -> viewQuestion model.dragDrop i model.visibility q e)
                     |> viewNoQuestions (not <| List.isEmpty (Array.toList model.questions))
                     |> List.append header
                     |> Html.tbody [ Attribute.class "bg-white rounded-b overflow-hidden" ]
@@ -560,10 +587,9 @@ viewQuestion :
     -> Int
     -> Visibility
     -> ServerQuestion
-    -> Bool
-    -> Answers.Model
+    -> Expansion
     -> List (Html Message)
-viewQuestion dragDropModel index visibility question expanded model =
+viewQuestion dragDropModel index visibility question expansion =
     let
         -- Style the upper or the lower border of the cell with the right color.
         dropTargetStyling : Html.Attribute msg
@@ -605,21 +631,23 @@ viewQuestion dragDropModel index visibility question expanded model =
                     )
                 |> Maybe.withDefault (Attribute.class "border-b-2 border-gray-200")
 
-        expansion =
-            if expanded then
-                [ viewQuestionDetails visibility question
-                , viewQuestionExpansion question model
-                ]
+        content =
+            case expansion of
+                Collapsed ->
+                    []
 
-            else
-                []
+                Expanded model ->
+                    [ viewQuestionDetails visibility question
+                    , viewQuestionExpansion question model
+                    ]
 
         expansionStyling =
-            if expanded then
-                Attribute.class "transform duration-200 rotate-90"
+            case expansion of
+                Collapsed ->
+                    Attribute.class "transform duration-200"
 
-            else
-                Attribute.class "transform duration-200"
+                Expanded _ ->
+                    Attribute.class "transform duration-200 rotate-90"
     in
     [ Html.tr
         [ dropTargetStyling
@@ -670,7 +698,7 @@ viewQuestion dragDropModel index visibility question expanded model =
             ]
         ]
     ]
-        ++ expansion
+        ++ content
 
 
 viewQuestionDetails : Visibility -> ServerQuestion -> Html Message
