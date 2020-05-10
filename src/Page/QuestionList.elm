@@ -2,6 +2,7 @@ module Page.QuestionList exposing
     ( Message
     , Model
     , init
+    , subscriptions
     , update
     , view
     )
@@ -96,6 +97,21 @@ type Message
     | GotBadCredentials
     | MsgQuestion ServerQuestion Answers.Message
     | MsgDragDrop (Html5.DragDrop.Msg ServerQuestion DropIndex)
+
+
+subscriptions : Model -> Sub Message
+subscriptions model =
+    Array.toList model.questions
+        |> List.filterMap
+            (\( question, expansion ) ->
+                case expansion of
+                    Collapsed ->
+                        Nothing
+
+                    Expanded m ->
+                        Just <| Sub.map (MsgQuestion question) (Answers.subscriptions m)
+            )
+        |> Sub.batch
 
 
 update : Message -> Model -> ( Model, Cmd Message )

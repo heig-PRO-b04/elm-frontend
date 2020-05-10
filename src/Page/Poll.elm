@@ -54,17 +54,19 @@ type alias Model =
 subscriptions : Model -> Sub Message
 subscriptions model =
     case model.state of
-        Ready poll _ sessionModel statisticsModel ->
+        Ready poll questionsModel sessionModel statisticsModel ->
             Sub.batch
                 [ Sub.map SessionMessage (Sessions.subscriptions sessionModel)
                 , Sub.map StatisticsMessage (Statistics.subscriptions statisticsModel)
+                , Sub.map QuestionMessage (Questions.subscriptions questionsModel)
                 , Time.every (1000 * 20) (always (LoadPoll { idPoll = poll.idPoll }))
                 ]
 
-        Editing poll _ sessionModel statisticsModel ->
+        Editing poll questionsModel sessionModel statisticsModel ->
             Sub.batch
                 [ Sub.map SessionMessage (Sessions.subscriptions sessionModel)
                 , Sub.map StatisticsMessage (Statistics.subscriptions statisticsModel)
+                , Sub.map QuestionMessage (Questions.subscriptions questionsModel)
                 , Time.every (1000 * 20) (always (LoadPoll { idPoll = poll.idPoll }))
                 ]
 
