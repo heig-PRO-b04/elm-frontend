@@ -126,15 +126,14 @@ moderatorView model =
 
 moderatorClosedView : List (Html Message)
 moderatorClosedView =
-    [ Html.div [ Attribute.class "w-full bg-seaside-100 text-white font-archivo font-light p-4 shadow" ]
-        [ Html.div [ Attribute.class "w-full md:w-1/2 mx-auto" ]
+    [ Html.div [ Attribute.class "w-full rounded-lg text-gray-500 font-archivo font-normal mt-8" ]
+        [ Html.div [ Attribute.class "w-full mx-auto" ]
             [ Html.p
-                [ Attribute.class "text-seaside-800"
-                ]
+                []
                 [ Html.text "Your poll is currently closed. This means that participants will not be able to access it and gives you some time to prepare questions. "
                 , Html.span [ Attribute.class "block mt-4" ] [ Html.text "Once open, the poll will become available with a QR code or an emoji code !" ]
                 , Html.span
-                    [ Attribute.class "mt-4 mb-2 text-center block font-semibold hover:underline cursor-pointer"
+                    [ Attribute.class "mt-4 mb-2 text-center block font-semibold text-seaside-600 hover:underline cursor-pointer"
                     , onClick <| ClickStatus Api.Open
                     ]
                     [ Html.text "Open" ]
@@ -146,30 +145,32 @@ moderatorClosedView =
 
 moderatorOpenView : Api.ServerSession -> List (Html Message)
 moderatorOpenView session =
-    [ Html.div [ Attribute.class "w-full bg-white text-white font-archivo font-light p-4 shadow" ]
-        [ Html.div [ Attribute.class "w-full md:w-1/2 mx-auto" ]
+    [ Html.div [ Attribute.class "w-full font-archivo font-normal mt-8" ]
+        [ Html.div [ Attribute.class "w-full mx-auto" ]
             [ Html.p
-                [ Attribute.class "text-gray-800"
+                [ Attribute.class "text-gray-500"
                 ]
-                [ Html.text "Your poll is open and live ! Share the following emoji code to let participants join, or "
+                [ Html.text "Your poll is open and live ! Announce the emoji code to your participants to let them join, or "
                 , Html.a
-                    [ Attribute.class "font-semibold underline cursor-pointer"
+                    [ Attribute.class "font-semibold underline cursor-pointer text-seaside-500"
                     , Route.href <| Route.LivePoll { idPoll = session.idPoll }
                     , Attribute.target "_blank"
                     ]
                     [ Html.text "open up the participant view in a new window." ]
-                , Html.div [ Attribute.class "mt-8 w-full" ] [ code session.code ]
-                , Html.span
-                    [ Attribute.class "mt-8 mb-2 text-center block font-semibold hover:underline cursor-pointer"
-                    , onClick <| ClickStatus Api.Quarantined
+                , Html.div [ Attribute.class "mt-4 w-full" ] [ code session.code ]
+                , Html.div [ Attribute.class "mt-4 mb-2 flex flex-row justify-center items-center" ]
+                    [ Html.span
+                        [ Attribute.class "text-yellow-500 text-center font-semibold hover:underline cursor-pointer mr-4"
+                        , onClick <| ClickStatus Api.Quarantined
+                        ]
+                        [ Html.text "Close to newcomers" ]
+                    , Html.span
+                        [ Attribute.class "text-center block font-semibold hover:underline cursor-pointer ml-4"
+                        , Attribute.class "text-red-600"
+                        , onClick <| ClickStatus Api.Closed
+                        ]
+                        [ Html.text "Close" ]
                     ]
-                    [ Html.text "Close to newcomers" ]
-                , Html.span
-                    [ Attribute.class "mt-4 mb-2 text-center block font-semibold hover:underline cursor-pointer"
-                    , Attribute.class "text-red-600"
-                    , onClick <| ClickStatus Api.Closed
-                    ]
-                    [ Html.text "Close" ]
                 ]
             ]
         ]
@@ -178,15 +179,14 @@ moderatorOpenView session =
 
 moderatorQuarantinedView : List (Html Message)
 moderatorQuarantinedView =
-    [ Html.div [ Attribute.class "w-full bg-orange-100 text-white font-archivo font-light p-4 shadow" ]
+    [ Html.div [ Attribute.class "w-full text-gray-500 font-archivo font-normal mt-8" ]
         [ Html.div [ Attribute.class "w-full md:w-1/2 mx-auto" ]
             [ Html.p
-                [ Attribute.class "text-orange-800"
-                ]
+                []
                 [ Html.text "Your poll is closed to newcomers. You need to close it before you can accept new participants !"
                 , Html.span [ Attribute.class "block mt-4" ] [ Html.text "The current emoji and QR codes have been revoked. Closing the poll will kick out the current participants." ]
                 , Html.span
-                    [ Attribute.class "mt-4 mb-2 text-center block font-semibold hover:underline cursor-pointer"
+                    [ Attribute.class "mt-4 mb-2 text-center text-red-600 block font-semibold hover:underline cursor-pointer"
                     , onClick <| ClickStatus Api.Closed
                     ]
                     [ Html.text "Close" ]

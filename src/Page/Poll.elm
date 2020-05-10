@@ -288,30 +288,31 @@ view model =
             else
                 "text-gray-500 font-semibold cursor-not-allowed border-dashed"
     in
-    prepended model
-        ++ [ div
-                [ class "align-middle mx-2 md:mx-8 mt-8"
-                , class "bg-white shadow rounded-lg p-4"
+    [ div
+        [ class "align-middle mx-2 md:mx-8 mt-8"
+        , class "bg-white shadow rounded-lg p-4"
+        ]
+        ([ Html.span
+            [ class "block font-archivo capitalize text-black font-bold text-2xl" ]
+            [ Html.text "Poll title :" ]
+         , div [ class "flex flex-row items-center mt-2" ]
+            [ Input.input
+                [ onInput WriteNewTitle
+                , onEnterDown ClickPollTitleButton
+                , placeholder "What do unicorns dream of ? \u{1F984}"
+                , value model.titleInput
+                , class "w-full"
+                , class "mr-4"
+                , class textColor
+                , Html.Attributes.readonly (not editing)
                 ]
-                [ Html.span
-                    [ class "block font-archivo capitalize text-gray-500" ]
-                    [ Html.text "Poll Title :" ]
-                , div [ class "flex flex-row items-center mt-2" ]
-                    [ Input.input
-                        [ onInput WriteNewTitle
-                        , onEnterDown ClickPollTitleButton
-                        , placeholder "What do unicorns dream of ? \u{1F984}"
-                        , value model.titleInput
-                        , class "w-full"
-                        , class "mr-4"
-                        , class textColor
-                        , Html.Attributes.readonly (not editing)
-                        ]
-                        []
-                    , buttonPollTitle model.state
-                    ]
-                ]
-           ]
+                []
+            , buttonPollTitle model.state
+            ]
+         ]
+            ++ prepended model
+        )
+    ]
         ++ appended model
 
 
