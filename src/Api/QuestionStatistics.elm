@@ -7,13 +7,15 @@ module Api.QuestionStatistics exposing
     , getStatisticsForQuestion
     )
 
--- DATA
-
 import Api exposing (Credentials)
 import Http
 import Json.Decode
 import Json.Encode
 import Task exposing (Task)
+
+
+
+-- DATA
 
 
 type StatisticsError
