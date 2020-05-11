@@ -269,7 +269,7 @@ answerHeader model =
                     [ class "flex flex-row"
                     ]
                     [ span
-                        [ class "font-archivo font-semibold text-gray-600 p-4" ]
+                        [ class "font-archivo font-semibold text-gray-600 p-4 pb-0" ]
                         [ Html.text (headerText model.state) ]
                     , div [ class "flex-grow" ] []
                     , newAnswerButton
@@ -282,10 +282,10 @@ headerText : AnswersState -> String
 headerText state =
     let
         empty =
-            "Your answers for this question will appear here! Press the \"Add Answer\" button to get started!"
+            "Press the \"Add Answer\" button to get started!"
 
         notEmpty =
-            "Here are the answers for this question! You can modify them by clicking on the ✏️ icon next to them!"
+            "Here are the answers for this question!"
     in
     case state of
         Loading ->
@@ -367,9 +367,9 @@ newAnswerInput model =
             ClientAnswer model.titleCreate model.descriptionCreate
     in
     div
-        [ class "w-full flex flex-row items-center"
+        [ class "flex flex-row flex-wrap items-center"
         , class "border-b active:shadow-inner bg-gray-100"
-        , class "py-3 pl-4"
+        , class "py-3 px-4"
         ]
         [ Input.input
             [ Event.onInput WriteCreateTitle
@@ -382,24 +382,25 @@ newAnswerInput model =
         , Input.input
             [ Event.onInput WriteCreateDescription
             , Attribute.placeholder "📄️  New answer description..."
-            , class "flex-grow"
+            , class "flex flex-grow"
+            , class "mr-3"
             , Attribute.value model.descriptionCreate
             ]
             []
-        , Html.button
-            [ Event.onClick <| PerformCreateMode False
-            , class "flex-end"
-            , class "font-bold"
-            , class "text-right pl-8 text-gray-500 hover:text-gray-600"
+        , Html.div [ Attribute.class "flex flex-row items-center" ]
+            [ Html.button
+                [ Event.onClick <| PerformCreateMode False
+                , class "flex flex-end"
+                , class "pr-3 font-bold text-gray-500 hover:text-gray-600"
+                ]
+                [ Html.text "Cancel" ]
+            , Html.button
+                [ Event.onClick <| PerformCreate created
+                , class "flex flex-end"
+                , class "font-bold text-seaside-600 hover:text-seaside-700"
+                ]
+                [ Html.text "Create" ]
             ]
-            [ Html.text "Cancel" ]
-        , Html.button
-            [ Event.onClick <| PerformCreate created
-            , class "flex-end"
-            , class "font-bold"
-            , class "text-right px-8 text-seaside-600 hover:text-seaside-700"
-            ]
-            [ Html.text "Create" ]
         ]
 
 
@@ -410,9 +411,9 @@ modifyAnswerInput title desc answer =
             ClientAnswer title desc
     in
     div
-        [ class "w-full flex flex-row items-center"
+        [ class "flex flex-row flex-wrap items-center"
         , class "border-b active:shadow-inner bg-gray-100"
-        , class "py-3 pl-4"
+        , class "py-3 px-4"
         ]
         [ Input.input
             [ Event.onInput WriteModifyTitle
@@ -426,23 +427,24 @@ modifyAnswerInput title desc answer =
             [ Event.onInput WriteModifyDescription
             , Attribute.placeholder "📄️  Modify answer description..."
             , class "flex-grow"
+            , class "mr-3"
             , Attribute.value desc
             ]
             []
-        , Html.button
-            [ Event.onClick <| PerformModifyMode Nothing
-            , class "flex-end"
-            , class "font-bold"
-            , class "text-right pl-8 text-gray-500 hover:text-gray-600"
+        , Html.div [ Attribute.class "flex flex-row items-center" ]
+            [ Html.button
+                [ Event.onClick <| PerformModifyMode Nothing
+                , class "flex-end"
+                , class "mr-3 font-bold text-gray-500 hover:text-gray-600"
+                ]
+                [ Html.text "Cancel" ]
+            , Html.button
+                [ Event.onClick <| PerformUpdate answer modified
+                , class "flex-end"
+                , class "font-bold text-seaside-600 hover:text-seaside-700"
+                ]
+                [ Html.text "Apply" ]
             ]
-            [ Html.text "Cancel" ]
-        , Html.button
-            [ Event.onClick <| PerformUpdate answer modified
-            , class "flex-end"
-            , class "font-bold"
-            , class "text-right px-8 text-seaside-600 hover:text-seaside-700"
-            ]
-            [ Html.text "Apply" ]
         ]
 
 
