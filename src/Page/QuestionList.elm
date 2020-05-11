@@ -23,6 +23,7 @@ import Picasso.Input as Input
 import Random
 import Route
 import Session exposing (Viewer)
+import Svg
 import Task exposing (Task)
 import Task.Extra
 import Time
@@ -896,32 +897,40 @@ viewQuestionDetails maybeModifying mode visibility question =
                             WriteModify serverQuestion { clientQuestion | details = string }
                     in
                     if serverQuestion.idQuestion == question.idQuestion then
-                        [ Input.input
-                            [ Event.onInput modifyClientTitle
-                            , Attribute.placeholder "✍️  Modify question title..."
-                            , Attribute.class "flex-grow ml-4 my-4"
-                            , Attribute.value clientQuestion.title
+                        [ Html.div
+                            [ Attribute.class "flex flex-row flex-grow flex-wrap items-center"
+                            , Attribute.class "border-b active:shadow-inner bg-gray-100"
+                            , Attribute.class "py-3 px-4"
                             ]
-                            []
-                        , Input.input
-                            [ Event.onInput modifyClientDetails
-                            , Attribute.placeholder "📄️  Modify question details..."
-                            , Attribute.class "flex-grow ml-4 my-4"
-                            , Attribute.value clientQuestion.details
+                            [ Input.input
+                                [ Event.onInput modifyClientTitle
+                                , Attribute.placeholder "✍️  Modify question title..."
+                                , Attribute.class "flex flex-grow mr-3"
+                                , Attribute.value clientQuestion.title
+                                ]
+                                []
+                            , Input.input
+                                [ Event.onInput modifyClientDetails
+                                , Attribute.placeholder "📄️  Modify question details..."
+                                , Attribute.class "flex flex-grow mr-3"
+                                , Attribute.value clientQuestion.details
+                                ]
+                                []
+                            , Html.div [ Attribute.class "flex flex-row items-center" ]
+                                [ Html.button
+                                    [ Event.onClick <| PerformModifyMode Nothing
+                                    , Attribute.class "flex flex-end"
+                                    , Attribute.class "pr-3 font-bold text-gray-500 hover:text-gray-600"
+                                    ]
+                                    [ Html.text "Cancel" ]
+                                , Html.button
+                                    [ Event.onClick <| PerformUpdate serverQuestion clientQuestion
+                                    , Attribute.class "flex flex-end"
+                                    , Attribute.class "font-bold text-seaside-600 hover:text-seaside-700"
+                                    ]
+                                    [ Html.text "Apply" ]
+                                ]
                             ]
-                            []
-                        , Html.button
-                            [ Event.onClick <| PerformModifyMode Nothing
-                            , Attribute.class "flex-end"
-                            , Attribute.class "font-bold text-right pl-8 text-gray-500 hover:text-gray-600"
-                            ]
-                            [ Html.text "Cancel" ]
-                        , Html.button
-                            [ Event.onClick <| PerformUpdate serverQuestion clientQuestion
-                            , Attribute.class "flex-end px-8"
-                            , Attribute.class "font-bold text-right text-seaside-600 hover:text-seaside-700"
-                            ]
-                            [ Html.text "Apply" ]
                         ]
 
                     else
@@ -1005,24 +1014,71 @@ viewQuestionDetails maybeModifying mode visibility question =
 
         modifyingOrActions =
             let
+                clientQuestion =
+                    clientFromServer question
+
+                modifyClientMin s =
+                    PerformUpdate question { clientQuestion | answersMin = 1 }
+
+                modifyClientMax s =
+                    PerformUpdate question { clientQuestion | answersMax = 1 }
+
                 details =
-                    [ Html.span [ Attribute.class "my-4 ml-4" ] [ Html.text <| "Question details: " ++ question.details ]
-                    , Html.span [ Attribute.class "my-4 ml-4" ] [ Html.text <| "Min # of answers : " ++ String.fromInt question.answersMin ]
-                    , Html.span [ Attribute.class "my-4 ml-4" ] [ Html.text <| "Max # of answers : " ++ String.fromInt question.answersMax ]
+                    if String.isEmpty question.details then
+                        "Nothing yet, modify the question to specify details!"
+
+                    else
+                        question.details
+
+                dropdown =
+                    [ Html.div
+                        [ Attribute.class "flex flex-col" ]
+                        [ Html.div
+                            [ Attribute.class "mt-3 ml-4" ]
+                            [ Html.span [ Attribute.class "font-archivo font-semibold text-gray-600" ] [ Html.text <| "Details : " ]
+                            , Html.text details
+                            ]
+                        , Html.div
+                            [ Attribute.class "mt-3 ml-4" ]
+                            [ Html.span [ Attribute.class "font-archivo font-semibold text-gray-600" ] [ Html.text <| "Min answers : " ]
+                            , Html.select
+                                [ Attribute.class "ml-1 px-1 py-1 appearance-none bg-white border border-gray-400 hover:border-gray-500 rounded shadow leading-tight focus:shadow-outline"
+                                , Event.onInput <| modifyClientMin
+                                ]
+                                [ Html.option [ Attribute.value "0" ] [ Html.text "None" ]
+                                , Html.option [] [ Html.text "1" ]
+                                , Html.option [] [ Html.text "2" ]
+                                , Html.option [] [ Html.text "3" ]
+                                ]
+                            ]
+                        , Html.div
+                            [ Attribute.class "mt-3 ml-4" ]
+                            [ Html.span [ Attribute.class "font-archivo font-semibold text-gray-600" ] [ Html.text <| "Max answers : " ]
+                            , Html.select
+                                [ Attribute.class "px-1 py-1 appearance-none bg-white border border-gray-400 hover:border-gray-500 rounded shadow leading-tight focus:shadow-outline"
+                                , Event.onInput <| modifyClientMax
+                                ]
+                                [ Html.option [ Attribute.value "0" ] [ Html.text "None" ]
+                                , Html.option [] [ Html.text "1" ]
+                                , Html.option [] [ Html.text "2" ]
+                                , Html.option [] [ Html.text "3" ]
+                                ]
+                            ]
+                        ]
                     , Html.div [ Attribute.class "flex-grow" ] []
                     ]
-                        ++ List.map (\attrs -> Html.img attrs []) actionsAndIcons
+                        ++ [ Html.div [ Attribute.class "flex flex-wrap" ] (List.map (\attrs -> Html.img attrs []) actionsAndIcons) ]
             in
             case maybeModifying of
                 Nothing ->
-                    details
+                    dropdown
 
                 Just ( serverAnswer, _ ) ->
                     if serverAnswer.idQuestion == question.idQuestion then
                         modifyQuestion
 
                     else
-                        details
+                        dropdown
     in
     Html.tr
         [ Attribute.class "flex flex-row bg-gray-100 justify-end pr-2" ]
