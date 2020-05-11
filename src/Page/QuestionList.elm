@@ -873,9 +873,11 @@ viewQuestion dragDropModel index visibility question modifying expansion =
     ]
         ++ content
 
+
 type DetailsMode
     = DetailsStatistics
     | DetailsAnswers
+
 
 viewQuestionDetails : Maybe ( ServerQuestion, ClientQuestion ) -> DetailsMode -> Visibility -> ServerQuestion -> Html Message
 viewQuestionDetails maybeModifying mode visibility question =
@@ -948,67 +950,68 @@ viewQuestionDetails maybeModifying mode visibility question =
                             , animation
                             , Event.onClick <| PerformExpandToStatistics question
                             ]
-                 modifyButton =
-                             [ Attribute.src "/icon/pencil.svg"
-                             , Attribute.class "w-6 h-6 m-4 cursor-pointer"
-                             , animation
-                             , Event.onClick <| PerformModifyMode (Just question)
-                             ]
+
+                modifyButton =
+                    [ Attribute.src "/icon/pencil.svg"
+                    , Attribute.class "w-6 h-6 m-4 cursor-pointer"
+                    , animation
+                    , Event.onClick <| PerformModifyMode (Just question)
+                    ]
             in
             modifyButton
-                ::
-            (case question.visibility of
-                Api.Questions.Visible ->
-                    [ statistics
-                    , [ Attribute.src "/icon/visibility-hide.svg"
-                      , Attribute.class "w-6 h-6 m-4 cursor-pointer"
-                      , animation
-                      , Event.onClick <|
-                            PerformUpdate question { client | visibility = Api.Questions.Hidden }
-                      ]
-                    , [ Attribute.src "/icon/visibility-archive.svg"
-                      , Attribute.class "w-6 h-6 m-4 cursor-pointer"
-                      , animation
-                      , Event.onClick <|
-                            PerformUpdate question { client | visibility = Api.Questions.Archived }
-                      ]
-                    ]
-
-                Api.Questions.Archived ->
-                    [ statistics
-                    , [ Attribute.src "/icon/visibility-unarchive.svg"
-                      , Attribute.class "w-6 h-6 m-4 cursor-pointer"
-                      , animation
-                      , Event.onClick <|
-                            PerformUpdate question { client | visibility = Api.Questions.Visible }
-                      ]
-                    ]
-
-                Api.Questions.Hidden ->
-                    [ statistics
-                    , [ Attribute.src "/icon/visibility-show.svg"
-                      , Attribute.class "w-6 h-6 m-4 cursor-pointer"
-                      , animation
-                      , Event.onClick <|
-                            PerformUpdate question { client | visibility = Api.Questions.Visible }
-                      ]
-                    , [ Attribute.src "/icon/visibility-archive.svg"
-                      , Attribute.class "w-6 h-6 m-4 cursor-pointer"
-                      , animation
-                      , Event.onClick <|
-                            PerformUpdate question { client | visibility = Api.Questions.Archived }
-                      ]
-                    ]
-                    )
-                    modifyingOrActions =
-                    let
-                        details =
-                            [ Html.span [ Attribute.class "my-4 ml-4" ] [ Html.text <| "Question details: " ++ question.details ]
-                            , Html.span [ Attribute.class "my-4 ml-4" ] [ Html.text <| "Min # of answers : " ++ String.fromInt question.answersMin ]
-                            , Html.span [ Attribute.class "my-4 ml-4" ] [ Html.text <| "Max # of answers : " ++ String.fromInt question.answersMax ]
-                            , Html.div [ Attribute.class "flex-grow" ] []
+                :: (case question.visibility of
+                        Api.Questions.Visible ->
+                            [ statistics
+                            , [ Attribute.src "/icon/visibility-hide.svg"
+                              , Attribute.class "w-6 h-6 m-4 cursor-pointer"
+                              , animation
+                              , Event.onClick <|
+                                    PerformUpdate question { client | visibility = Api.Questions.Hidden }
+                              ]
+                            , [ Attribute.src "/icon/visibility-archive.svg"
+                              , Attribute.class "w-6 h-6 m-4 cursor-pointer"
+                              , animation
+                              , Event.onClick <|
+                                    PerformUpdate question { client | visibility = Api.Questions.Archived }
+                              ]
                             ]
-                                ++ List.map (\attrs -> Html.img attrs []) actionsAndIcons
+
+                        Api.Questions.Archived ->
+                            [ statistics
+                            , [ Attribute.src "/icon/visibility-unarchive.svg"
+                              , Attribute.class "w-6 h-6 m-4 cursor-pointer"
+                              , animation
+                              , Event.onClick <|
+                                    PerformUpdate question { client | visibility = Api.Questions.Visible }
+                              ]
+                            ]
+
+                        Api.Questions.Hidden ->
+                            [ statistics
+                            , [ Attribute.src "/icon/visibility-show.svg"
+                              , Attribute.class "w-6 h-6 m-4 cursor-pointer"
+                              , animation
+                              , Event.onClick <|
+                                    PerformUpdate question { client | visibility = Api.Questions.Visible }
+                              ]
+                            , [ Attribute.src "/icon/visibility-archive.svg"
+                              , Attribute.class "w-6 h-6 m-4 cursor-pointer"
+                              , animation
+                              , Event.onClick <|
+                                    PerformUpdate question { client | visibility = Api.Questions.Archived }
+                              ]
+                            ]
+                   )
+
+        modifyingOrActions =
+            let
+                details =
+                    [ Html.span [ Attribute.class "my-4 ml-4" ] [ Html.text <| "Question details: " ++ question.details ]
+                    , Html.span [ Attribute.class "my-4 ml-4" ] [ Html.text <| "Min # of answers : " ++ String.fromInt question.answersMin ]
+                    , Html.span [ Attribute.class "my-4 ml-4" ] [ Html.text <| "Max # of answers : " ++ String.fromInt question.answersMax ]
+                    , Html.div [ Attribute.class "flex-grow" ] []
+                    ]
+                        ++ List.map (\attrs -> Html.img attrs []) actionsAndIcons
             in
             case maybeModifying of
                 Nothing ->
