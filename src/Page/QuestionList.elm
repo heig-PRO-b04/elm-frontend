@@ -8,7 +8,7 @@ module Page.QuestionList exposing
     )
 
 import Api.Polls exposing (ServerPoll)
-import Api.Questions exposing (ClientQuestion, ServerQuestion)
+import Api.Questions exposing (ClientQuestion, QuestionVisibility(..), ServerQuestion)
 import Array exposing (Array)
 import Cmd
 import Html exposing (Html)
@@ -54,6 +54,7 @@ type alias Model =
     , visibility : Visibility
     , visibilityTrayOpen : Bool
     , input : Maybe String
+    , modifying : Maybe ( ServerQuestion, ClientQuestion )
     , dragDrop : Html5.DragDrop.Model ServerQuestion DropIndex
     , seed : Random.Seed
     }
@@ -67,6 +68,7 @@ init viewer poll =
       , visibility = Visibility.Active
       , visibilityTrayOpen = False
       , input = Nothing
+      , modifying = Nothing
       , dragDrop = Html5.DragDrop.init
       , seed = Random.initialSeed 42
       }
@@ -83,9 +85,11 @@ init viewer poll =
 
 type Message
     = WriteNewTitle String
+    | WriteModify ServerQuestion ClientQuestion
     | SelectVisibility Visibility
     | SelectVisibilityTray
     | PerformCreateMode Bool
+    | PerformModifyMode (Maybe ServerQuestion)
     | PerformCreate ClientQuestion
     | PerformDelete ServerQuestion
     | PerformExpand ServerQuestion
@@ -120,6 +124,9 @@ update message model =
         WriteNewTitle title ->
             ( { model | input = Maybe.map (always title) model.input }, Cmd.none )
 
+        WriteModify serverQuestion clientQuestion ->
+            ( { model | modifying = Just ( serverQuestion, clientQuestion ) }, Cmd.none )
+
         SelectVisibility visibility ->
             ( { model | visibility = visibility, visibilityTrayOpen = False }, Cmd.none )
 
@@ -136,6 +143,18 @@ update message model =
                         Nothing
             in
             ( { model | input = state }, Cmd.none )
+
+        PerformModifyMode maybeQuestion ->
+            case maybeQuestion of
+                Just question ->
+                    let
+                        modified =
+                            clientFromServer question
+                    in
+                    ( { model | modifying = Just ( question, modified ) }, Cmd.none )
+
+                Nothing ->
+                    ( { model | modifying = Nothing }, Cmd.none )
 
         PerformCreate question ->
             let
@@ -172,7 +191,7 @@ update message model =
             )
 
         PerformUpdate server client ->
-            ( model
+            ( { model | modifying = Nothing }
             , taskUpdate model.viewer server client
                 |> thenHandleErrorAndReload
             )
@@ -540,7 +559,7 @@ viewQuestions model =
                 , Array.toList model.questions
                     |> List.filter (\( q, _ ) -> Visibility.display model.visibility q)
                     |> List.indexedMap (\i ( q, e ) -> ( i, ( q, e ) ))
-                    |> List.concatMap (\( i, ( q, e ) ) -> viewQuestion model.dragDrop i model.visibility q e)
+                    |> List.concatMap (\( i, ( q, e ) ) -> viewQuestion model.dragDrop i model.visibility q model.modifying e)
                     |> viewNoQuestions (not <| List.isEmpty (Array.toList model.questions))
                     |> List.append header
                     |> Html.tbody [ Attribute.class "bg-white rounded-b overflow-hidden" ]
@@ -603,9 +622,10 @@ viewQuestion :
     -> Int
     -> Visibility
     -> ServerQuestion
+    -> Maybe ( ServerQuestion, ClientQuestion )
     -> Expansion
     -> List (Html Message)
-viewQuestion dragDropModel index visibility question expansion =
+viewQuestion dragDropModel index visibility question modifying expansion =
     let
         -- Style the upper or the lower border of the cell with the right color.
         dropTargetStyling : Html.Attribute msg
@@ -653,7 +673,7 @@ viewQuestion dragDropModel index visibility question expansion =
                     []
 
                 Expanded model ->
-                    [ viewQuestionDetails visibility question
+                    [ viewQuestionDetails modifying visibility question
                     , viewQuestionExpansion question model
                     ]
 
@@ -717,9 +737,54 @@ viewQuestion dragDropModel index visibility question expansion =
         ++ content
 
 
-viewQuestionDetails : Visibility -> ServerQuestion -> Html Message
-viewQuestionDetails visibility question =
+viewQuestionDetails : Maybe ( ServerQuestion, ClientQuestion ) -> Visibility -> ServerQuestion -> Html Message
+viewQuestionDetails maybeModifying visibility question =
     let
+        modifyQuestion =
+            case maybeModifying of
+                Nothing ->
+                    []
+
+                Just ( serverQuestion, clientQuestion ) ->
+                    let
+                        modifyClientTitle string =
+                            WriteModify serverQuestion { clientQuestion | title = string }
+
+                        modifyClientDetails string =
+                            WriteModify serverQuestion { clientQuestion | details = string }
+                    in
+                    if serverQuestion.idQuestion == question.idQuestion then
+                        [ Input.input
+                            [ Event.onInput modifyClientTitle
+                            , Attribute.placeholder "✍️  Modify question title..."
+                            , Attribute.class "flex-grow ml-4 my-4"
+                            , Attribute.value clientQuestion.title
+                            ]
+                            []
+                        , Input.input
+                            [ Event.onInput modifyClientDetails
+                            , Attribute.placeholder "📄️  Modify question details..."
+                            , Attribute.class "flex-grow ml-4 my-4"
+                            , Attribute.value clientQuestion.details
+                            ]
+                            []
+                        , Html.button
+                            [ Event.onClick <| PerformModifyMode Nothing
+                            , Attribute.class "flex-end"
+                            , Attribute.class "font-bold text-right pl-8 text-gray-500 hover:text-gray-600"
+                            ]
+                            [ Html.text "Cancel" ]
+                        , Html.button
+                            [ Event.onClick <| PerformUpdate serverQuestion clientQuestion
+                            , Attribute.class "flex-end px-8"
+                            , Attribute.class "font-bold text-right text-seaside-600 hover:text-seaside-700"
+                            ]
+                            [ Html.text "Apply" ]
+                        ]
+
+                    else
+                        []
+
         actionsAndIcons =
             let
                 client =
@@ -727,50 +792,80 @@ viewQuestionDetails visibility question =
 
                 animation =
                     Attribute.class "transform duration-200 hover:scale-110"
+
+                modifyButton =
+                    [ Attribute.src "/icon/pencil.svg"
+                    , Attribute.class "w-6 h-6 m-4 cursor-pointer"
+                    , animation
+                    , Event.onClick <| PerformModifyMode (Just question)
+                    ]
             in
-            case question.visibility of
-                Api.Questions.Visible ->
-                    [ [ Attribute.src "/icon/visibility-hide.svg"
-                      , Attribute.class "w-6 h-6 m-4 cursor-pointer"
-                      , animation
-                      , Event.onClick <|
-                            PerformUpdate question { client | visibility = Api.Questions.Hidden }
-                      ]
-                    , [ Attribute.src "/icon/visibility-archive.svg"
-                      , Attribute.class "w-6 h-6 m-4 cursor-pointer"
-                      , animation
-                      , Event.onClick <|
-                            PerformUpdate question { client | visibility = Api.Questions.Archived }
-                      ]
-                    ]
+            modifyButton
+                :: (case question.visibility of
+                        Api.Questions.Visible ->
+                            [ [ Attribute.src "/icon/visibility-hide.svg"
+                              , Attribute.class "w-6 h-6 m-4 cursor-pointer"
+                              , animation
+                              , Event.onClick <|
+                                    PerformUpdate question { client | visibility = Api.Questions.Hidden }
+                              ]
+                            , [ Attribute.src "/icon/visibility-archive.svg"
+                              , Attribute.class "w-6 h-6 m-4 cursor-pointer"
+                              , animation
+                              , Event.onClick <|
+                                    PerformUpdate question { client | visibility = Api.Questions.Archived }
+                              ]
+                            ]
 
-                Api.Questions.Archived ->
-                    [ [ Attribute.src "/icon/visibility-unarchive.svg"
-                      , Attribute.class "w-6 h-6 m-4 cursor-pointer"
-                      , animation
-                      , Event.onClick <|
-                            PerformUpdate question { client | visibility = Api.Questions.Visible }
-                      ]
-                    ]
+                        Api.Questions.Archived ->
+                            [ [ Attribute.src "/icon/visibility-unarchive.svg"
+                              , Attribute.class "w-6 h-6 m-4 cursor-pointer"
+                              , animation
+                              , Event.onClick <|
+                                    PerformUpdate question { client | visibility = Api.Questions.Visible }
+                              ]
+                            ]
 
-                Api.Questions.Hidden ->
-                    [ [ Attribute.src "/icon/visibility-show.svg"
-                      , Attribute.class "w-6 h-6 m-4 cursor-pointer"
-                      , animation
-                      , Event.onClick <|
-                            PerformUpdate question { client | visibility = Api.Questions.Visible }
-                      ]
-                    , [ Attribute.src "/icon/visibility-archive.svg"
-                      , Attribute.class "w-6 h-6 m-4 cursor-pointer"
-                      , animation
-                      , Event.onClick <|
-                            PerformUpdate question { client | visibility = Api.Questions.Archived }
-                      ]
+                        Api.Questions.Hidden ->
+                            [ [ Attribute.src "/icon/visibility-show.svg"
+                              , Attribute.class "w-6 h-6 m-4 cursor-pointer"
+                              , animation
+                              , Event.onClick <|
+                                    PerformUpdate question { client | visibility = Api.Questions.Visible }
+                              ]
+                            , [ Attribute.src "/icon/visibility-archive.svg"
+                              , Attribute.class "w-6 h-6 m-4 cursor-pointer"
+                              , animation
+                              , Event.onClick <|
+                                    PerformUpdate question { client | visibility = Api.Questions.Archived }
+                              ]
+                            ]
+                   )
+
+        modifyingOrActions =
+            let
+                details =
+                    [ Html.span [ Attribute.class "my-4 ml-4" ] [ Html.text <| "Question details: " ++ question.details ]
+                    , Html.span [ Attribute.class "my-4 ml-4" ] [ Html.text <| "Min # of answers : " ++ String.fromInt question.answersMin ]
+                    , Html.span [ Attribute.class "my-4 ml-4" ] [ Html.text <| "Max # of answers : " ++ String.fromInt question.answersMax ]
+                    , Html.div [ Attribute.class "flex-grow" ] []
                     ]
+                        ++ List.map (\attrs -> Html.img attrs []) actionsAndIcons
+            in
+            case maybeModifying of
+                Nothing ->
+                    details
+
+                Just ( serverAnswer, _ ) ->
+                    if serverAnswer.idQuestion == question.idQuestion then
+                        modifyQuestion
+
+                    else
+                        details
     in
     Html.tr
         [ Attribute.class "flex flex-row bg-gray-100 justify-end pr-2" ]
-        (List.map (\attrs -> Html.img attrs []) actionsAndIcons)
+        modifyingOrActions
 
 
 viewQuestionExpansion : ServerQuestion -> Answers.Model -> Html Message

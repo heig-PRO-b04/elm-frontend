@@ -282,7 +282,7 @@ headerText : AnswersState -> String
 headerText state =
     let
         empty =
-            "Your answers for this question will appear here! Press the \"New Answer\" button to get started!"
+            "Your answers for this question will appear here! Press the \"Add Answer\" button to get started!"
 
         notEmpty =
             "Here are the answers for this question! You can modify them by clicking on the ✏️ icon next to them!"
@@ -442,7 +442,7 @@ modifyAnswerInput title desc answer =
             , class "font-bold"
             , class "text-right px-8 text-seaside-600 hover:text-seaside-700"
             ]
-            [ Html.text "Modify" ]
+            [ Html.text "Apply" ]
         ]
 
 
@@ -454,7 +454,7 @@ newAnswerButton =
         , class "font-bold"
         , class "text-right px-8 text-seaside-600"
         ]
-        [ Html.text "New answer" ]
+        [ Html.text "Add Answer" ]
 
 
 modifyAnswerButton : ServerAnswer -> Html Message
