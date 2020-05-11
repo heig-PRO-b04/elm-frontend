@@ -17,6 +17,7 @@ import Html.Events as Event
 import Html5.DragDrop
 import Page.Answers as Answers
 import Page.QuestionList.Visibility as Visibility exposing (Visibility)
+import Page.QuestionStatistics as Statistics
 import Picasso.FloatingButton
 import Picasso.Input as Input
 import Random
@@ -40,11 +41,12 @@ type alias DropIndex =
 
 
 {-| A type representing the current expansion status of a certain question. Expanded questions
-display some details about answers etc.
+display some details about answers, or some detailed statistics about the said question.
 -}
 type Expansion
     = Collapsed
-    | Expanded Answers.Model
+    | ExpandedAnswers Answers.Model
+    | ExpandedStatistics Statistics.Model
 
 
 type alias Model =
@@ -88,14 +90,16 @@ type Message
     | PerformCreateMode Bool
     | PerformCreate ClientQuestion
     | PerformDelete ServerQuestion
-    | PerformExpand ServerQuestion
+    | PerformExpandToAnswers ServerQuestion
+    | PerformExpandToStatistics ServerQuestion
     | PerformUpdate ServerQuestion ClientQuestion
     | PerformMoveToIndex Int ServerQuestion
     | PerformReload
     | GotAllQuestions (List ServerQuestion)
     | GotNewSeed Random.Seed
     | GotBadCredentials
-    | MsgQuestion ServerQuestion Answers.Message
+    | MsgAnswers ServerQuestion Answers.Message
+    | MsgStatistics ServerQuestion Statistics.Message
     | MsgDragDrop (Html5.DragDrop.Msg ServerQuestion DropIndex)
 
 
@@ -108,8 +112,11 @@ subscriptions model =
                     Collapsed ->
                         Nothing
 
-                    Expanded m ->
-                        Just <| Sub.map (MsgQuestion question) (Answers.subscriptions m)
+                    ExpandedAnswers m ->
+                        Just <| Sub.map (MsgAnswers question) (Answers.subscriptions m)
+
+                    ExpandedStatistics m ->
+                        Just <| Sub.map (MsgStatistics question) (Statistics.subscriptions m)
             )
         |> Sub.batch
 
@@ -210,10 +217,17 @@ update message model =
             , taskUpdate model.viewer question updated |> thenHandleErrorAndReload
             )
 
-        PerformExpand question ->
+        PerformExpandToAnswers question ->
             let
                 ( questions, cmd ) =
-                    expand model.viewer question model.questions
+                    expandToAnswers model.viewer question model.questions
+            in
+            ( { model | questions = questions }, cmd )
+
+        PerformExpandToStatistics question ->
+            let
+                ( questions, cmd ) =
+                    expandToStatistics model.viewer question model.questions
             in
             ( { model | questions = questions }, cmd )
 
@@ -241,10 +255,22 @@ update message model =
         GotNewSeed seed ->
             ( { model | seed = seed }, Cmd.none )
 
-        MsgQuestion identifier subMessage ->
+        MsgAnswers identifier subMessage ->
             let
                 ( questions, cmd ) =
-                    updateQuestionList identifier subMessage model.questions
+                    updateQuestionListWithAnswers
+                        identifier
+                        subMessage
+                        model.questions
+            in
+            ( { model | questions = questions }, cmd )
+
+        MsgStatistics identifier subMessage ->
+            let
+                ( questions, cmd ) =
+                    updateQuestionListWithStatistics identifier
+                        subMessage
+                        model.questions
             in
             ( { model | questions = questions }, cmd )
 
@@ -297,12 +323,12 @@ thenHandleErrorAndReload task =
         |> Task.Extra.execute
 
 
-expand :
+expandToAnswers :
     Viewer
     -> ServerQuestion
     -> Array ( ServerQuestion, Expansion )
     -> ( Array ( ServerQuestion, Expansion ), Cmd Message )
-expand viewer id list =
+expandToAnswers viewer id list =
     let
         values : Array ( ( ServerQuestion, Expansion ), Cmd Message )
         values =
@@ -320,11 +346,63 @@ expand viewer id list =
 
                             ( expanded, command ) =
                                 case expansion of
-                                    Expanded _ ->
+                                    ExpandedAnswers _ ->
+                                        ( Collapsed, Cmd.none )
+
+                                    ExpandedStatistics _ ->
                                         ( Collapsed, Cmd.none )
 
                                     Collapsed ->
-                                        ( Expanded newModel, Cmd.map (MsgQuestion question) newCmd )
+                                        ( ExpandedAnswers newModel, Cmd.map (MsgAnswers question) newCmd )
+                        in
+                        ( ( question, expanded ), command )
+                )
+                list
+
+        models : Array ( ServerQuestion, Expansion )
+        models =
+            Array.map Tuple.first values
+
+        cmd : Cmd Message
+        cmd =
+            Array.map Tuple.second values
+                |> Array.toList
+                |> Cmd.batch
+    in
+    ( models, cmd )
+
+
+expandToStatistics :
+    Viewer
+    -> ServerQuestion
+    -> Array ( ServerQuestion, Expansion )
+    -> ( Array ( ServerQuestion, Expansion ), Cmd Message )
+expandToStatistics viewer id list =
+    let
+        values : Array ( ( ServerQuestion, Expansion ), Cmd Message )
+        values =
+            Array.map
+                (\( question, expansion ) ->
+                    -- Do not expand non-matching views.
+                    if id /= question then
+                        ( ( question, expansion ), Cmd.none )
+
+                    else
+                        -- Reuse an existing model if it is found. Persist expanded states too.
+                        let
+                            ( newModel, newCmd ) =
+                                Statistics.init viewer question
+
+                            ( otherMode, otherCmd ) =
+                                Answers.init viewer question
+
+                            ( expanded, command ) =
+                                case expansion of
+                                    ExpandedStatistics _ ->
+                                        ( ExpandedAnswers otherMode, Cmd.map (MsgAnswers question) otherCmd )
+
+                                    _ ->
+                                        ( ExpandedStatistics newModel, Cmd.map (MsgStatistics question) newCmd )
                         in
                         ( ( question, expanded ), command )
                 )
@@ -362,12 +440,12 @@ initQuestionList existing list =
             )
 
 
-updateQuestionList :
+updateQuestionListWithAnswers :
     ServerQuestion
     -> Answers.Message
     -> Array ( ServerQuestion, Expansion )
     -> ( Array ( ServerQuestion, Expansion ), Cmd Message )
-updateQuestionList id message list =
+updateQuestionListWithAnswers id message list =
     let
         values : Array ( ( ServerQuestion, Expansion ), Cmd Message )
         values =
@@ -383,12 +461,63 @@ updateQuestionList id message list =
                                     Collapsed ->
                                         ( Collapsed, Cmd.none )
 
-                                    Expanded model ->
+                                    ExpandedAnswers model ->
                                         let
                                             ( m, c ) =
                                                 Answers.update message model
                                         in
-                                        ( Expanded m, Cmd.map (MsgQuestion question) c )
+                                        ( ExpandedAnswers m, Cmd.map (MsgAnswers question) c )
+
+                                    ExpandedStatistics statistics ->
+                                        ( ExpandedStatistics statistics, Cmd.none )
+                        in
+                        ( ( question, newExpansion ), command )
+                )
+                list
+
+        models : Array ( ServerQuestion, Expansion )
+        models =
+            Array.map Tuple.first values
+
+        cmd : Cmd Message
+        cmd =
+            Array.map Tuple.second values
+                |> Array.toList
+                |> Cmd.batch
+    in
+    ( models, cmd )
+
+
+updateQuestionListWithStatistics :
+    ServerQuestion
+    -> Statistics.Message
+    -> Array ( ServerQuestion, Expansion )
+    -> ( Array ( ServerQuestion, Expansion ), Cmd Message )
+updateQuestionListWithStatistics id message list =
+    let
+        values : Array ( ( ServerQuestion, Expansion ), Cmd Message )
+        values =
+            Array.map
+                (\( question, expansion ) ->
+                    if id /= question then
+                        ( ( question, expansion ), Cmd.none )
+
+                    else
+                        let
+                            ( newExpansion, command ) =
+                                case expansion of
+                                    Collapsed ->
+                                        ( Collapsed, Cmd.none )
+
+                                    ExpandedAnswers statistics ->
+                                        ( ExpandedAnswers statistics, Cmd.none )
+
+                                    ExpandedStatistics model ->
+                                        let
+                                            ( m, c ) =
+                                                Statistics.update message model
+                                        in
+                                        ( ExpandedStatistics m, Cmd.map (MsgStatistics question) c )
                         in
                         ( ( question, newExpansion ), command )
                 )
@@ -652,9 +781,14 @@ viewQuestion dragDropModel index visibility question expansion =
                 Collapsed ->
                     []
 
-                Expanded model ->
-                    [ viewQuestionDetails visibility question
-                    , viewQuestionExpansion question model
+                ExpandedAnswers model ->
+                    [ viewQuestionDetails DetailsAnswers visibility question
+                    , viewQuestionAnswers question model
+                    ]
+
+                ExpandedStatistics model ->
+                    [ viewQuestionDetails DetailsStatistics visibility question
+                    , viewQuestionStatistics question model
                     ]
 
         expansionStyling =
@@ -662,7 +796,10 @@ viewQuestion dragDropModel index visibility question expansion =
                 Collapsed ->
                     Attribute.class "transform duration-200"
 
-                Expanded _ ->
+                ExpandedAnswers _ ->
+                    Attribute.class "transform duration-200 rotate-90"
+
+                ExpandedStatistics _ ->
                     Attribute.class "transform duration-200 rotate-90"
     in
     [ Html.tr
@@ -679,7 +816,7 @@ viewQuestion dragDropModel index visibility question expansion =
             [ Html.img [ Attribute.class "ml-4 h-6 w-6 hidden md:block", Attribute.src "/icon/drag-horizontal-variant.svg" ] []
             , Html.div
                 [ Attribute.class "font-bold font-archivo break-words py-3 px-4 flex-grow flex flex-row items-center"
-                , Event.onClick <| PerformExpand question
+                , Event.onClick <| PerformExpandToAnswers question
                 ]
                 [ Html.span [ Attribute.class "text-gray-500 mr-2" ] [ Html.text <| String.fromInt (index + 1) ++ "." ]
                 , Html.span
@@ -700,7 +837,7 @@ viewQuestion dragDropModel index visibility question expansion =
                 [ Attribute.src "/icon/chevron-right.svg"
                 , Attribute.class "w-6 h-6 flex-none"
                 , expansionStyling
-                , Event.onClick <| PerformExpand question
+                , Event.onClick <| PerformExpandToAnswers question
                 ]
                 []
             , Html.div []
@@ -717,8 +854,13 @@ viewQuestion dragDropModel index visibility question expansion =
         ++ content
 
 
-viewQuestionDetails : Visibility -> ServerQuestion -> Html Message
-viewQuestionDetails visibility question =
+type DetailsMode
+    = DetailsStatistics
+    | DetailsAnswers
+
+
+viewQuestionDetails : DetailsMode -> Visibility -> ServerQuestion -> Html Message
+viewQuestionDetails mode visibility question =
     let
         actionsAndIcons =
             let
@@ -727,10 +869,27 @@ viewQuestionDetails visibility question =
 
                 animation =
                     Attribute.class "transform duration-200 hover:scale-110"
+
+                statistics =
+                    case mode of
+                        DetailsStatistics ->
+                            [ Attribute.src "/icon/statistics-hide.svg"
+                            , Attribute.class "w-6 h-6 m-4 cursor-pointer"
+                            , animation
+                            , Event.onClick <| PerformExpandToStatistics question
+                            ]
+
+                        DetailsAnswers ->
+                            [ Attribute.src "/icon/statistics-show.svg"
+                            , Attribute.class "w-6 h-6 m-4 cursor-pointer"
+                            , animation
+                            , Event.onClick <| PerformExpandToStatistics question
+                            ]
             in
             case question.visibility of
                 Api.Questions.Visible ->
-                    [ [ Attribute.src "/icon/visibility-hide.svg"
+                    [ statistics
+                    , [ Attribute.src "/icon/visibility-hide.svg"
                       , Attribute.class "w-6 h-6 m-4 cursor-pointer"
                       , animation
                       , Event.onClick <|
@@ -745,7 +904,8 @@ viewQuestionDetails visibility question =
                     ]
 
                 Api.Questions.Archived ->
-                    [ [ Attribute.src "/icon/visibility-unarchive.svg"
+                    [ statistics
+                    , [ Attribute.src "/icon/visibility-unarchive.svg"
                       , Attribute.class "w-6 h-6 m-4 cursor-pointer"
                       , animation
                       , Event.onClick <|
@@ -754,7 +914,8 @@ viewQuestionDetails visibility question =
                     ]
 
                 Api.Questions.Hidden ->
-                    [ [ Attribute.src "/icon/visibility-show.svg"
+                    [ statistics
+                    , [ Attribute.src "/icon/visibility-show.svg"
                       , Attribute.class "w-6 h-6 m-4 cursor-pointer"
                       , animation
                       , Event.onClick <|
@@ -773,10 +934,16 @@ viewQuestionDetails visibility question =
         (List.map (\attrs -> Html.img attrs []) actionsAndIcons)
 
 
-viewQuestionExpansion : ServerQuestion -> Answers.Model -> Html Message
-viewQuestionExpansion question model =
+viewQuestionAnswers : ServerQuestion -> Answers.Model -> Html Message
+viewQuestionAnswers question model =
     Answers.view model
-        |> Html.map (\msg -> MsgQuestion question msg)
+        |> Html.map (\msg -> MsgAnswers question msg)
+
+
+viewQuestionStatistics : ServerQuestion -> Statistics.Model -> Html Message
+viewQuestionStatistics question model =
+    Statistics.view model
+        |> Html.map (\msg -> MsgStatistics question msg)
 
 
 viewInput : String -> Html Message
