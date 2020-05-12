@@ -1074,13 +1074,10 @@ viewQuestionDetails maybeModifying mode visibility question =
 
                                         numAns =
                                             case model.state of
-                                                Answers.Loading ->
-                                                    0
-
                                                 Answers.Loaded serverAnswers ->
                                                     List.length serverAnswers
 
-                                                Answers.Error viewer ->
+                                                _ ->
                                                     0
 
                                         optionRange =
