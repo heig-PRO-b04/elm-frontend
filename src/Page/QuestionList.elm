@@ -803,7 +803,7 @@ viewQuestion dragDropModel index visibility question modifying expansion =
                     []
 
                 ExpandedAnswers model ->
-                    [ viewQuestionDetails modifying DetailsAnswers visibility question
+                    [ viewQuestionDetails modifying (DetailsAnswers model) visibility question
                     , viewQuestionAnswers question model
                     ]
 
@@ -877,13 +877,13 @@ viewQuestion dragDropModel index visibility question modifying expansion =
 
 type DetailsMode
     = DetailsStatistics
-    | DetailsAnswers
+    | DetailsAnswers Answers.Model
 
 
 viewQuestionDetails : Maybe ( ServerQuestion, ClientQuestion ) -> DetailsMode -> Visibility -> ServerQuestion -> Html Message
 viewQuestionDetails maybeModifying mode visibility question =
     let
-        modifyQuestion =
+        modifyQuestionInputs =
             case maybeModifying of
                 Nothing ->
                     []
@@ -936,7 +936,7 @@ viewQuestionDetails maybeModifying mode visibility question =
                     else
                         []
 
-        actionsAndIcons =
+        actionIconsAttributes =
             let
                 client =
                     clientFromServer question
@@ -953,7 +953,7 @@ viewQuestionDetails maybeModifying mode visibility question =
                             , Event.onClick <| PerformExpandToStatistics question
                             ]
 
-                        DetailsAnswers ->
+                        DetailsAnswers model ->
                             [ Attribute.src "/icon/statistics-show.svg"
                             , Attribute.class "w-6 h-6 m-4 cursor-pointer"
                             , animation
@@ -961,11 +961,16 @@ viewQuestionDetails maybeModifying mode visibility question =
                             ]
 
                 modifyButton =
-                    [ Attribute.src "/icon/pencil.svg"
-                    , Attribute.class "w-6 h-6 m-4 cursor-pointer"
-                    , animation
-                    , Event.onClick <| PerformModifyMode (Just question)
-                    ]
+                    case mode of
+                        DetailsAnswers model ->
+                            [ Attribute.src "/icon/pencil.svg"
+                            , Attribute.class "w-6 h-6 m-4 cursor-pointer"
+                            , animation
+                            , Event.onClick <| PerformModifyMode (Just question)
+                            ]
+
+                        DetailsStatistics ->
+                            []
             in
             modifyButton
                 :: (case question.visibility of
@@ -1012,62 +1017,112 @@ viewQuestionDetails maybeModifying mode visibility question =
                             ]
                    )
 
-        modifyingOrActions =
+        modifyingOrActionInfo =
             let
-                clientQuestion =
-                    clientFromServer question
-
-                modifyClientMin s =
-                    PerformUpdate question { clientQuestion | answersMin = 1 }
-
-                modifyClientMax s =
-                    PerformUpdate question { clientQuestion | answersMax = 1 }
-
-                details =
-                    if String.isEmpty question.details then
-                        "Nothing yet, modify the question to specify details!"
-
-                    else
-                        question.details
-
                 dropdown =
-                    [ Html.div
-                        [ Attribute.class "flex flex-col" ]
-                        [ Html.div
-                            [ Attribute.class "mt-3 ml-4" ]
-                            [ Html.span [ Attribute.class "font-archivo font-semibold text-gray-600" ] [ Html.text <| "Details : " ]
-                            , Html.text details
+                    let
+                        questionInfo : Answers.Model -> List (Html Message)
+                        questionInfo model =
+                            let
+                                clientQuestion =
+                                    clientFromServer question
+
+                                modifyClientMin : String -> Message
+                                modifyClientMin s =
+                                    let
+                                        n =
+                                            Maybe.withDefault 0 <| String.toInt s
+                                    in
+                                    PerformUpdate question { clientQuestion | answersMin = n }
+
+                                modifyClientMax : String -> Message
+                                modifyClientMax s =
+                                    let
+                                        n =
+                                            Maybe.withDefault 0 <| String.toInt s
+                                    in
+                                    PerformUpdate question { clientQuestion | answersMax = n }
+
+                                questionDetails =
+                                    if String.isEmpty question.details then
+                                        "Nothing yet, modify the question to specify details!"
+
+                                    else
+                                        question.details
+
+                                selectGenerator : Int -> List (Html Message)
+                                selectGenerator minMax =
+                                    let
+                                        intToOption n =
+                                            let
+                                                ifSelected x =
+                                                    if x == minMax then
+                                                        [ Attribute.selected True ]
+
+                                                    else
+                                                        []
+
+                                                notSelect =
+                                                    case n of
+                                                        0 ->
+                                                            ( [ Attribute.value "0" ], [ Html.text "None" ] )
+
+                                                        any ->
+                                                            ( [], [ Html.text <| String.fromInt any ] )
+                                            in
+                                            (\( attrs, contents ) -> Html.option (attrs ++ ifSelected n) contents) notSelect
+
+                                        numAns =
+                                            case model.state of
+                                                Answers.Loaded serverAnswers ->
+                                                    List.length serverAnswers
+
+                                                _ ->
+                                                    0
+
+                                        optionRange =
+                                            List.range 0 numAns
+                                    in
+                                    List.map intToOption optionRange
+                            in
+                            [ Html.div
+                                [ Attribute.class "flex flex-col" ]
+                                [ Html.div
+                                    [ Attribute.class "mt-3 ml-4" ]
+                                    [ Html.span [ Attribute.class "font-archivo font-semibold text-gray-600" ] [ Html.text <| "Details : " ]
+                                    , Html.text questionDetails
+                                    ]
+                                , Html.div
+                                    [ Attribute.class "mt-3 ml-4" ]
+                                    [ Html.span [ Attribute.class "font-archivo font-semibold text-gray-600" ] [ Html.text <| "Min answers : " ]
+                                    , Html.select
+                                        [ Attribute.class "ml-1 px-1 py-1 appearance-none bg-white border border-gray-400 hover:border-gray-500 rounded shadow leading-tight focus:shadow-outline"
+                                        , Event.onInput <| modifyClientMin
+                                        ]
+                                        (selectGenerator question.answersMin)
+                                    ]
+                                , Html.div
+                                    [ Attribute.class "mt-3 ml-4" ]
+                                    [ Html.span [ Attribute.class "font-archivo font-semibold text-gray-600" ] [ Html.text <| "Max answers : " ]
+                                    , Html.select
+                                        [ Attribute.class "px-1 py-1 appearance-none bg-white border border-gray-400 hover:border-gray-500 rounded shadow leading-tight focus:shadow-outline"
+                                        , Event.onInput <| modifyClientMax
+                                        ]
+                                        (selectGenerator question.answersMax)
+                                    ]
+                                ]
+                            , Html.div [ Attribute.class "flex-grow" ] []
                             ]
-                        , Html.div
-                            [ Attribute.class "mt-3 ml-4" ]
-                            [ Html.span [ Attribute.class "font-archivo font-semibold text-gray-600" ] [ Html.text <| "Min answers : " ]
-                            , Html.select
-                                [ Attribute.class "ml-1 px-1 py-1 appearance-none bg-white border border-gray-400 hover:border-gray-500 rounded shadow leading-tight focus:shadow-outline"
-                                , Event.onInput <| modifyClientMin
-                                ]
-                                [ Html.option [ Attribute.value "0" ] [ Html.text "None" ]
-                                , Html.option [] [ Html.text "1" ]
-                                , Html.option [] [ Html.text "2" ]
-                                , Html.option [] [ Html.text "3" ]
-                                ]
-                            ]
-                        , Html.div
-                            [ Attribute.class "mt-3 ml-4" ]
-                            [ Html.span [ Attribute.class "font-archivo font-semibold text-gray-600" ] [ Html.text <| "Max answers : " ]
-                            , Html.select
-                                [ Attribute.class "px-1 py-1 appearance-none bg-white border border-gray-400 hover:border-gray-500 rounded shadow leading-tight focus:shadow-outline"
-                                , Event.onInput <| modifyClientMax
-                                ]
-                                [ Html.option [ Attribute.value "0" ] [ Html.text "None" ]
-                                , Html.option [] [ Html.text "1" ]
-                                , Html.option [] [ Html.text "2" ]
-                                , Html.option [] [ Html.text "3" ]
-                                ]
-                            ]
-                        ]
-                    , Html.div [ Attribute.class "flex-grow" ] []
-                    ]
-                        ++ [ Html.div [ Attribute.class "flex flex-wrap" ] (List.map (\attrs -> Html.img attrs []) actionsAndIcons) ]
+
+                        actionsIcons =
+                            [ Html.div [ Attribute.class "flex flex-wrap" ] (List.map (\attrs -> Html.img attrs []) actionIconsAttributes) ]
+                    in
+                    case mode of
+                        DetailsAnswers model ->
+                            questionInfo model ++ actionsIcons
+
+                        DetailsStatistics ->
+                            actionsIcons
             in
             case maybeModifying of
                 Nothing ->
@@ -1075,14 +1130,14 @@ viewQuestionDetails maybeModifying mode visibility question =
 
                 Just ( serverAnswer, _ ) ->
                     if serverAnswer.idQuestion == question.idQuestion then
-                        modifyQuestion
+                        modifyQuestionInputs
 
                     else
                         dropdown
     in
     Html.tr
         [ Attribute.class "flex flex-row bg-gray-100 justify-end pr-2" ]
-        modifyingOrActions
+        modifyingOrActionInfo
 
 
 viewQuestionAnswers : ServerQuestion -> Answers.Model -> Html Message
