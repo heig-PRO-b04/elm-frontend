@@ -1012,16 +1012,26 @@ viewQuestionDetails maybeModifying mode visibility question =
                             ]
                    )
 
-        modifyingOrActions =
+        modifyingOrActionInfo =
             let
                 clientQuestion =
                     clientFromServer question
 
+                modifyClientMin : String -> Message
                 modifyClientMin s =
-                    PerformUpdate question { clientQuestion | answersMin = 1 }
+                    let
+                        n =
+                            Maybe.withDefault 0 <| String.toInt s
+                    in
+                    PerformUpdate question { clientQuestion | answersMin = n }
 
+                modifyClientMax : String -> Message
                 modifyClientMax s =
-                    PerformUpdate question { clientQuestion | answersMax = 1 }
+                    let
+                        n =
+                            Maybe.withDefault 0 <| String.toInt s
+                    in
+                    PerformUpdate question { clientQuestion | answersMax = n }
 
                 details =
                     if String.isEmpty question.details then
@@ -1029,6 +1039,33 @@ viewQuestionDetails maybeModifying mode visibility question =
 
                     else
                         question.details
+
+                selectGenerator : Int -> Int -> Int -> List (Html Message)
+                selectGenerator numAns minMax default =
+                    let
+                        intToOption n =
+                            let
+                                ifSelected x =
+                                    if x == minMax then
+                                        [ Attribute.selected True ]
+
+                                    else
+                                        []
+
+                                notSelect =
+                                    case n of
+                                        0 ->
+                                            ( [ Attribute.value "0" ], [ Html.text "None" ] )
+
+                                        any ->
+                                            ( [], [ Html.text <| String.fromInt any ] )
+                            in
+                            (\( attrs, contents ) -> Html.option (attrs ++ ifSelected n) contents) notSelect
+
+                        optionRange =
+                            List.range 0 default ++ List.range (default + 1) numAns
+                    in
+                    List.map intToOption optionRange
 
                 dropdown =
                     [ Html.div
@@ -1045,11 +1082,7 @@ viewQuestionDetails maybeModifying mode visibility question =
                                 [ Attribute.class "ml-1 px-1 py-1 appearance-none bg-white border border-gray-400 hover:border-gray-500 rounded shadow leading-tight focus:shadow-outline"
                                 , Event.onInput <| modifyClientMin
                                 ]
-                                [ Html.option [ Attribute.value "0" ] [ Html.text "None" ]
-                                , Html.option [] [ Html.text "1" ]
-                                , Html.option [] [ Html.text "2" ]
-                                , Html.option [] [ Html.text "3" ]
-                                ]
+                                (selectGenerator 4 question.answersMin 4)
                             ]
                         , Html.div
                             [ Attribute.class "mt-3 ml-4" ]
@@ -1058,11 +1091,7 @@ viewQuestionDetails maybeModifying mode visibility question =
                                 [ Attribute.class "px-1 py-1 appearance-none bg-white border border-gray-400 hover:border-gray-500 rounded shadow leading-tight focus:shadow-outline"
                                 , Event.onInput <| modifyClientMax
                                 ]
-                                [ Html.option [ Attribute.value "0" ] [ Html.text "None" ]
-                                , Html.option [] [ Html.text "1" ]
-                                , Html.option [] [ Html.text "2" ]
-                                , Html.option [] [ Html.text "3" ]
-                                ]
+                                (selectGenerator 2 question.answersMax 4)
                             ]
                         ]
                     , Html.div [ Attribute.class "flex-grow" ] []
@@ -1082,7 +1111,7 @@ viewQuestionDetails maybeModifying mode visibility question =
     in
     Html.tr
         [ Attribute.class "flex flex-row bg-gray-100 justify-end pr-2" ]
-        modifyingOrActions
+        modifyingOrActionInfo
 
 
 viewQuestionAnswers : ServerQuestion -> Answers.Model -> Html Message
