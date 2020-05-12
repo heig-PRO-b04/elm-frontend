@@ -1,5 +1,6 @@
 module Page.Answers exposing
-    ( Message
+    ( AnswersState(..)
+    , Message
     , Model
     , init
     , subscriptions
