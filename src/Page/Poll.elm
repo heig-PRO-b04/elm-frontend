@@ -300,6 +300,7 @@ view model =
                 [ onInput WriteNewTitle
                 , onEnterDown ClickPollTitleButton
                 , placeholder "What do unicorns dream of ? \u{1F984}"
+                , Html.Attributes.autofocus True
                 , value model.titleInput
                 , class "w-full"
                 , class "mr-4"
@@ -354,7 +355,7 @@ buttonPollTitle state =
                     "Loading..."
 
                 Creating ->
-                    "Create"
+                    "Confirm"
 
                 Editing poll _ _ _ ->
                     "Save"

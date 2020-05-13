@@ -273,7 +273,9 @@ viewPoll poll status =
             ]
             [ text poll.title ]
         , Html.td
-            [ class "py-2" ]
+            [ class "py-2"
+            , onClick <| NowDisplayPoll poll
+            ]
             [ pill status ]
         , Html.td
             [ class "text-right px-8" ]
