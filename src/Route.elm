@@ -20,6 +20,7 @@ type Route
     | Registration
     | Logout
     | BadCredentials
+    | Account
     | Polls
     | NewPoll
     | DisplayPoll PollDiscriminator
@@ -66,6 +67,7 @@ parser =
         , Parser.map Registration (s "register")
         , Parser.map Logout (s "logout")
         , Parser.map BadCredentials (s "disconnected")
+        , Parser.map Account (s "profile")
         , Parser.map Polls (s "polls")
         , Parser.map NewPoll (s "newpoll")
         , Parser.map DisplayPoll (s "displaypoll" </> Api.Polls.urlParser)
@@ -99,6 +101,9 @@ routeToPieces page =
 
         BadCredentials ->
             [ "disconnected" ]
+
+        Account ->
+            [ "profile" ]
 
         Polls ->
             [ "polls" ]

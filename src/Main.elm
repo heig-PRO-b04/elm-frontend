@@ -5,6 +5,7 @@ import Browser
 import Browser.Navigation as Nav
 import Cmd exposing (initWith, updateWith, withCmd, withNoCmd)
 import Html
+import Page.Account as Prof
 import Page.Authenticate as Auth
 import Page.BadCredentials as Disc
 import Page.Home as Home
@@ -33,6 +34,7 @@ type PageModel
     | HomeModel Home.Model
     | DiscModel Disc.Model
     | QuitModel Quit.Model
+    | ProfModel Prof.Model
     | PollModel Poll.Model
     | DisplayPollModel DisplayPoll.Model
     | LiveModel Live.Model
@@ -93,6 +95,9 @@ toSession model =
 
         QuitModel m ->
             m.session
+
+        ProfModel m ->
+            Prof.toSession m
 
         PollModel m ->
             Session.toSession m.viewer
@@ -157,6 +162,10 @@ view model =
                     Quit.view quitModel
                         |> List.map (Html.map never)
 
+                ProfModel profModel ->
+                    Prof.view profModel
+                        |> List.map (Html.map ProfMessage)
+
                 PollModel pollModel ->
                     Poll.view pollModel
                         |> List.map (Html.map PollMessage)
@@ -185,6 +194,7 @@ type Message
     | HomeMessage Home.Message
     | DiscMessage Disc.Message
     | AuthMessage Auth.Message
+    | ProfMessage Prof.Message
     | PollMessage Poll.Message
     | DisplayPollMessage DisplayPoll.Message
     | LiveMessage Live.Message
@@ -245,6 +255,14 @@ update msg model =
                 discMsg
                 discModel
 
+        ( ProfMessage profMsg, ProfModel profModel ) ->
+            updateWith
+                ProfMessage
+                (embed model ProfModel)
+                Prof.update
+                profMsg
+                profModel
+
         ( PollMessage pollMsg, PollModel pollModel ) ->
             updateWith
                 PollMessage
@@ -277,6 +295,11 @@ update msg model =
 subscriptions : Model -> Sub Message
 subscriptions model =
     case model.page of
+        ProfModel profModel ->
+            Sub.map
+                ProfMessage
+                (Prof.subscriptions profModel)
+
         PollModel pollModel ->
             Sub.map
                 PollMessage
@@ -344,6 +367,17 @@ changeRouteTo route model =
                 DiscMessage
                 (embed newModel DiscModel)
                 (Disc.init session)
+
+        Just Route.Account ->
+            case Session.toViewer session of
+                Just viewer ->
+                    initWith
+                        ProfMessage
+                        (embed newModel ProfModel)
+                        (Prof.init viewer)
+
+                Nothing ->
+                    changeRouteTo (Just Route.Home) model
 
         Just Route.Polls ->
             case Session.toViewer session of
