@@ -14,6 +14,7 @@ import Cmd
 import Html exposing (Html)
 import Html.Attributes as Attribute
 import Html.Events as Event
+import Html.Events.Extra exposing (onEnterDown)
 import Html5.DragDrop
 import Page.Answers as Answers
 import Page.QuestionList.Visibility as Visibility exposing (Visibility)
@@ -23,7 +24,6 @@ import Picasso.Input as Input
 import Random
 import Route
 import Session exposing (Viewer)
-import Svg
 import Task exposing (Task)
 import Task.Extra
 import Time
@@ -904,13 +904,16 @@ viewQuestionDetails maybeModifying mode visibility question =
                             ]
                             [ Input.input
                                 [ Event.onInput modifyClientTitle
+                                , onEnterDown <| PerformUpdate serverQuestion clientQuestion
                                 , Attribute.placeholder "✍️  Modify question title..."
+                                , Attribute.autofocus True
                                 , Attribute.class "flex flex-grow mr-3"
                                 , Attribute.value clientQuestion.title
                                 ]
                                 []
                             , Input.input
                                 [ Event.onInput modifyClientDetails
+                                , onEnterDown <| PerformUpdate serverQuestion clientQuestion
                                 , Attribute.placeholder "📄️  Modify question details..."
                                 , Attribute.class "flex flex-grow mr-3"
                                 , Attribute.value clientQuestion.details
@@ -1169,7 +1172,9 @@ viewInput current =
             [ Attribute.class "py-3 pl-4", Attribute.class "w-full flex flex-row items-center" ]
             [ Input.input
                 [ Event.onInput WriteNewTitle
+                , onEnterDown <| PerformCreate created
                 , Attribute.placeholder "🚀 New question..."
+                , Attribute.autofocus True
                 , Attribute.class "w-full"
                 , Attribute.value current
                 ]
