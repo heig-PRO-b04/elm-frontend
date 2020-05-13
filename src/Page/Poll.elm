@@ -355,7 +355,7 @@ buttonPollTitle state =
                     "Loading..."
 
                 Creating ->
-                    "Create"
+                    "Confirm"
 
                 Editing poll _ _ _ ->
                     "Save"

@@ -925,7 +925,7 @@ viewQuestionDetails maybeModifying mode visibility question =
                                     , Attribute.class "flex flex-end"
                                     , Attribute.class "pr-3 font-bold text-gray-500 hover:text-gray-600"
                                     ]
-                                    [ Html.text "Cancel" ]
+                                    [ Html.text "Discard" ]
                                 , Html.button
                                     [ Event.onClick <| PerformUpdate serverQuestion clientQuestion
                                     , Attribute.class "flex flex-end"
@@ -1184,7 +1184,7 @@ viewInput current =
                 , Attribute.class "font-bold"
                 , Attribute.class "text-right pl-8 text-gray-500 hover:text-gray-600"
                 ]
-                [ Html.text "Cancel" ]
+                [ Html.text "Discard" ]
             , Html.button
                 [ Event.onClick <| PerformCreate created
                 , Attribute.class "font-bold"
