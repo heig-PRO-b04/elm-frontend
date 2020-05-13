@@ -11,16 +11,21 @@ module Page.Account exposing
 -- MODEL
 
 import Html exposing (Html)
+import Html.Attributes as Attribute
+import Html.Events as Event
 import Session exposing (Session, Viewer)
 
 
 type alias Model =
-    { viewer : Viewer }
+    { viewer : Viewer
+    , nextUsername : String
+    , nextPassword : String
+    }
 
 
 init : Viewer -> ( Model, Cmd Message )
 init viewer =
-    ( { viewer = viewer }, Cmd.none )
+    ( { viewer = viewer, nextUsername = "", nextPassword = "" }, Cmd.none )
 
 
 toSession : Model -> Session
@@ -32,8 +37,9 @@ toSession model =
 -- UPDATE
 
 
-type alias Message =
-    Never
+type Message
+    = WriteNewUsername String
+    | WriteNewPassword String
 
 
 subscriptions : Model -> Sub Message
@@ -42,8 +48,13 @@ subscriptions _ =
 
 
 update : Message -> Model -> ( Model, Cmd Message )
-update _ model =
-    ( model, Cmd.none )
+update message model =
+    case message of
+        WriteNewUsername username ->
+            ( { model | nextUsername = username }, Cmd.none )
+
+        WriteNewPassword password ->
+            ( { model | nextPassword = password }, Cmd.none )
 
 
 
@@ -51,5 +62,20 @@ update _ model =
 
 
 view : Model -> List (Html Message)
-view _ =
-    []
+view model =
+    [ Html.input
+        [ Attribute.placeholder "New username"
+        , Attribute.value model.nextUsername
+        , Event.onInput WriteNewUsername
+        ]
+        []
+    , Html.button [] [ Html.text "Update username" ]
+    , Html.input
+        [ Attribute.placeholder "New password"
+        , Attribute.value model.nextPassword
+        , Event.onInput WriteNewPassword
+        ]
+        []
+    , Html.button [] [ Html.text "Update password" ]
+    , Html.button [] [ Html.text "Delete account" ]
+    ]
