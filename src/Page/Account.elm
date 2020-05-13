@@ -175,7 +175,7 @@ view : Model -> List (Html Message)
 view model =
     case model.confirmation of
         Just ( password, command ) ->
-            confirmation password command
+            inputs model ++ confirmation password command
 
         Nothing ->
             inputs model
@@ -183,15 +183,61 @@ view model =
 
 confirmation : String -> (String -> Cmd Message) -> List (Html Message)
 confirmation password command =
-    [ Html.input
-        [ Attribute.placeholder "Confirmation"
-        , Attribute.value password
-        , Event.onInput (WriteConfirmationPassword command)
-        ]
-        []
-    , Html.button [ Event.onClick <| NowConfirm (command password) ] [ Html.text "Confirm" ]
-    , Html.button [ Event.onClick <| GotError Cancellation ] [ Html.text "Cancel" ]
+    [ confirmationDialog password command
     ]
+
+
+confirmationDialog : String -> (String -> Cmd Message) -> Html Message
+confirmationDialog password command =
+    -- TODO : Provide a mobile-friendly layout too.
+    -- TODO : Determine how we want to combine this with the other input fields. Maybe disable them ?
+    Html.div
+        [ Attribute.class "bg-white shadow-xl max-w-lg m-auto p-8 rounded-lg"
+        , Attribute.class "flex flex-col items-justify"
+        ]
+        [ Html.h1
+            [ Attribute.class "text-2xl font-archivo font-bold" ]
+            [ Html.text "Just to be sure" ]
+        , Html.p
+            [ Attribute.class "text-lg font-archivo font-light mt-4" ]
+            [ Html.text "This action will perform some irreversible changes to your account. Please enter your password below :" ]
+        , Html.input
+            [ Attribute.placeholder "Current password..."
+            , Attribute.type_ "password"
+            , Attribute.class "font-archivo font-semibold"
+            , Attribute.class "mt-8 border-2 border-seaside-300 rounded-lg px-4 py-2"
+            , Attribute.class "focus:outline-none focus:shadow-outline"
+            , Attribute.value password
+            , Event.onInput (WriteConfirmationPassword command)
+            ]
+            []
+        , Html.p
+            [ Attribute.class "text-lg font-archivo font-light mt-8" ]
+            [ Html.text "All your (active) sessions will be disconnected upon confirmation." ]
+        , Html.div
+            [ Attribute.class "mt-8"
+            , Attribute.class "flex flex-row justify-around"
+            ]
+            [ Html.button
+                [ Attribute.class "border-2 border-gray-200 text-gray-600  hover:bg-gray-100"
+                , Attribute.class "rounded-lg px-6 py-2 transform duration-200"
+                , Attribute.class "font-archivo font-semibold"
+                , Attribute.class "mr-4"
+                , Attribute.class "flex-grow"
+                , Event.onClick <| GotError Cancellation
+                ]
+                [ Html.text "Cancel" ]
+            , Html.button
+                [ Attribute.class "border-2 border-red-200 text-red-500 hover:bg-red-100"
+                , Attribute.class "rounded-lg px-6 py-2 transform duration-200"
+                , Attribute.class "font-archivo font-semibold"
+                , Attribute.class "ml-4"
+                , Attribute.class "flex-grow"
+                , Event.onClick <| NowConfirm (command password)
+                ]
+                [ Html.text "Confirm" ]
+            ]
+        ]
 
 
 inputs : Model -> List (Html Message)
