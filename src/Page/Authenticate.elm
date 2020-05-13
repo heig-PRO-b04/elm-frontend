@@ -22,7 +22,7 @@ module Page.Authenticate exposing
 import Api
 import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, br, div, p, text)
-import Html.Attributes exposing (class, placeholder, type_, value)
+import Html.Attributes as Attribute exposing (class, placeholder, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Html.Events.Extra exposing (onEnterDown)
 import Picasso.Button exposing (button, elevated, filled, filledDisabled, outlinedLight)
@@ -271,6 +271,7 @@ inputEmail content =
     Input.inputWithTitle "Username:"
         [ onInput WriteNewUsername
         , placeholder "i-am-ironman"
+        , Attribute.autofocus True
         , value content
         ]
         []

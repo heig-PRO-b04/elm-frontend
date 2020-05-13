@@ -12,8 +12,9 @@ import Api.Answers exposing (AnswerDiscriminator, ClientAnswer, ServerAnswer)
 import Api.Questions exposing (QuestionDiscriminator, QuestionVisibility(..), ServerQuestion)
 import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, span)
-import Html.Attributes as Attribute exposing (class)
+import Html.Attributes as Attribute
 import Html.Events as Event
+import Html.Events.Extra exposing (onEnterDown)
 import Page.Answers.Indices as Indices
 import Picasso.Input as Input
 import Session exposing (Viewer)
@@ -252,7 +253,7 @@ update msg model =
 view : Model -> Html Message
 view model =
     div
-        [ class "border-b bg-gray-100" ]
+        [ Attribute.class "border-b bg-gray-100" ]
         [ answerHeader model
         , showAnswerList model
         ]
@@ -267,12 +268,12 @@ answerHeader model =
 
             else
                 div
-                    [ class "flex flex-row"
+                    [ Attribute.class "flex flex-row"
                     ]
                     [ span
-                        [ class "font-archivo font-semibold text-gray-600 p-4 pb-0" ]
+                        [ Attribute.class "font-archivo font-semibold text-gray-600 p-4 pb-0" ]
                         [ Html.text (headerText model.state) ]
-                    , div [ class "flex-grow" ] []
+                    , div [ Attribute.class "flex-grow" ] []
                     , newAnswerButton
                     ]
     in
@@ -307,7 +308,7 @@ showAnswerList : Model -> Html Message
 showAnswerList model =
     case model.state of
         Loaded serverAnswers ->
-            div [ class "flex-col" ]
+            div [ Attribute.class "flex-col" ]
                 (List.sortBy .idAnswer serverAnswers
                     |> List.indexedMap
                         (\index answer ->
@@ -341,13 +342,13 @@ answerOrEdit index title desc answer maybeModify =
 showAnswer : Int -> ServerAnswer -> Html Message
 showAnswer index answer =
     div
-        [ class "flex flex-row items-center py-3 pl-4"
-        , class "font-archivo font-semibold text-gray-700"
+        [ Attribute.class "flex flex-row items-center py-3 pl-4"
+        , Attribute.class "font-archivo font-semibold text-gray-700"
         ]
-        [ span [ class "ml-10 text-gray-500" ] [ Html.text <| Indices.forIndex index ++ ".\u{00A0}" ]
+        [ span [ Attribute.class "ml-10 text-gray-500" ] [ Html.text <| Indices.forIndex index ++ ".\u{00A0}" ]
         , span [] [ Html.text answer.title ]
-        , span [ class "text-gray-400" ] [ Html.text "\u{00A0}/\u{00A0}" ]
-        , span [ class "text-gray-500" ]
+        , span [ Attribute.class "text-gray-400" ] [ Html.text "\u{00A0}/\u{00A0}" ]
+        , span [ Attribute.class "text-gray-500" ]
             [ Html.text <|
                 if String.isEmpty answer.description then
                     "-"
@@ -355,7 +356,7 @@ showAnswer index answer =
                 else
                     answer.description
             ]
-        , div [ class "flex-grow" ] []
+        , div [ Attribute.class "flex-grow" ] []
         , div [] [ modifyAnswerButton answer ]
         , div [] [ deleteAnswerButton answer ]
         ]
@@ -368,37 +369,40 @@ newAnswerInput model =
             ClientAnswer model.titleCreate model.descriptionCreate
     in
     div
-        [ class "flex flex-row flex-wrap items-center"
-        , class "border-b active:shadow-inner bg-gray-100"
-        , class "py-3 px-4"
+        [ Attribute.class "flex flex-row flex-wrap items-center"
+        , Attribute.class "border-b active:shadow-inner bg-gray-100"
+        , Attribute.class "py-3 px-4"
         ]
         [ Input.input
             [ Event.onInput WriteCreateTitle
+            , onEnterDown <| PerformCreate created
             , Attribute.placeholder "✍️  New answer title..."
-            , class "flex-grow"
-            , class "mr-3"
+            , Attribute.autofocus True
+            , Attribute.class "flex-grow"
+            , Attribute.class "mr-3"
             , Attribute.value model.titleCreate
             ]
             []
         , Input.input
             [ Event.onInput WriteCreateDescription
+            , onEnterDown <| PerformCreate created
             , Attribute.placeholder "📄️  New answer description..."
-            , class "flex flex-grow"
-            , class "mr-3"
+            , Attribute.class "flex flex-grow"
+            , Attribute.class "mr-3"
             , Attribute.value model.descriptionCreate
             ]
             []
         , Html.div [ Attribute.class "flex flex-row items-center" ]
             [ Html.button
                 [ Event.onClick <| PerformCreateMode False
-                , class "flex flex-end"
-                , class "pr-3 font-bold text-gray-500 hover:text-gray-600"
+                , Attribute.class "flex flex-end"
+                , Attribute.class "pr-3 font-bold text-gray-500 hover:text-gray-600"
                 ]
                 [ Html.text "Cancel" ]
             , Html.button
                 [ Event.onClick <| PerformCreate created
-                , class "flex flex-end"
-                , class "font-bold text-seaside-600 hover:text-seaside-700"
+                , Attribute.class "flex flex-end"
+                , Attribute.class "font-bold text-seaside-600 hover:text-seaside-700"
                 ]
                 [ Html.text "Create" ]
             ]
@@ -412,37 +416,40 @@ modifyAnswerInput title desc answer =
             ClientAnswer title desc
     in
     div
-        [ class "flex flex-row flex-wrap items-center"
-        , class "border-b active:shadow-inner bg-gray-100"
-        , class "py-3 px-4"
+        [ Attribute.class "flex flex-row flex-wrap items-center"
+        , Attribute.class "border-b active:shadow-inner bg-gray-100"
+        , Attribute.class "py-3 px-4"
         ]
         [ Input.input
             [ Event.onInput WriteModifyTitle
+            , onEnterDown <| PerformUpdate answer modified
             , Attribute.placeholder "✍️  Modify answer title..."
-            , class "flex-grow"
-            , class "mr-3"
+            , Attribute.autofocus True
+            , Attribute.class "flex-grow"
+            , Attribute.class "mr-3"
             , Attribute.value title
             ]
             []
         , Input.input
             [ Event.onInput WriteModifyDescription
+            , onEnterDown <| PerformUpdate answer modified
             , Attribute.placeholder "📄️  Modify answer description..."
-            , class "flex-grow"
-            , class "mr-3"
+            , Attribute.class "flex-grow"
+            , Attribute.class "mr-3"
             , Attribute.value desc
             ]
             []
         , Html.div [ Attribute.class "flex flex-row items-center" ]
             [ Html.button
                 [ Event.onClick <| PerformModifyMode Nothing
-                , class "flex-end"
-                , class "mr-3 font-bold text-gray-500 hover:text-gray-600"
+                , Attribute.class "flex-end"
+                , Attribute.class "mr-3 font-bold text-gray-500 hover:text-gray-600"
                 ]
                 [ Html.text "Cancel" ]
             , Html.button
                 [ Event.onClick <| PerformUpdate answer modified
-                , class "flex-end"
-                , class "font-bold text-seaside-600 hover:text-seaside-700"
+                , Attribute.class "flex-end"
+                , Attribute.class "font-bold text-seaside-600 hover:text-seaside-700"
                 ]
                 [ Html.text "Apply" ]
             ]
@@ -453,9 +460,9 @@ newAnswerButton : Html Message
 newAnswerButton =
     Html.button
         [ Event.onClick <| PerformCreateMode True
-        , class "flex-end"
-        , class "font-bold"
-        , class "text-right px-8 text-seaside-600"
+        , Attribute.class "flex-end"
+        , Attribute.class "font-bold"
+        , Attribute.class "text-right px-8 text-seaside-600"
         ]
         [ Html.text "Add Answer" ]
 
@@ -464,7 +471,7 @@ modifyAnswerButton : ServerAnswer -> Html Message
 modifyAnswerButton answer =
     Html.img
         [ Attribute.src "/icon/pencil.svg"
-        , class "h-6 w-6 cursor-pointer"
+        , Attribute.class "h-6 w-6 cursor-pointer"
         , Event.onClick <| PerformModifyMode (Just answer.idAnswer)
         ]
         []
