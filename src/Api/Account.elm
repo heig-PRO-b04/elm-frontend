@@ -1,6 +1,5 @@
 module Api.Account exposing
     ( Error(..)
-    , ModeratorIdentifier
     , deleteAccount
     , updatePassword
     , updateUsername
@@ -23,10 +22,6 @@ type Error
     | GotBadNetwork
 
 
-type alias ModeratorIdentifier =
-    Int
-
-
 type alias PasswordConfirmation =
     String
 
@@ -40,17 +35,16 @@ specified, to ensure the user "approval" of the deletion request.
 -}
 deleteAccount :
     Credentials
-    -> ModeratorIdentifier
     -> PasswordConfirmation
     -> (String -> a)
     -> Task Error a
-deleteAccount credentials identifier passwordConfirmation transform =
+deleteAccount credentials passwordConfirmation transform =
     Api.delete
         { body =
             Json.Encode.object
                 [ ( "currentPassword", Json.Encode.string passwordConfirmation )
                 ]
-        , endpoint = moderator credentials identifier
+        , endpoint = moderator credentials
         , decoder = messageDecoder
         }
         |> Task.map transform
@@ -61,12 +55,11 @@ deleteAccount credentials identifier passwordConfirmation transform =
 -}
 updateUsername :
     Credentials
-    -> ModeratorIdentifier
     -> String
     -> PasswordConfirmation
     -> (String -> a)
     -> Task Error a
-updateUsername credentials identifier username passwordConfirmation transform =
+updateUsername credentials username passwordConfirmation transform =
     Api.put
         { body =
             Json.Encode.object
@@ -74,7 +67,7 @@ updateUsername credentials identifier username passwordConfirmation transform =
                 , ( "newUsername", Json.Encode.string username )
                 ]
         , endpoint =
-            moderator credentials identifier
+            moderator credentials
                 |> Api.withPath "/username"
         , decoder = messageDecoder
         }
@@ -86,12 +79,11 @@ updateUsername credentials identifier username passwordConfirmation transform =
 -}
 updatePassword :
     Credentials
-    -> ModeratorIdentifier
     -> String
     -> PasswordConfirmation
     -> (String -> a)
     -> Task Error a
-updatePassword credentials identifier password passwordConfirmation transform =
+updatePassword credentials password passwordConfirmation transform =
     Api.put
         { body =
             Json.Encode.object
@@ -99,7 +91,7 @@ updatePassword credentials identifier password passwordConfirmation transform =
                 , ( "newPassword", Json.Encode.string password )
                 ]
         , endpoint =
-            moderator credentials identifier
+            moderator credentials
                 |> Api.withPath "/password"
         , decoder = messageDecoder
         }
@@ -111,11 +103,11 @@ updatePassword credentials identifier password passwordConfirmation transform =
 -- ENDPOINTS
 
 
-moderator : Credentials -> ModeratorIdentifier -> Api.Endpoint
-moderator credentials moderatorId =
+moderator : Credentials -> Api.Endpoint
+moderator credentials =
     Api.authenticated credentials
         |> Api.withPath "/mod/"
-        |> Api.withPath (String.fromInt moderatorId)
+        |> Api.withPath (String.fromInt <| Api.moderatorId credentials)
 
 
 
