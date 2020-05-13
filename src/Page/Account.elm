@@ -8,8 +8,6 @@ module Page.Account exposing
     , view
     )
 
--- MODEL
-
 import Api.Account as Api
 import Html exposing (Html)
 import Html.Attributes as Attribute
@@ -20,11 +18,15 @@ import Task exposing (Task)
 import Task.Extra
 
 
+
+-- MODEL
+
+
 type alias Model =
     { viewer : Viewer
     , nextUsername : String
     , nextPassword : String
-    , error : Bool
+    , error : Maybe Error
     , confirmation : Maybe ( String, String -> Cmd Message )
     }
 
@@ -34,7 +36,7 @@ init viewer =
     ( { viewer = viewer
       , nextUsername = ""
       , nextPassword = ""
-      , error = False
+      , error = Nothing
       , confirmation = Nothing
       }
     , Cmd.none
@@ -50,6 +52,12 @@ toSession model =
 -- UPDATE
 
 
+type Error
+    = Cancellation
+    | BadCredentials
+    | BadCommunication
+
+
 type Message
     = WriteNewUsername String
     | WriteNewPassword String
@@ -57,7 +65,7 @@ type Message
     | ClickUpdateUsername
     | ClickUpdatePassword
     | ClickDeleteAccount
-    | GotError
+    | GotError Error
     | NowConfirm (Cmd Message)
     | NowDisconnect
 
@@ -88,12 +96,11 @@ update message model =
         ClickDeleteAccount ->
             ( { model | confirmation = Just ( "", delete model ) }, Cmd.none )
 
-        -- TODO : Maybe display a more specific error message somewhere ?
-        GotError ->
-            ( { model | error = True, confirmation = Nothing }, Cmd.none )
+        GotError error ->
+            ( { model | error = Just error, confirmation = Nothing }, Cmd.none )
 
         NowConfirm command ->
-            ( { model | error = False }, command )
+            ( { model | error = Nothing }, command )
 
         NowDisconnect ->
             ( model
@@ -108,8 +115,17 @@ update message model =
 
 
 handleError : Api.Error -> Message
-handleError =
-    always GotError
+handleError error =
+    GotError <|
+        case error of
+            Api.GotNotFound ->
+                BadCommunication
+
+            Api.GotInvalidCredentials ->
+                BadCredentials
+
+            Api.GotBadNetwork ->
+                BadCommunication
 
 
 handleErrorAndThenDisconnect : Task Api.Error a -> Cmd Message
@@ -174,9 +190,7 @@ confirmation password command =
         ]
         []
     , Html.button [ Event.onClick <| NowConfirm (command password) ] [ Html.text "Confirm" ]
-
-    -- TODO : Have a cancellation error ?
-    , Html.button [ Event.onClick GotError ] [ Html.text "Cancel" ]
+    , Html.button [ Event.onClick <| GotError Cancellation ] [ Html.text "Cancel" ]
     ]
 
 
@@ -184,11 +198,12 @@ inputs : Model -> List (Html Message)
 inputs model =
     [ Html.text "Error status is "
     , Html.text
-        (if model.error then
-            "True"
+        (case model.error of
+            Just _ ->
+                "True"
 
-         else
-            "False"
+            Nothing ->
+                "False"
         )
     , Html.input
         [ Attribute.placeholder "New username"
