@@ -257,6 +257,7 @@ menuButton username open attributes =
             ]
             [ listItem Route.Home "Home"
             , listItem Route.Polls "My Polls"
+            , listItem Route.Account "My Profile"
             , listItem Route.Logout "Sign out"
             ]
         ]
