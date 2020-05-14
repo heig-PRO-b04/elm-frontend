@@ -288,6 +288,46 @@ confirmationDialog password info command =
         ]
 
 
+errorCard : Maybe Error -> Html Message
+errorCard error =
+    case error of
+        Just Cancellation ->
+            Html.div
+                [ Attribute.class "bg-yellow-200 rounded p-4 mb-4 border-2 border-yellow-300" ]
+                [ Html.h2
+                    [ Attribute.class "font-archivo text-xl font-semibold text-yellow-700" ]
+                    [ Html.text "Nothing was done" ]
+                , Html.span
+                    [ Attribute.class " font-archivo text-yellow-600" ]
+                    [ Html.text "The operation was cancelled and not performed." ]
+                ]
+
+        Just BadCommunication ->
+            Html.div
+                [ Attribute.class "bg-red-200 rounded p-4 mb-4 border-2 border-red-300" ]
+                [ Html.h2
+                    [ Attribute.class "font-archivo text-xl font-semibold text-red-700" ]
+                    [ Html.text "Bad connection" ]
+                , Html.span
+                    [ Attribute.class "font-archivo text-red-600" ]
+                    [ Html.text "Something is off with your connection to the server." ]
+                ]
+
+        Just BadCredentials ->
+            Html.div
+                [ Attribute.class "bg-red-200 rounded p-4 mb-4 border-2 border-red-300" ]
+                [ Html.h2
+                    [ Attribute.class "font-archivo text-xl font-semibold text-red-700" ]
+                    [ Html.text "Bad credentials" ]
+                , Html.span
+                    [ Attribute.class "font-archivo text-red-600" ]
+                    [ Html.text "Something went wrong with authentication. Are you still connected, and was your password correct ?" ]
+                ]
+
+        Nothing ->
+            Html.text ""
+
+
 inputs : Model -> List (Html Message)
 inputs model =
     [ Html.div
@@ -302,7 +342,8 @@ inputs model =
             ]
 
         -- ERROR UI
-        -- TODO : Display error status here. Have a small card ?
+        , errorCard model.error
+
         -- USERNAME UI
         , Html.h2
             [ Attribute.class "border-t-2 pt-4 border-gray-300"
