@@ -27,7 +27,7 @@ type alias Model =
     , nextUsername : String
     , nextPassword : String
     , error : Maybe Error
-    , confirmation : Maybe ( String, String -> Cmd Message )
+    , confirmation : Maybe ( String, Info, String -> Cmd Message )
     }
 
 
@@ -58,10 +58,14 @@ type Error
     | BadCommunication
 
 
+type alias Info =
+    List (Html Never)
+
+
 type Message
     = WriteNewUsername String
     | WriteNewPassword String
-    | WriteConfirmationPassword (String -> Cmd Message) String
+    | WriteConfirmation (String -> Cmd Message) Info String
     | ClickUpdateUsername
     | ClickUpdatePassword
     | ClickDeleteAccount
@@ -84,17 +88,17 @@ update message model =
         WriteNewPassword password ->
             ( { model | nextPassword = password }, Cmd.none )
 
-        WriteConfirmationPassword command password ->
-            ( { model | confirmation = Just ( password, command ) }, Cmd.none )
+        WriteConfirmation command info password ->
+            ( { model | confirmation = Just ( password, info, command ) }, Cmd.none )
 
         ClickUpdateUsername ->
-            ( { model | confirmation = Just ( "", updateUsername model ) }, Cmd.none )
+            ( { model | confirmation = Just ( "", updateUsernameInfo model, updateUsername model ) }, Cmd.none )
 
         ClickUpdatePassword ->
-            ( { model | confirmation = Just ( "", updatePassword model ) }, Cmd.none )
+            ( { model | confirmation = Just ( "", updatePasswordInfo model, updatePassword model ) }, Cmd.none )
 
         ClickDeleteAccount ->
-            ( { model | confirmation = Just ( "", delete model ) }, Cmd.none )
+            ( { model | confirmation = Just ( "", deleteInfo model, delete model ) }, Cmd.none )
 
         GotError error ->
             ( { model | error = Just error, confirmation = Nothing }, Cmd.none )
@@ -168,31 +172,68 @@ delete model =
 
 
 
+-- INFO
+
+
+updateUsernameInfo : Model -> Info
+updateUsernameInfo model =
+    [ Html.text "You're about to "
+    , Html.span [ Attribute.class "font-bold" ] [ Html.text "update your username" ]
+    , Html.text " and set it to "
+    , Html.span [ Attribute.class "font-semibold" ] [ Html.text model.nextUsername ]
+    , Html.text ". Please enter your current password below to confirm this deletion :"
+    ]
+
+
+updatePasswordInfo : Model -> Info
+updatePasswordInfo model =
+    let
+        hidden =
+            String.left 1 model.nextPassword
+                ++ String.repeat (String.length model.nextPassword - 2) "•"
+                ++ String.right 1 model.nextPassword
+    in
+    [ Html.text "You're about to "
+    , Html.span [ Attribute.class "font-bold" ] [ Html.text "update your password" ]
+    , Html.text " and set it to "
+    , Html.span [ Attribute.class "font-semibold text-seaside-600" ] [ Html.text hidden ]
+    , Html.text ". "
+    , Html.text "Please enter your current password below to confirm this deletion :"
+    ]
+
+
+deleteInfo : Model -> Info
+deleteInfo _ =
+    [ Html.text "You're about to "
+    , Html.span [ Attribute.class "font-bold" ] [ Html.text "delete your account" ]
+    , Html.text " and remove all of your polls. "
+    , Html.text "Please enter your current password below to confirm this deletion :"
+    ]
+
+
+
 -- VIEW
 
 
 view : Model -> List (Html Message)
 view model =
     case model.confirmation of
-        Just ( password, command ) ->
-            inputs model ++ confirmation password command
+        Just ( password, info, command ) ->
+            confirmation password info command
 
         Nothing ->
             inputs model
 
 
-confirmation : String -> (String -> Cmd Message) -> List (Html Message)
-confirmation password command =
-    [ confirmationDialog password command
-    ]
+confirmation : String -> Info -> (String -> Cmd Message) -> List (Html Message)
+confirmation password info command =
+    List.singleton <| confirmationDialog password info command
 
 
-confirmationDialog : String -> (String -> Cmd Message) -> Html Message
-confirmationDialog password command =
-    -- TODO : Provide a mobile-friendly layout too.
-    -- TODO : Determine how we want to combine this with the other input fields. Maybe disable them ?
+confirmationDialog : String -> Info -> (String -> Cmd Message) -> Html Message
+confirmationDialog password info command =
     Html.div
-        [ Attribute.class "bg-white shadow-xl max-w-lg m-auto p-8 rounded-lg"
+        [ Attribute.class "mt-8 mb-8 bg-white shadow w-full md:max-w-2xl m-auto p-8 md:rounded-lg"
         , Attribute.class "flex flex-col items-justify"
         ]
         [ Html.h1
@@ -200,7 +241,7 @@ confirmationDialog password command =
             [ Html.text "Just to be sure" ]
         , Html.p
             [ Attribute.class "text-lg font-archivo font-light mt-4" ]
-            [ Html.text "This action will perform some irreversible changes to your account. Please enter your password below :" ]
+            (List.map (Html.map never) info)
         , Html.input
             [ Attribute.placeholder "Current password..."
             , Attribute.type_ "password"
@@ -208,7 +249,7 @@ confirmationDialog password command =
             , Attribute.class "mt-8 border-2 border-seaside-300 rounded-lg px-4 py-2"
             , Attribute.class "focus:outline-none focus:shadow-outline"
             , Attribute.value password
-            , Event.onInput (WriteConfirmationPassword command)
+            , Event.onInput (WriteConfirmation command info)
             ]
             []
         , Html.p
