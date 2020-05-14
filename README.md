@@ -1,6 +1,7 @@
 # heig-PRO-b04/elm-frontend
 
 ![Deploy to GitHub Pages](https://github.com/heig-PRO-b04/elm-frontend/workflows/Deploy%20to%20GitHub%20Pages/badge.svg?branch=master)
+![Integration Tests](https://github.com/heig-PRO-b04/elm-frontend/workflows/Integration%20Tests/badge.svg?branch=master)
 ![Elm Unit Tests](https://github.com/heig-PRO-b04/elm-frontend/workflows/Elm%20Unit%20Tests/badge.svg?branch=master)
 ![Elm Format](https://github.com/heig-PRO-b04/elm-frontend/workflows/Elm%20Format/badge.svg?branch=master)
 
