@@ -26,6 +26,7 @@ type alias Model =
     { viewer : Viewer
     , nextUsername : String
     , nextPassword : String
+    , nextPasswordConfirmation : String
     , error : Maybe Error
     , confirmation : Maybe ( String, Info, String -> Cmd Message )
     }
@@ -36,6 +37,7 @@ init viewer =
     ( { viewer = viewer
       , nextUsername = ""
       , nextPassword = ""
+      , nextPasswordConfirmation = ""
       , error = Nothing
       , confirmation = Nothing
       }
@@ -65,6 +67,7 @@ type alias Info =
 type Message
     = WriteNewUsername String
     | WriteNewPassword String
+    | WriteNewPasswordConfirmation String
     | WriteConfirmation (String -> Cmd Message) Info String
     | ClickUpdateUsername
     | ClickUpdatePassword
@@ -87,6 +90,9 @@ update message model =
 
         WriteNewPassword password ->
             ( { model | nextPassword = password }, Cmd.none )
+
+        WriteNewPasswordConfirmation password ->
+            ( { model | nextPasswordConfirmation = password }, Cmd.none )
 
         WriteConfirmation command info password ->
             ( { model | confirmation = Just ( password, info, command ) }, Cmd.none )
