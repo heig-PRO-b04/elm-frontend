@@ -18,6 +18,11 @@ jobs:
           cd integration-tests
           docker-compose up &
           cd ../..
+      - name: Inject appropriate endpoint
+        run: |
+          sed -ir 's/"api.rockin.app"/"localhost"/g' src/Api.elm
+          sed -ir 's/Url\.Https/Url\.Http/g' src/Api.elm
+          cat src/Api.elm
       - name: Launch the frontend
         run: |
           cd integration-tests
