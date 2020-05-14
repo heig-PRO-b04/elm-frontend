@@ -125,6 +125,20 @@ withPath path endpoint =
 
 
 
+-- INJECTIONS : MODIFYING THESE CONSTANTS WILL BREAK CONTINUOUS INTEGRATION
+
+
+injectHost : String
+injectHost =
+    "api.rockin.app"
+
+
+injectProtocol : Url.Protocol
+injectProtocol =
+    Url.Https
+
+
+
 -- ENDPOINTS INTERNAL
 
 
@@ -166,8 +180,8 @@ information.
 -}
 unwrap : Endpoint -> String
 unwrap endpoint =
-    { protocol = Url.Https
-    , host = "api.rockin.app"
+    { protocol = injectProtocol
+    , host = injectHost
     , port_ = Nothing
     , path = unwrapPath endpoint
     , query = unwrapToken endpoint |> Maybe.map (\p -> "token=" ++ p)
