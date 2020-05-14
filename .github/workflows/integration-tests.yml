@@ -1,0 +1,45 @@
+name: Integration Tests
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Checkout and launch the backend
+        run: |
+          mkdir backend
+          cd backend
+          git init .
+          git config user.name "${{github.actor}}"
+          git config user.email "${{github.actor}}@users.noreply.github.com"
+          git remote add origin https://${{secrets.GH_PERSONAL_ACCESS_TOKEN}}@github.com/heig-PRO-b04/java-backend.git
+          git pull origin master
+          cd integration-tests
+          docker-compose up &
+          cd ../..
+      - name: Inject appropriate endpoint
+        run: |
+          sed -ir 's/"api.rockin.app"/"localhost"/g' src/Api.elm
+          sed -ir 's/Url\.Https/Url\.Http/g' src/Api.elm
+          cat src/Api.elm
+      - name: Launch the frontend
+        run: |
+          cd integration-tests
+          docker-compose up &
+      - name: Install selenium
+        run: |
+          pip3 install selenium
+      - name: Install Gecko Webdriver
+        run: |
+          sudo apt-get update
+          sudo apt-get install firefox-geckodriver
+      - name: Await backend
+        run: |
+          python3 backend/integration-tests/waitToBeOnline.py
+      - name: Await frontend
+        run: |
+          python3 integration-tests/await-website.py
+      - name: Run a simple integration test
+        run: |
+          python3 integration-tests/src/simpletest.py

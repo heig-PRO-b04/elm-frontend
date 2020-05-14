@@ -1,0 +1,7 @@
+version: '3'
+services:
+
+  frontend:
+    build: ../
+    ports:
+      - "1234:80"
