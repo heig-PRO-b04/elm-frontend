@@ -8,6 +8,7 @@ module Page.Account exposing
     , view
     )
 
+import Api as BaseApi
 import Api.Account as Api
 import Html exposing (Html)
 import Html.Attributes as Attribute
@@ -35,7 +36,7 @@ type alias Model =
 init : Viewer -> ( Model, Cmd Message )
 init viewer =
     ( { viewer = viewer
-      , nextUsername = ""
+      , nextUsername = Session.viewerCredentials viewer |> BaseApi.username
       , nextPassword = ""
       , nextPasswordConfirmation = ""
       , error = Nothing
@@ -289,28 +290,95 @@ confirmationDialog password info command =
 
 inputs : Model -> List (Html Message)
 inputs model =
-    [ Html.text "Error status is "
-    , Html.text
-        (case model.error of
-            Just _ ->
-                "True"
+    [ Html.div
+        [ Attribute.class "mt-8 mb-8 w-full md:max-w-2xl m-auto p-4 md:p-8"
+        , Attribute.class "flex flex-col font-archivo"
+        , Attribute.class "bg-white rounded-lg shadow"
+        ]
+        [ Html.h1
+            [ Attribute.class "pb-8 text-3xl font-semibold"
+            ]
+            [ Html.text "Update your profile"
+            ]
 
-            Nothing ->
-                "False"
-        )
-    , Html.input
-        [ Attribute.placeholder "New username"
-        , Attribute.value model.nextUsername
-        , Event.onInput WriteNewUsername
+        -- ERROR UI
+        -- TODO : Display error status here. Have a small card ?
+        -- USERNAME UI
+        , Html.h2
+            [ Attribute.class "border-t-2 pt-4 border-gray-300"
+            , Attribute.class "text-xl text-gray-800 mb-2"
+            ]
+            [ Html.text "Username" ]
+        , Html.span
+            [ Attribute.class "text-gray-600 pb-4" ]
+            [ Html.text """Your username is your unique identifier in the app, and is used for
+            login. It's also unique amongst all the users of rockin.app. It must be at least 4 characters long.""" ]
+        , input
+            [ Attribute.placeholder "New username"
+            , Attribute.value model.nextUsername
+            , Event.onInput WriteNewUsername
+            ]
+            []
+        , Html.button
+            [ Attribute.class "self-start"
+            , Attribute.class "bg-white px-4 py-2 rounded-lg my-8"
+            , Attribute.class "border-2 border-gray-300 text-gray-700 font-archivo font-semibold"
+            , Attribute.class "hover:bg-seaside-600 hover:border-seaside-700 hover:shadow hover:text-white"
+            , Attribute.class "transform duration-200"
+            , Event.onClick ClickUpdateUsername
+            ]
+            [ Html.text "Update username" ]
+
+        -- PASSWORD UI
+        , Html.h2
+            [ Attribute.class "border-t-2 pt-4 border-gray-300"
+            , Attribute.class "text-xl text-gray-800 mb-2"
+            ]
+            [ Html.text "Password" ]
+        , Html.span
+            [ Attribute.class "text-gray-600 pb-4" ]
+            [ Html.text """A strong and unique password guarantees that only you can access your
+            polls. Don't share it with anyone 🔐 It must be at least 4 characters long.""" ]
+        , input
+            [ Attribute.placeholder "New password"
+            , Attribute.value model.nextPassword
+            , Event.onInput WriteNewPassword
+            ]
+            []
+        , input
+            [ Attribute.placeholder "Confirm your password"
+            , Attribute.value model.nextPassword
+            , Attribute.class "mt-2"
+            , Event.onInput WriteNewPassword
+            ]
+            []
+        , Html.button
+            [ Attribute.class "self-start"
+            , Attribute.class "bg-white px-4 py-2 rounded-lg my-8"
+            , Attribute.class "border-2 border-gray-300 text-gray-700 font-archivo font-semibold"
+            , Attribute.class "hover:bg-seaside-600 hover:border-seaside-700 hover:shadow hover:text-white"
+            , Attribute.class "transform duration-200"
+            , Event.onClick ClickUpdatePassword
+            ]
+            [ Html.text "Update password" ]
+        , Html.div [ Attribute.class "border-t-2 pt-4 border-gray-300 border-dashed" ] []
+        , Html.button
+            [ Attribute.class "self-start"
+            , Attribute.class "bg-red-600 px-4 py-2 rounded-lg mt-4"
+            , Attribute.class "border-2 border-red-700 text-white font-archivo font-semibold"
+            , Attribute.class "hover:bg-red-700 hover:border-red-800 hover:shadow hover:text-white"
+            , Attribute.class "transform duration-200"
+            , Event.onClick ClickDeleteAccount
+            ]
+            [ Html.text "Delete account" ]
         ]
-        []
-    , Html.button [ Event.onClick ClickUpdateUsername ] [ Html.text "Update username" ]
-    , Html.input
-        [ Attribute.placeholder "New password"
-        , Attribute.value model.nextPassword
-        , Event.onInput WriteNewPassword
-        ]
-        []
-    , Html.button [ Event.onClick ClickUpdatePassword ] [ Html.text "Update password" ]
-    , Html.button [ Event.onClick ClickDeleteAccount ] [ Html.text "Delete account" ]
     ]
+
+
+input : List (Html.Attribute msg) -> List (Html msg) -> Html msg
+input attrs contents =
+    let
+        base =
+            [ Attribute.class "border-2 rounded-lg py-2 px-4" ]
+    in
+    Html.input (base ++ attrs) contents
