@@ -5,7 +5,6 @@ COPY . /sources
 WORKDIR /sources
 RUN yarn install
 # We're required to build the app at least once to download the dependencies.
-RUN yarn elm make src/Main.elm --output=temp.html && rm temp.html
 RUN yarn build
 
 # Deployment is done via the PHP apache image.
