@@ -22,9 +22,19 @@ jobs:
         run: |
           cd integration-tests
           docker-compose up &
+      - name: Install selenium
+        run: |
+          pip3 install selenium
+      - name: Install Gecko Webdriver
+        run: |
+          sudo apt-get update
+          sudo apt-get install firefox-geckodriver
       - name: Await backend
         run: |
           python3 backend/integration-tests/waitToBeOnline.py
       - name: Await frontend
         run: |
           python3 integration-tests/await-website.py
+      - name: Run a simple integration test
+        run: |
+          python3 integration-tests/src/simpletest.py
