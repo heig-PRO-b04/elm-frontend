@@ -291,9 +291,9 @@ confirmationDialog password info command =
 inputs : Model -> List (Html Message)
 inputs model =
     [ Html.div
-        [ Attribute.class "mt-8 mb-8 w-full md:max-w-2xl m-auto p-4 md:p-8"
+        [ Attribute.class "mt-8 mb-8 w-full md:max-w-2xl m-auto px-4 py-8 md:px-8"
         , Attribute.class "flex flex-col font-archivo"
-        , Attribute.class "bg-white rounded-lg shadow"
+        , Attribute.class "bg-white md:rounded-lg shadow"
         ]
         [ Html.h1
             [ Attribute.class "pb-8 text-3xl font-semibold"
@@ -347,20 +347,40 @@ inputs model =
             []
         , input
             [ Attribute.placeholder "Confirm your password"
-            , Attribute.value model.nextPassword
+            , Attribute.value model.nextPasswordConfirmation
             , Attribute.class "mt-2"
-            , Event.onInput WriteNewPassword
+            , Event.onInput WriteNewPasswordConfirmation
             ]
             []
-        , Html.button
-            [ Attribute.class "self-start"
-            , Attribute.class "bg-white px-4 py-2 rounded-lg my-8"
-            , Attribute.class "border-2 border-gray-300 text-gray-700 font-archivo font-semibold"
-            , Attribute.class "hover:bg-seaside-600 hover:border-seaside-700 hover:shadow hover:text-white"
-            , Attribute.class "transform duration-200"
-            , Event.onClick ClickUpdatePassword
-            ]
-            [ Html.text "Update password" ]
+        , let
+            style =
+                if model.nextPassword == model.nextPasswordConfirmation then
+                    [ Attribute.class "self-start"
+                    , Attribute.class "bg-white px-4 py-2 rounded-lg my-8"
+                    , Attribute.class "border-2 border-gray-300 text-gray-700 font-archivo font-semibold"
+                    , Attribute.class "hover:bg-seaside-600 hover:border-seaside-700 hover:shadow hover:text-white"
+                    , Attribute.class "transform duration-200"
+                    , Event.onClick ClickUpdatePassword
+                    ]
+
+                else
+                    [ Attribute.class "self-start"
+                    , Attribute.class "bg-white px-4 py-2 rounded-lg my-8"
+                    , Attribute.class "border-2 border-red-200 text-red-500 font-archivo font-semibold"
+                    , Attribute.class "cursor-not-allowed"
+                    , Attribute.class "transform duration-200"
+                    ]
+
+            contents =
+                if model.nextPassword == model.nextPasswordConfirmation then
+                    "Update password"
+
+                else
+                    "Non-matching passwords"
+          in
+          Html.button
+            style
+            [ Html.text contents ]
         , Html.div [ Attribute.class "border-t-2 pt-4 border-gray-300 border-dashed" ] []
         , Html.button
             [ Attribute.class "self-start"
