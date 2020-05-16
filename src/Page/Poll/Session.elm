@@ -64,7 +64,7 @@ update msg model =
         ClickStatus status ->
             model
                 |> withCmd
-                    [ Api.putSession (Session.viewerCredentials model.viewer) { status = status } model identity
+                    [ Api.putSession (Session.viewerCredentials model.viewer) status model identity
                         |> toCmd
                     ]
 
