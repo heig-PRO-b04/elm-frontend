@@ -26,7 +26,7 @@ methods from various objects, in particular application sessions.
 -}
 
 import Api
-import Cmd exposing (withCmd, withNoCmd)
+import Cmd.Extra exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, src)
 import Html.Events exposing (onClick)

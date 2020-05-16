@@ -9,7 +9,7 @@ module Page.PollList exposing
 
 import Api.Polls exposing (ServerPoll)
 import Api.Sessions
-import Cmd exposing (withCmd, withNoCmd)
+import Cmd.Extra exposing (withCmd, withNoCmd)
 import Dict exposing (Dict)
 import Html exposing (Html, div, img, text)
 import Html.Attributes exposing (class, src)
@@ -42,7 +42,7 @@ init viewer =
     , sessionStatuses = Dict.empty
     , order = Sorting.TitleAsc
     }
-        |> withCmd [ Cmd.succeed NowRequestPolls ]
+        |> withCmd [ Cmd.Extra.succeed NowRequestPolls ]
 
 
 

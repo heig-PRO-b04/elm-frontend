@@ -9,7 +9,7 @@ module Page.Poll exposing
     )
 
 import Api.Polls exposing (PollDiscriminator, ServerPoll)
-import Cmd exposing (withCmd, withNoCmd)
+import Cmd.Extra exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, placeholder, value)
 import Html.Events exposing (onClick, onInput)
@@ -235,7 +235,7 @@ update message model =
                 Creating ->
                     updated
                         |> withCmd
-                            [ Cmd.succeed <| RequestNavigateToPoll poll
+                            [ Cmd.Extra.succeed <| RequestNavigateToPoll poll
                             ]
 
                 LoadingExisting ->

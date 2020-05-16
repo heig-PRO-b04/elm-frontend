@@ -20,7 +20,7 @@ module Page.Authenticate exposing
 -}
 
 import Api
-import Cmd exposing (withCmd, withNoCmd)
+import Cmd.Extra exposing (withCmd, withNoCmd)
 import Html exposing (Html, br, div, p, text)
 import Html.Attributes as Attribute exposing (class, placeholder, type_, value)
 import Html.Events exposing (onClick, onInput)

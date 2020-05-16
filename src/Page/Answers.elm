@@ -10,7 +10,7 @@ module Page.Answers exposing
 
 import Api.Answers exposing (AnswerDiscriminator, ClientAnswer, ServerAnswer)
 import Api.Questions exposing (QuestionDiscriminator, QuestionVisibility(..))
-import Cmd exposing (withCmd, withNoCmd)
+import Cmd.Extra exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, span)
 import Html.Attributes as Attribute
 import Html.Events as Event
@@ -58,7 +58,7 @@ init viewer discriminator =
       , titleModify = ""
       , descriptionModify = ""
       }
-    , Cmd.succeed PerformReload
+    , Cmd.Extra.succeed PerformReload
     )
 
 

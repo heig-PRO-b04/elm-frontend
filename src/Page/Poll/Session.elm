@@ -10,7 +10,7 @@ module Page.Poll.Session exposing
 
 import Api.Polls
 import Api.Sessions as Api
-import Cmd exposing (withCmd, withNoCmd)
+import Cmd.Extra exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, text)
 import Html.Attributes as Attribute
 import Html.Events exposing (onClick)
@@ -38,7 +38,7 @@ type alias Model =
 init : Viewer -> Api.Polls.PollDiscriminator -> ( Model, Cmd Message )
 init viewer discriminator =
     { viewer = viewer, idPoll = discriminator, session = Nothing }
-        |> withCmd [ Cmd.succeed RequestSession ]
+        |> withCmd [ Cmd.Extra.succeed RequestSession ]
 
 
 

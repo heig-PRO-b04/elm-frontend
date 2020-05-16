@@ -10,7 +10,7 @@ module Page.QuestionList exposing
 import Api.Polls exposing (ServerPoll)
 import Api.Questions exposing (ClientQuestion, QuestionVisibility(..), ServerQuestion)
 import Array exposing (Array)
-import Cmd
+import Cmd.Extra
 import Html exposing (Html)
 import Html.Attributes as Attribute
 import Html.Events as Event
@@ -76,7 +76,7 @@ init viewer poll =
       , seed = Random.initialSeed 42
       }
     , Cmd.batch
-        [ Cmd.succeed PerformReload
+        [ Cmd.Extra.succeed PerformReload
         , cmdNewSeed
         ]
     )
@@ -304,10 +304,10 @@ update message model =
                         |> Maybe.map
                             (\( question, index, pos ) ->
                                 if pos.y < pos.height // 2 then
-                                    Cmd.succeed (PerformMoveToIndex index question)
+                                    Cmd.Extra.succeed (PerformMoveToIndex index question)
 
                                 else
-                                    Cmd.succeed (PerformMoveToIndex (index + 1) question)
+                                    Cmd.Extra.succeed (PerformMoveToIndex (index + 1) question)
                             )
                         |> Maybe.withDefault Cmd.none
             in

@@ -7,7 +7,7 @@ module Page.BadCredentials exposing
     , view
     )
 
-import Cmd exposing (withCmd)
+import Cmd.Extra exposing (withCmd)
 import Html exposing (Html, br, div, text)
 import Html.Attributes exposing (class)
 import Process
