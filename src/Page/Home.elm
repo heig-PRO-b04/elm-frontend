@@ -2,6 +2,7 @@ module Page.Home exposing
     ( Message
     , Model
     , init
+    , toSession
     , update
     , view
     )
@@ -17,13 +18,17 @@ type alias Message =
 
 
 type alias Model =
-    { session : Session }
+    Session
+
+
+toSession : Model -> Session
+toSession =
+    identity
 
 
 init : Session -> ( Model, Cmd Message )
 init session =
-    { session = session }
-        |> withNoCmd
+    ( session, Cmd.none )
 
 
 update : Message -> Model -> ( Model, Cmd Message )
