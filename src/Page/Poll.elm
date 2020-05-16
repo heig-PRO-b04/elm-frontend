@@ -8,7 +8,7 @@ module Page.Poll exposing
     , view
     )
 
-import Api.Polls exposing (ClientPoll, PollDiscriminator, ServerPoll)
+import Api.Polls exposing (PollDiscriminator, ServerPoll)
 import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, placeholder, value)

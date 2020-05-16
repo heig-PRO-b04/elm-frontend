@@ -2,6 +2,7 @@ module Page.BadCredentials exposing
     ( Message
     , Model
     , init
+    , toSession
     , update
     , view
     )
@@ -17,16 +18,21 @@ import Task.Extra
 
 
 type alias Model =
-    { session : Session }
+    Session
 
 
 type Message
     = Redirect
 
 
+toSession : Model -> Session
+toSession =
+    identity
+
+
 init : Session -> ( Model, Cmd Message )
 init session =
-    { session = session }
+    session
         |> withCmd
             [ Process.sleep (85 * 100)
                 |> Task.andThen (\_ -> Task.succeed Redirect)
@@ -35,13 +41,13 @@ init session =
 
 
 update : Message -> Model -> ( Model, Cmd Message )
-update message model =
+update message session =
     case message of
         Redirect ->
-            model
+            session
                 |> withCmd
                     [ Route.replaceUrl
-                        (Session.sessionNavKey model.session)
+                        (Session.sessionNavKey session)
                         Route.Logout
                     ]
 

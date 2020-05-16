@@ -92,7 +92,7 @@ toSession model =
             m.session
 
         DiscModel m ->
-            m.session
+            Disc.toSession m
 
         QuitModel m ->
             m.session

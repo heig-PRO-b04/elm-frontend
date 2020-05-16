@@ -7,7 +7,7 @@ module Page.PollList exposing
     , view
     )
 
-import Api.Polls exposing (PollDiscriminator, ServerPoll)
+import Api.Polls exposing (ServerPoll)
 import Api.Sessions
 import Cmd exposing (withCmd, withNoCmd)
 import Dict exposing (Dict)
