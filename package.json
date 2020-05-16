@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "test": "elm-test && elm-analyse",
+    "test": "elm-test",
+    "analyse": "elm-analyse",
     "format": "elm-format --validate .",
     "dev": "parcel index.html --no-cache",
     "build": "parcel build index.html --no-cache --public-url ./"
