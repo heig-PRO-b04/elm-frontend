@@ -7,7 +7,7 @@ module Page.BadCredentials exposing
     , view
     )
 
-import Cmd.Extra exposing (withCmd)
+import Cmd.Extra exposing (withCmds)
 import Html exposing (Html, br, div, text)
 import Html.Attributes exposing (class)
 import Process
@@ -33,7 +33,7 @@ toSession =
 init : Session -> ( Model, Cmd Message )
 init session =
     session
-        |> withCmd
+        |> withCmds
             [ Process.sleep (85 * 100)
                 |> Task.andThen (\_ -> Task.succeed Redirect)
                 |> Task.Extra.execute
@@ -45,7 +45,7 @@ update message session =
     case message of
         Redirect ->
             session
-                |> withCmd
+                |> withCmds
                     [ Route.replaceUrl
                         (Session.sessionNavKey session)
                         Route.Logout

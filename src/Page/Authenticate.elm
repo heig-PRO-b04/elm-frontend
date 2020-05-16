@@ -20,7 +20,7 @@ module Page.Authenticate exposing
 -}
 
 import Api
-import Cmd.Extra exposing (withCmd, withNoCmd)
+import Cmd.Extra exposing (withCmds, withNoCmd)
 import Html exposing (Html, br, div, p, text)
 import Html.Attributes as Attribute exposing (class, placeholder, type_, value)
 import Html.Events exposing (onClick, onInput)
@@ -131,7 +131,7 @@ update message model =
                     model.session
                         |> Session.withCredentials credentials
             }
-                |> withCmd
+                |> withCmds
                     [ Api.storeCredentials credentials
                     , Route.replaceUrl
                         (Session.sessionNavKey model.session)
@@ -161,7 +161,7 @@ update message model =
                         |> Task.mapError errorMapper
             in
             { model | state = Pending }
-                |> withCmd [ Task.Extra.execute apiResult ]
+                |> withCmds [ Task.Extra.execute apiResult ]
 
         ClickSwitchModes ->
             let
@@ -174,7 +174,7 @@ update message model =
                             Route.Login
             in
             model
-                |> withCmd
+                |> withCmds
                     [ Route.replaceUrl
                         (Session.sessionNavKey model.session)
                         destination

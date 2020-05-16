@@ -3,7 +3,7 @@ module Main exposing (main)
 import Api
 import Browser
 import Browser.Navigation as Nav
-import Cmd.Extra exposing (initWith, updateWith, withCmd, withNoCmd)
+import Cmd.Extra exposing (initWith, updateWith, withCmds, withNoCmd)
 import Html
 import Json.Decode
 import Page.Account as Prof
@@ -223,14 +223,14 @@ update msg model =
             case request of
                 Browser.Internal url ->
                     model
-                        |> withCmd
+                        |> withCmds
                             [ Nav.pushUrl
                                 (Session.sessionNavKey session)
                                 (Url.toString url)
                             ]
 
                 Browser.External href ->
-                    model |> withCmd [ Nav.load href ]
+                    model |> withCmds [ Nav.load href ]
 
         ( AuthMessage authMsg, AuthModel authModel ) ->
             updateWith

@@ -9,7 +9,7 @@ module Page.Poll exposing
     )
 
 import Api.Polls exposing (PollDiscriminator, ServerPoll)
-import Cmd.Extra exposing (withCmd, withNoCmd)
+import Cmd.Extra exposing (withCmds, withNoCmd)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, placeholder, value)
 import Html.Events exposing (onClick, onInput)
@@ -91,7 +91,7 @@ initDisplay viewer pollDiscriminator =
     , state = LoadingExisting
     , error = Nothing
     }
-        |> withCmd
+        |> withCmds
             [ Api.Polls.getPoll (Session.viewerCredentials viewer) pollDiscriminator GotNewPoll
                 |> Task.mapError (always <| GotError DisplayError)
                 |> Task.Extra.execute
@@ -120,7 +120,7 @@ update message model =
     case message of
         LoadPoll discriminator ->
             model
-                |> withCmd
+                |> withCmds
                     [ Api.Polls.getPoll
                         (Session.viewerCredentials model.viewer)
                         discriminator
@@ -173,7 +173,7 @@ update message model =
             case model.state of
                 Creating ->
                     model
-                        |> withCmd
+                        |> withCmds
                             [ Api.Polls.create
                                 (Session.viewerCredentials model.viewer)
                                 model.titleInput
@@ -191,7 +191,7 @@ update message model =
 
                 Editing poll _ _ _ ->
                     { model | state = LoadingExisting }
-                        |> withCmd
+                        |> withCmds
                             [ Api.Polls.update
                                 (Session.viewerCredentials model.viewer)
                                 poll.idPoll
@@ -203,7 +203,7 @@ update message model =
 
         RequestNavigateToPoll poll ->
             model
-                |> withCmd
+                |> withCmds
                     [ Route.replaceUrl
                         (Session.viewerNavKey model.viewer)
                         (Route.DisplayPoll poll.idPoll)
@@ -234,13 +234,13 @@ update message model =
             case model.state of
                 Creating ->
                     updated
-                        |> withCmd
+                        |> withCmds
                             [ Cmd.Extra.succeed <| RequestNavigateToPoll poll
                             ]
 
                 LoadingExisting ->
                     { updated | titleInput = poll.title }
-                        |> withCmd
+                        |> withCmds
                             [ Cmd.map QuestionMessage questionCmd
                             , Cmd.map SessionMessage sessionCmd
                             , Cmd.map StatisticsMessage statisticsCmd
@@ -248,7 +248,7 @@ update message model =
 
                 Ready _ _ _ _ ->
                     { model | titleInput = poll.title }
-                        |> withCmd
+                        |> withCmds
                             [ Cmd.map QuestionMessage questionCmd
                             , Cmd.map SessionMessage sessionCmd
                             , Cmd.map StatisticsMessage statisticsCmd
@@ -256,7 +256,7 @@ update message model =
 
                 Editing _ _ _ _ ->
                     model
-                        |> withCmd
+                        |> withCmds
                             [ Cmd.map QuestionMessage questionCmd
                             , Cmd.map SessionMessage sessionCmd
                             , Cmd.map StatisticsMessage statisticsCmd

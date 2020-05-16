@@ -26,7 +26,7 @@ methods from various objects, in particular application sessions.
 -}
 
 import Api
-import Cmd.Extra exposing (withCmd, withNoCmd)
+import Cmd.Extra exposing (withCmds, withNoCmd)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, src)
 import Html.Events exposing (onClick)
@@ -100,7 +100,7 @@ update message (Model route session state) =
 
         Request toRoute ->
             Model toRoute session MenuClosed
-                |> withCmd
+                |> withCmds
                     [ Route.replaceUrl
                         (Session.sessionNavKey session)
                         toRoute

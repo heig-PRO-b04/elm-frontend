@@ -1,10 +1,11 @@
 module Cmd.Extra exposing
-    ( withCmd, withNoCmd
+    ( withNoCmd
     , succeed
     , addCmd
     , initWith
     , updateWith
     , andThen
+    , withCmds
     )
 
 {-| A few utilities for the update functions of the applications, documents and
@@ -43,8 +44,8 @@ import Task
 
 {-| Generates a new update result with a list of commands to be applied.
 -}
-withCmd : List (Cmd msg) -> a -> ( a, Cmd msg )
-withCmd msg m =
+withCmds : List (Cmd msg) -> a -> ( a, Cmd msg )
+withCmds msg m =
     ( m, Cmd.batch msg )
 
 
@@ -160,7 +161,7 @@ updateWith toMessage toModel subUpdate subMessage subModel =
             subUpdate subMessage subModel
     in
     toModel m
-        |> withCmd [ Cmd.map toMessage c ]
+        |> withCmds [ Cmd.map toMessage c ]
 
 
 
