@@ -10,7 +10,7 @@ module Page.QuestionStatistics exposing
 import Api exposing (Credentials)
 import Api.QuestionStatistics as Api
 import Array
-import Cmd
+import Cmd.Extra
 import Color exposing (Color)
 import Dict
 import Html exposing (Html)
@@ -73,7 +73,7 @@ init viewer discriminator =
       , response = Nothing
       , timezone = Time.utc
       }
-    , Cmd.batch [ Cmd.succeed RequestUpdate, cmdTimezone ]
+    , Cmd.batch [ Cmd.Extra.succeed RequestUpdate, cmdTimezone ]
     )
 
 

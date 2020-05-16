@@ -9,7 +9,7 @@ module Page.PollList exposing
 
 import Api.Polls exposing (ServerPoll)
 import Api.Sessions
-import Cmd exposing (withCmd, withNoCmd)
+import Cmd.Extra exposing (withCmds, withNoCmd)
 import Dict exposing (Dict)
 import Html exposing (Html, div, img, text)
 import Html.Attributes exposing (class, src)
@@ -42,7 +42,7 @@ init viewer =
     , sessionStatuses = Dict.empty
     , order = Sorting.TitleAsc
     }
-        |> withCmd [ Cmd.succeed NowRequestPolls ]
+        |> withCmds [ Cmd.Extra.succeed NowRequestPolls ]
 
 
 
@@ -100,16 +100,16 @@ update message model =
                         |> Task.Extra.execute
             in
             { model | polls = polls }
-                |> withCmd
+                |> withCmds
                     (List.map getSessionStatus polls)
 
         GotInvalidCredentials ->
             model
-                |> withCmd [ Route.badCredentials (Session.viewerNavKey model.viewer) ]
+                |> withCmds [ Route.badCredentials (Session.viewerNavKey model.viewer) ]
 
         NowRequestPolls ->
             model
-                |> withCmd
+                |> withCmds
                     [ Api.Polls.getPollList (Session.viewerCredentials model.viewer) identity
                         |> Task.map GotAllPolls
                         |> Task.mapError
@@ -126,7 +126,7 @@ update message model =
 
         NowDeletePoll poll ->
             model
-                |> withCmd
+                |> withCmds
                     [ Api.Polls.delete (Session.viewerCredentials model.viewer) poll.idPoll NowRequestPolls
                         |> Task.mapError
                             (\error ->
@@ -145,7 +145,7 @@ update message model =
 
         NowDisplayPoll poll ->
             model
-                |> withCmd
+                |> withCmds
                     [ Route.replaceUrl
                         (Session.viewerNavKey model.viewer)
                         (Route.DisplayPoll poll.idPoll)

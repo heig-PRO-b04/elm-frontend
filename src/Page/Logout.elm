@@ -7,7 +7,7 @@ module Page.Logout exposing
     )
 
 import Api
-import Cmd exposing (withCmd, withNoCmd)
+import Cmd.Extra exposing (withCmds, withNoCmd)
 import Html exposing (Html)
 import Route
 import Session exposing (Session)
@@ -25,7 +25,7 @@ toSession =
 init : Session -> ( Model, Cmd Never )
 init session =
     (Session.guest <| Session.sessionNavKey session)
-        |> withCmd
+        |> withCmds
             [ Api.storeCredentialsClear
             , Route.replaceUrl (Session.sessionNavKey session) Route.Home
             ]
