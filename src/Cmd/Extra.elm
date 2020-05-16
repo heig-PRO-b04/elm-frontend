@@ -1,10 +1,11 @@
-module Cmd exposing
-    ( withCmd, withNoCmd
+module Cmd.Extra exposing
+    ( withNoCmd
     , succeed
     , addCmd
     , initWith
     , updateWith
     , andThen
+    , withCmds
     )
 
 {-| A few utilities for the update functions of the applications, documents and
@@ -43,8 +44,8 @@ import Task
 
 {-| Generates a new update result with a list of commands to be applied.
 -}
-withCmd : List (Cmd msg) -> a -> ( a, Cmd msg )
-withCmd msg m =
+withCmds : List (Cmd msg) -> a -> ( a, Cmd msg )
+withCmds msg m =
     ( m, Cmd.batch msg )
 
 
@@ -119,11 +120,11 @@ app.
         | Two
 
     -- Assuming we have this inner update function to use.
-    updatePlus : Plus -> Int -> (Int, Cmd msg)
+    updatePlus : Plus -> Int -> (Int, Extra msg)
     updatePlus msg counter =
         case msg of
-            One -> (counter + 1, Cmd.none)
-            Two -> (counter + 2, Cmd.none)
+            One -> (counter + 1, Extra.none)
+            Two -> (counter + 2, Extra.none)
 
     -- Wrapping the sub-model in an existing model.
     -- Notice how we can't update an existing model. This requires model
@@ -134,7 +135,7 @@ app.
     -- Proper update function, that delegates by partitioning. Communication can
     -- be done through extra messages, by using a shared state (for instance a
     -- Session instance).
-    update : Message -> Model -> (Model, Cmd msg)
+    update : Message -> Model -> (Model, Extra msg)
     update msg model =
         case msg of
             Positive plus ->
@@ -160,7 +161,7 @@ updateWith toMessage toModel subUpdate subMessage subModel =
             subUpdate subMessage subModel
     in
     toModel m
-        |> withCmd [ Cmd.map toMessage c ]
+        |> withCmds [ Cmd.map toMessage c ]
 
 
 

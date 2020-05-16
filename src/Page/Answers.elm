@@ -9,7 +9,7 @@ module Page.Answers exposing
 
 import Api.Answers exposing (AnswerDiscriminator, ClientAnswer, ServerAnswer)
 import Api.Questions exposing (QuestionDiscriminator, QuestionVisibility(..))
-import Cmd exposing (withCmd, withNoCmd)
+import Cmd.Extra exposing (withCmds, withNoCmd)
 import Html exposing (Html, div, span)
 import Html.Attributes as Attribute
 import Html.Events as Event
@@ -59,7 +59,7 @@ init viewer discriminator =
       , creation = Nothing
       , answers = SelectableItemList.empty
       }
-    , Cmd.succeed PerformReload
+    , Cmd.Extra.succeed PerformReload
     )
 
 
@@ -126,7 +126,7 @@ update msg model =
                     Session.viewerCredentials model.viewer
             in
             model
-                |> withCmd
+                |> withCmds
                     [ Api.Answers.getAnswerList viewer model.question identity
                         |> Task.map GotAnswerList
                         |> Task.mapError
@@ -173,7 +173,7 @@ update msg model =
                     Session.viewerCredentials model.viewer
             in
             { model | creation = Nothing }
-                |> withCmd
+                |> withCmds
                     [ Api.Answers.create viewer model.question clientAnswer identity
                         |> Task.mapError
                             (\error ->
@@ -194,7 +194,7 @@ update msg model =
                     Session.viewerCredentials model.viewer
             in
             { model | answers = SelectableItemList.unselect Tuple.first model.answers }
-                |> withCmd
+                |> withCmds
                     [ Api.Answers.update viewer (AnswerDiscriminator serverAnswer.idPoll serverAnswer.idQuestion serverAnswer.idAnswer) clientAnswer identity
                         |> Task.mapError
                             (\error ->
@@ -215,7 +215,7 @@ update msg model =
                     Session.viewerCredentials model.viewer
             in
             model
-                |> withCmd
+                |> withCmds
                     [ Api.Answers.delete viewer (AnswerDiscriminator serverAnswer.idPoll serverAnswer.idQuestion serverAnswer.idAnswer) identity
                         |> Task.mapError
                             (\error ->

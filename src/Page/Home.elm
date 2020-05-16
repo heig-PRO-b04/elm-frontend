@@ -7,7 +7,7 @@ module Page.Home exposing
     , view
     )
 
-import Cmd exposing (withNoCmd)
+import Cmd.Extra exposing (withNoCmd)
 import Html exposing (Html, a, br, div, img, text)
 import Html.Attributes exposing (class, href, src)
 import Session exposing (Session)
