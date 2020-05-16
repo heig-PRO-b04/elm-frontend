@@ -95,7 +95,7 @@ toSession model =
             Disc.toSession m
 
         QuitModel m ->
-            m.session
+            Quit.toSession m
 
         ProfModel m ->
             Prof.toSession m
