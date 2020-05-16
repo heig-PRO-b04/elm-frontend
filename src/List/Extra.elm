@@ -1,4 +1,4 @@
-module List.Extra exposing (..)
+module List.Extra exposing (grouped)
 
 
 grouped : Int -> List a -> List (List a)

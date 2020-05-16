@@ -5,6 +5,7 @@ import Browser
 import Browser.Navigation as Nav
 import Cmd exposing (initWith, updateWith, withCmd, withNoCmd)
 import Html
+import Json.Decode
 import Page.Account as Prof
 import Page.Authenticate as Auth
 import Page.BadCredentials as Disc
@@ -88,13 +89,13 @@ toSession model =
             m.session
 
         HomeModel m ->
-            m.session
+            Home.toSession m
 
         DiscModel m ->
-            m.session
+            Disc.toSession m
 
         QuitModel m ->
-            m.session
+            Quit.toSession m
 
         ProfModel m ->
             Prof.toSession m
@@ -428,6 +429,7 @@ changeRouteTo route model =
 -- APPLICATION
 
 
+main : Program Json.Decode.Value Model Message
 main =
     Api.application
         { init = init

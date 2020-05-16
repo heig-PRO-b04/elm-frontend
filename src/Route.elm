@@ -112,7 +112,7 @@ routeToPieces page =
             [ "newpoll" ]
 
         DisplayPoll poll ->
-            [ "displaypoll", String.fromInt poll.idPoll ]
+            [ "displaypoll", String.fromInt poll ]
 
         LivePoll poll ->
-            [ "live", String.fromInt poll.idPoll ]
+            [ "live", String.fromInt poll ]

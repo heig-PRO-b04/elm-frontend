@@ -8,7 +8,7 @@ module Page.Poll exposing
     , view
     )
 
-import Api.Polls exposing (ClientPoll, PollDiscriminator, ServerPoll)
+import Api.Polls exposing (PollDiscriminator, ServerPoll)
 import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, placeholder, value)
@@ -20,7 +20,7 @@ import Page.QuestionList as Questions
 import Picasso.Button exposing (button, elevated)
 import Picasso.Input as Input
 import Route
-import Session exposing (Session, Viewer)
+import Session exposing (Viewer)
 import Task
 import Task.Extra
 import Time
@@ -59,7 +59,7 @@ subscriptions model =
                 [ Sub.map SessionMessage (Sessions.subscriptions sessionModel)
                 , Sub.map StatisticsMessage (Statistics.subscriptions statisticsModel)
                 , Sub.map QuestionMessage (Questions.subscriptions questionsModel)
-                , Time.every (1000 * 20) (always (LoadPoll { idPoll = poll.idPoll }))
+                , Time.every (1000 * 20) (always (LoadPoll poll.idPoll))
                 ]
 
         Editing poll questionsModel sessionModel statisticsModel ->
@@ -67,7 +67,7 @@ subscriptions model =
                 [ Sub.map SessionMessage (Sessions.subscriptions sessionModel)
                 , Sub.map StatisticsMessage (Statistics.subscriptions statisticsModel)
                 , Sub.map QuestionMessage (Questions.subscriptions questionsModel)
-                , Time.every (1000 * 20) (always (LoadPoll { idPoll = poll.idPoll }))
+                , Time.every (1000 * 20) (always (LoadPoll poll.idPoll))
                 ]
 
         _ ->
@@ -176,7 +176,7 @@ update message model =
                         |> withCmd
                             [ Api.Polls.create
                                 (Session.viewerCredentials model.viewer)
-                                (ClientPoll model.titleInput)
+                                model.titleInput
                                 RequestNavigateToPoll
                                 |> Task.mapError (always <| GotError CreateError)
                                 |> Task.Extra.execute
@@ -194,8 +194,8 @@ update message model =
                         |> withCmd
                             [ Api.Polls.update
                                 (Session.viewerCredentials model.viewer)
-                                (PollDiscriminator poll.idPoll)
-                                (ClientPoll model.titleInput)
+                                poll.idPoll
+                                model.titleInput
                                 GotNewPoll
                                 |> Task.mapError (always <| GotError UpdateError)
                                 |> Task.Extra.execute
@@ -206,7 +206,7 @@ update message model =
                 |> withCmd
                     [ Route.replaceUrl
                         (Session.viewerNavKey model.viewer)
-                        (Route.DisplayPoll (PollDiscriminator poll.idPoll))
+                        (Route.DisplayPoll poll.idPoll)
                     ]
 
         GotError error ->
@@ -218,7 +218,7 @@ update message model =
                     Questions.init model.viewer poll
 
                 ( sessionModel, sessionCmd ) =
-                    Sessions.init model.viewer poll
+                    Sessions.init model.viewer poll.idPoll
 
                 ( statisticsModel, statisticsCmd ) =
                     Statistics.init model.viewer poll
@@ -288,7 +288,7 @@ view model =
             else
                 "text-gray-500 font-semibold cursor-not-allowed border-dashed"
     in
-    [ div
+    div
         [ class "align-middle mx-2 md:mx-8 mt-8"
         , class "bg-white shadow rounded-lg p-4"
         ]
@@ -313,10 +313,10 @@ view model =
          ]
             ++ prepended model
         )
-    ]
-        ++ appended model
+        :: appended model
 
 
+prepended : Model -> List (Html Message)
 prepended model =
     case model.state of
         Ready _ _ sModel _ ->
@@ -329,6 +329,7 @@ prepended model =
             []
 
 
+appended : Model -> List (Html Message)
 appended model =
     case model.state of
         Ready _ qModel _ iModel ->
@@ -348,7 +349,7 @@ buttonPollTitle state =
     let
         message =
             case state of
-                Ready poll _ _ _ ->
+                Ready _ _ _ _ ->
                     "Edit"
 
                 LoadingExisting ->
@@ -357,7 +358,7 @@ buttonPollTitle state =
                 Creating ->
                     "Confirm"
 
-                Editing poll _ _ _ ->
+                Editing _ _ _ _ ->
                     "Save"
 
         style =

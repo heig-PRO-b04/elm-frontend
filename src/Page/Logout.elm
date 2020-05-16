@@ -1,6 +1,7 @@
 module Page.Logout exposing
     ( Model
     , init
+    , toSession
     , update
     , view
     )
@@ -13,12 +14,17 @@ import Session exposing (Session)
 
 
 type alias Model =
-    { session : Session }
+    Session
+
+
+toSession : Model -> Session
+toSession =
+    identity
 
 
 init : Session -> ( Model, Cmd Never )
 init session =
-    { session = Session.guest <| Session.sessionNavKey session }
+    (Session.guest <| Session.sessionNavKey session)
         |> withCmd
             [ Api.storeCredentialsClear
             , Route.replaceUrl (Session.sessionNavKey session) Route.Home

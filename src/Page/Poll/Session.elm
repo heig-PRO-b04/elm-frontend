@@ -8,6 +8,7 @@ module Page.Poll.Session exposing
     , update
     )
 
+import Api.Polls
 import Api.Sessions as Api
 import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, text)
@@ -15,7 +16,6 @@ import Html.Attributes as Attribute
 import Html.Events exposing (onClick)
 import List.Extra
 import Page.Poll.Session.Emoji as Emoji
-import Picasso.Button as Picasso
 import QRCode
 import Route
 import Session exposing (Viewer)
@@ -35,9 +35,9 @@ type alias Model =
     }
 
 
-init : Viewer -> { p | idPoll : Int } -> ( Model, Cmd Message )
+init : Viewer -> Api.Polls.PollDiscriminator -> ( Model, Cmd Message )
 init viewer discriminator =
-    { viewer = viewer, idPoll = discriminator.idPoll, session = Nothing }
+    { viewer = viewer, idPoll = discriminator, session = Nothing }
         |> withCmd [ Cmd.succeed RequestSession ]
 
 
@@ -64,7 +64,7 @@ update msg model =
         ClickStatus status ->
             model
                 |> withCmd
-                    [ Api.putSession (Session.viewerCredentials model.viewer) { status = status } model identity
+                    [ Api.putSession (Session.viewerCredentials model.viewer) status model identity
                         |> toCmd
                     ]
 
@@ -153,7 +153,7 @@ moderatorOpenView session =
                 [ Html.text "Your poll is open and live ! Announce the emoji code to your participants to let them join, or "
                 , Html.a
                     [ Attribute.class "font-semibold underline cursor-pointer text-seaside-500"
-                    , Route.href <| Route.LivePoll { idPoll = session.idPoll }
+                    , Route.href <| Route.LivePoll session.idPoll
                     , Attribute.target "_blank"
                     ]
                     [ Html.text "open up the participant view in a new window." ]
@@ -230,13 +230,13 @@ viewTitle attrs model =
         span =
             case state of
                 Api.Closed ->
-                    Html.span ([ Attribute.class "text-red-500" ] ++ spanAttrs) [ text "closed ⛔️" ]
+                    Html.span (Attribute.class "text-red-500" :: spanAttrs) [ text "closed ⛔️" ]
 
                 Api.Quarantined ->
-                    Html.span ([ Attribute.class "text-orange-500" ] ++ spanAttrs) [ text "closed to newcomers ⚠️" ]
+                    Html.span (Attribute.class "text-orange-500" :: spanAttrs) [ text "closed to newcomers ⚠️" ]
 
                 Api.Open ->
-                    Html.span ([ Attribute.class "text-green-500" ] ++ spanAttrs) [ text "open ✅" ]
+                    Html.span (Attribute.class "text-green-500" :: spanAttrs) [ text "open ✅" ]
     in
     div attrs
         [ Html.span spanAttrs [ text "This poll is " ]
@@ -246,29 +246,27 @@ viewTitle attrs model =
 
 extractQrCode : Model -> Maybe (Html msg)
 extractQrCode model =
-    case model.session of
-        Just session ->
+    Maybe.andThen
+        (\session ->
             case session.status of
                 Api.Open ->
                     Just (QRCode.toSvg session.qr)
 
                 _ ->
                     Nothing
-
-        Nothing ->
-            Nothing
+        )
+        model.session
 
 
 extractEmojiCode : Model -> Maybe (Html msg)
 extractEmojiCode model =
-    case model.session of
-        Just session ->
+    Maybe.andThen
+        (\session ->
             case session.status of
                 Api.Open ->
                     Just <| code session.code
 
                 _ ->
                     Nothing
-
-        Nothing ->
-            Nothing
+        )
+        model.session

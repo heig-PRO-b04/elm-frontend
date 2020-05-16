@@ -210,10 +210,10 @@ type alias Token =
 of the application.
 -}
 type Credentials
-    = Token String String ModeratorIdentifier
+    = Token Username Token ModeratorIdentifier
 
 
-credentialsDecoder : String -> Json.Decode.Decoder Credentials
+credentialsDecoder : Username -> Json.Decode.Decoder Credentials
 credentialsDecoder forName =
     Json.Decode.map3
         Token
@@ -336,11 +336,6 @@ credentialsStorageEncode (Token name token id) =
 {-| A port to JavaScript to store the credentials of the user in the local storage.
 -}
 port portStoreCredentials : Maybe Json.Encode.Value -> Cmd msg
-
-
-{-| A port to JavaScript to read the changes of the credentials written by the user.
--}
-port portSubscribeCredentials : (Json.Encode.Value -> msg) -> Sub msg
 
 
 {-| Stores a Credentials instance into the application storage.

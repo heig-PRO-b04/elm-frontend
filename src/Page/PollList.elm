@@ -7,8 +7,8 @@ module Page.PollList exposing
     , view
     )
 
-import Api.Polls exposing (PollDiscriminator, ServerPoll)
-import Api.Sessions exposing (ServerSession)
+import Api.Polls exposing (ServerPoll)
+import Api.Sessions
 import Cmd exposing (withCmd, withNoCmd)
 import Dict exposing (Dict)
 import Html exposing (Html, div, img, text)
@@ -17,7 +17,7 @@ import Html.Events exposing (onClick)
 import Page.PollList.Sorting as Sorting
 import Picasso.FloatingButton
 import Route
-import Session exposing (Session, Viewer)
+import Session exposing (Viewer)
 import Task
 import Task.Extra
 import Time
@@ -127,7 +127,7 @@ update message model =
         NowDeletePoll poll ->
             model
                 |> withCmd
-                    [ Api.Polls.delete (Session.viewerCredentials model.viewer) (PollDiscriminator poll.idPoll) NowRequestPolls
+                    [ Api.Polls.delete (Session.viewerCredentials model.viewer) poll.idPoll NowRequestPolls
                         |> Task.mapError
                             (\error ->
                                 case error of
@@ -148,7 +148,7 @@ update message model =
                 |> withCmd
                     [ Route.replaceUrl
                         (Session.viewerNavKey model.viewer)
-                        (Route.DisplayPoll { idPoll = poll.idPoll })
+                        (Route.DisplayPoll poll.idPoll)
                     ]
 
 
@@ -184,7 +184,7 @@ view model =
         mapped =
             polls |> List.map (pollToPair model.sessionStatuses)
     in
-    [ viewTable model.order mapped ] ++ [ fab ]
+    [ viewTable model.order mapped, fab ]
 
 
 {-| The floating action button that enables navigation to the new poll screen.

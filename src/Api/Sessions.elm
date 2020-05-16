@@ -39,10 +39,8 @@ type Emoji
     | EmojiF
 
 
-
--- TODO : Use Elm parsers instead ?
-
-
+{-| Transforms a String code into an emoji code.
+-}
 parseEmojiCode : String -> Maybe (List Emoji)
 parseEmojiCode text =
     let
@@ -121,7 +119,7 @@ type alias ServerSession =
 
 
 type alias ClientSession =
-    { status : SessionStatus }
+    SessionStatus
 
 
 type SessionStatus
@@ -229,7 +227,7 @@ encodeStatus status =
 encodeSession : ClientSession -> Json.Encode.Value
 encodeSession session =
     Json.Encode.object
-        [ ( "status", encodeStatus session.status )
+        [ ( "status", encodeStatus session )
         ]
 
 

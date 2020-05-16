@@ -17,9 +17,6 @@ base =
     , class "px-4 py-2"
     , class "appearance-none"
     , class "font-archivo"
-
-    -- TODO : What is that ?
-    , class "leading-normal"
     ]
 
 
@@ -44,5 +41,5 @@ inputWithTitle withContents attrs html =
         , class "flex-col"
         ]
         [ title withContents
-        , input ([ class "mt-2" ] ++ attrs) html
+        , input (class "mt-2" :: attrs) html
         ]
