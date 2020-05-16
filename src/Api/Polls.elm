@@ -24,12 +24,12 @@ backend about everything polls
 
 -}
 
-import Api exposing (Credentials, authenticated, get, moderatorId, withPath)
+import Api exposing (Credentials, get)
 import Http
 import Json.Decode exposing (Decoder, field)
 import Json.Encode
 import Task exposing (Task)
-import Url.Parser exposing ((</>), int, s, string)
+import Url.Parser exposing (int)
 
 
 type PollError

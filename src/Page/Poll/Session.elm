@@ -15,7 +15,6 @@ import Html.Attributes as Attribute
 import Html.Events exposing (onClick)
 import List.Extra
 import Page.Poll.Session.Emoji as Emoji
-import Picasso.Button as Picasso
 import QRCode
 import Route
 import Session exposing (Viewer)
@@ -230,13 +229,13 @@ viewTitle attrs model =
         span =
             case state of
                 Api.Closed ->
-                    Html.span ([ Attribute.class "text-red-500" ] ++ spanAttrs) [ text "closed ⛔️" ]
+                    Html.span (Attribute.class "text-red-500" :: spanAttrs) [ text "closed ⛔️" ]
 
                 Api.Quarantined ->
-                    Html.span ([ Attribute.class "text-orange-500" ] ++ spanAttrs) [ text "closed to newcomers ⚠️" ]
+                    Html.span (Attribute.class "text-orange-500" :: spanAttrs) [ text "closed to newcomers ⚠️" ]
 
                 Api.Open ->
-                    Html.span ([ Attribute.class "text-green-500" ] ++ spanAttrs) [ text "open ✅" ]
+                    Html.span (Attribute.class "text-green-500" :: spanAttrs) [ text "open ✅" ]
     in
     div attrs
         [ Html.span spanAttrs [ text "This poll is " ]
@@ -246,29 +245,27 @@ viewTitle attrs model =
 
 extractQrCode : Model -> Maybe (Html msg)
 extractQrCode model =
-    case model.session of
-        Just session ->
+    Maybe.andThen
+        (\session ->
             case session.status of
                 Api.Open ->
                     Just (QRCode.toSvg session.qr)
 
                 _ ->
                     Nothing
-
-        Nothing ->
-            Nothing
+        )
+        model.session
 
 
 extractEmojiCode : Model -> Maybe (Html msg)
 extractEmojiCode model =
-    case model.session of
-        Just session ->
+    Maybe.andThen
+        (\session ->
             case session.status of
                 Api.Open ->
                     Just <| code session.code
 
                 _ ->
                     Nothing
-
-        Nothing ->
-            Nothing
+        )
+        model.session

@@ -1,6 +1,7 @@
 module Page.Answers.Indices exposing (forIndex)
 
 
+alphabet : String
 alphabet =
     "abcdefghijklmnopqrstuvwxyz"
 
@@ -16,6 +17,7 @@ forIndex index =
         forIndexHelper index
 
 
+forIndexHelper : Int -> String
 forIndexHelper index =
     if index < String.length alphabet then
         String.slice index (index + 1) alphabet

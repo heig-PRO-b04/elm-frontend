@@ -33,7 +33,7 @@ update _ model =
 
 
 view : Model -> List (Html Message)
-view model =
+view _ =
     [ footer
     ]
 

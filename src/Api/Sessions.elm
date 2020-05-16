@@ -39,10 +39,8 @@ type Emoji
     | EmojiF
 
 
-
--- TODO : Use Elm parsers instead ?
-
-
+{-| Transforms a String code into an emoji code.
+-}
 parseEmojiCode : String -> Maybe (List Emoji)
 parseEmojiCode text =
     let

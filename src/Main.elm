@@ -5,6 +5,7 @@ import Browser
 import Browser.Navigation as Nav
 import Cmd exposing (initWith, updateWith, withCmd, withNoCmd)
 import Html
+import Json.Decode
 import Page.Account as Prof
 import Page.Authenticate as Auth
 import Page.BadCredentials as Disc
@@ -428,6 +429,7 @@ changeRouteTo route model =
 -- APPLICATION
 
 
+main : Program Json.Decode.Value Model Message
 main =
     Api.application
         { init = init

@@ -20,7 +20,7 @@ import Page.QuestionList as Questions
 import Picasso.Button exposing (button, elevated)
 import Picasso.Input as Input
 import Route
-import Session exposing (Session, Viewer)
+import Session exposing (Viewer)
 import Task
 import Task.Extra
 import Time
@@ -288,7 +288,7 @@ view model =
             else
                 "text-gray-500 font-semibold cursor-not-allowed border-dashed"
     in
-    [ div
+    div
         [ class "align-middle mx-2 md:mx-8 mt-8"
         , class "bg-white shadow rounded-lg p-4"
         ]
@@ -313,10 +313,10 @@ view model =
          ]
             ++ prepended model
         )
-    ]
-        ++ appended model
+        :: appended model
 
 
+prepended : Model -> List (Html Message)
 prepended model =
     case model.state of
         Ready _ _ sModel _ ->
@@ -329,6 +329,7 @@ prepended model =
             []
 
 
+appended : Model -> List (Html Message)
 appended model =
     case model.state of
         Ready _ qModel _ iModel ->
@@ -348,7 +349,7 @@ buttonPollTitle state =
     let
         message =
             case state of
-                Ready poll _ _ _ ->
+                Ready _ _ _ _ ->
                     "Edit"
 
                 LoadingExisting ->
@@ -357,7 +358,7 @@ buttonPollTitle state =
                 Creating ->
                     "Confirm"
 
-                Editing poll _ _ _ ->
+                Editing _ _ _ _ ->
                     "Save"
 
         style =

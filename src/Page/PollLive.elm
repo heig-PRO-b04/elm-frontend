@@ -9,11 +9,9 @@ module Page.PollLive exposing
     )
 
 import Api.Polls exposing (PollDiscriminator)
-import Cmd exposing (withCmd, withNoCmd)
-import Html exposing (Html, text)
+import Html exposing (Html)
 import Page.Poll.Session
 import Session exposing (Session, Viewer)
-import Time
 
 
 

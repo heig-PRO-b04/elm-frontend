@@ -4,7 +4,7 @@ import Api.Statistics as Api
 import Array exposing (Array)
 import Html exposing (Html)
 import Html.Attributes as HAttribute
-import Svg exposing (Svg)
+import Svg
 import Svg.Attributes as SAttribute
 
 

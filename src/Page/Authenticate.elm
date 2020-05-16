@@ -260,12 +260,6 @@ withMargin html =
         [ html ]
 
 
-withHalfMargin : Html msg -> Html msg
-withHalfMargin html =
-    div [ class "mt-4" ]
-        [ html ]
-
-
 inputEmail : String -> Html Message
 inputEmail content =
     Input.inputWithTitle "Username:"

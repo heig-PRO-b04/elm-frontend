@@ -27,11 +27,11 @@ methods from various objects, in particular application sessions.
 
 import Api
 import Cmd exposing (withCmd, withNoCmd)
-import Html exposing (Html, div, p, text)
+import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, src)
 import Html.Events exposing (onClick)
-import Picasso.Button as Button exposing (filled, filledLight, outlined, outlinedLight)
-import Picasso.Text exposing (styledH1, styledH2, styledH3)
+import Picasso.Button as Button exposing (filled, filledLight, outlined)
+import Picasso.Text exposing (styledH1, styledH3)
 import Route exposing (Route)
 import Session exposing (Session)
 
@@ -185,9 +185,7 @@ view model =
 title : List (Html.Attribute Message) -> Html Message
 title attributes =
     Html.button
-        ([ class "py-2" ]
-            ++ attributes
-        )
+        (class "py-2" :: attributes)
         [ styledH1 "✌️ rockin • app" ]
 
 
@@ -233,10 +231,7 @@ menuButton username open attributes =
                 [ styledH3 message ]
     in
     div
-        ([ class "relative"
-         ]
-            ++ attributes
-        )
+        (class "relative" :: attributes)
         [ Button.button
             (filledLight
                 ++ [ class "flex flex-row items-center"

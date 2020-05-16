@@ -9,7 +9,7 @@ module Page.Answers exposing
     )
 
 import Api.Answers exposing (AnswerDiscriminator, ClientAnswer, ServerAnswer)
-import Api.Questions exposing (QuestionDiscriminator, QuestionVisibility(..), ServerQuestion)
+import Api.Questions exposing (QuestionDiscriminator, QuestionVisibility(..))
 import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, span)
 import Html.Attributes as Attribute
@@ -18,7 +18,7 @@ import Html.Events.Extra exposing (onEnterDown)
 import Page.Answers.Indices as Indices
 import Picasso.Input as Input
 import Session exposing (Viewer)
-import Task exposing (Task)
+import Task
 import Task.Extra
 import Time
 
@@ -300,8 +300,8 @@ headerText state =
             else
                 notEmpty
 
-        Error viewer ->
-            "An error has occured. Please try again later"
+        Error _ ->
+            "An error has occurred. Please try again later"
 
 
 showAnswerList : Model -> Html Message

@@ -8,7 +8,7 @@ module Page.PollList exposing
     )
 
 import Api.Polls exposing (PollDiscriminator, ServerPoll)
-import Api.Sessions exposing (ServerSession)
+import Api.Sessions
 import Cmd exposing (withCmd, withNoCmd)
 import Dict exposing (Dict)
 import Html exposing (Html, div, img, text)
@@ -17,7 +17,7 @@ import Html.Events exposing (onClick)
 import Page.PollList.Sorting as Sorting
 import Picasso.FloatingButton
 import Route
-import Session exposing (Session, Viewer)
+import Session exposing (Viewer)
 import Task
 import Task.Extra
 import Time
@@ -184,7 +184,7 @@ view model =
         mapped =
             polls |> List.map (pollToPair model.sessionStatuses)
     in
-    [ viewTable model.order mapped ] ++ [ fab ]
+    [ viewTable model.order mapped, fab ]
 
 
 {-| The floating action button that enables navigation to the new poll screen.

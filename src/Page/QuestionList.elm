@@ -326,11 +326,9 @@ handleError error =
         Api.Questions.GotBadCredentials ->
             GotBadCredentials
 
-        -- TODO : Display an error message ?
         Api.Questions.GotBadNetwork ->
             PerformReload
 
-        -- TODO : Quit instead ?
         Api.Questions.GotNotFound ->
             PerformReload
 
@@ -769,7 +767,7 @@ viewQuestion dragDropModel index visibility question modifying expansion =
                     )
                 -- Filter by index.
                 |> Maybe.andThen
-                    (\( id, pos ) ->
+                    (\( _, pos ) ->
                         case Html5.DragDrop.getDropId dragDropModel of
                             Just dropId ->
                                 if index == dropId || index + 1 == dropId then
@@ -823,7 +821,7 @@ viewQuestion dragDropModel index visibility question modifying expansion =
                 ExpandedStatistics _ ->
                     Attribute.class "transform duration-200 rotate-90"
     in
-    [ Html.tr
+    Html.tr
         [ dropTargetStyling
         , Attribute.class "hover:bg-gray-100"
         ]
@@ -871,8 +869,7 @@ viewQuestion dragDropModel index visibility question modifying expansion =
                 ]
             ]
         ]
-    ]
-        ++ content
+        :: content
 
 
 type DetailsMode
@@ -881,7 +878,7 @@ type DetailsMode
 
 
 viewQuestionDetails : Maybe ( ServerQuestion, ClientQuestion ) -> DetailsMode -> Visibility -> ServerQuestion -> Html Message
-viewQuestionDetails maybeModifying mode visibility question =
+viewQuestionDetails maybeModifying mode _ question =
     let
         modifyQuestionInputs =
             case maybeModifying of
@@ -956,7 +953,7 @@ viewQuestionDetails maybeModifying mode visibility question =
                             , Event.onClick <| PerformExpandToStatistics question
                             ]
 
-                        DetailsAnswers model ->
+                        DetailsAnswers _ ->
                             [ Attribute.src "/icon/statistics-show.svg"
                             , Attribute.class "w-6 h-6 m-4 cursor-pointer"
                             , animation
@@ -965,7 +962,7 @@ viewQuestionDetails maybeModifying mode visibility question =
 
                 modifyButton =
                     case mode of
-                        DetailsAnswers model ->
+                        DetailsAnswers _ ->
                             [ Attribute.src "/icon/pencil.svg"
                             , Attribute.class "w-6 h-6 m-4 cursor-pointer"
                             , animation

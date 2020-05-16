@@ -102,7 +102,7 @@ update message model =
         GotResponse response ->
             ( { model | response = Just response }, Cmd.none )
 
-        GotError error ->
+        GotError _ ->
             ( { model | response = Nothing }, Cmd.none )
 
         GotTimeZone zone ->
