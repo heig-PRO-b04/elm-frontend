@@ -1,6 +1,5 @@
 module Page.Answers exposing
-    ( AnswersState(..)
-    , Message
+    ( Message
     , Model
     , init
     , subscriptions
@@ -17,46 +16,48 @@ import Html.Events as Event
 import Html.Events.Extra exposing (onEnterDown)
 import Page.Answers.Indices as Indices
 import Picasso.Input as Input
+import SelectableItemList exposing (SelectableItemList)
 import Session exposing (Viewer)
 import Task
 import Task.Extra
 import Time
+import Tuple exposing (mapSecond)
 
 
 
 -- MODEL
 
 
-type AnswersState
-    = Loading
-    | Loaded (List ServerAnswer)
-    | Error Viewer
+type alias AnswerData =
+    { description : String
+    , title : String
+    }
+
+
+withDescription : String -> AnswerData -> AnswerData
+withDescription contents data =
+    { data | description = contents }
+
+
+withTitle : String -> AnswerData -> AnswerData
+withTitle contents data =
+    { data | title = contents }
 
 
 type alias Model =
     { viewer : Viewer
-    , state : AnswersState
     , question : QuestionDiscriminator
-    , creating : Bool
-    , modifying : Maybe Int
-    , titleCreate : String
-    , descriptionCreate : String
-    , titleModify : String
-    , descriptionModify : String
+    , creation : Maybe AnswerData
+    , answers : SelectableItemList ServerAnswer ( ServerAnswer, AnswerData )
     }
 
 
 init : Viewer -> { d | idPoll : Int, idQuestion : Int } -> ( Model, Cmd Message )
 init viewer discriminator =
     ( { viewer = viewer
-      , state = Loading
       , question = QuestionDiscriminator discriminator.idPoll discriminator.idQuestion
-      , creating = False
-      , modifying = Nothing
-      , titleCreate = ""
-      , descriptionCreate = ""
-      , titleModify = ""
-      , descriptionModify = ""
+      , creation = Nothing
+      , answers = SelectableItemList.empty
       }
     , Cmd.Extra.succeed PerformReload
     )
@@ -72,8 +73,10 @@ type Message
     | WriteModifyTitle String
     | WriteModifyDescription String
     | PerformReload
-    | PerformCreateMode Bool
-    | PerformModifyMode (Maybe Int)
+    | PerformStartCreate
+    | PerformStartModify Int
+    | PerformStopCreate
+    | PerformStopModify
     | PerformCreate ClientAnswer
     | PerformUpdate ServerAnswer ClientAnswer
     | PerformDelete ServerAnswer
@@ -90,20 +93,31 @@ subscriptions _ =
 update : Message -> Model -> ( Model, Cmd Message )
 update msg model =
     case msg of
-        WriteCreateTitle string ->
-            { model | titleCreate = string }
+        WriteCreateTitle text ->
+            { model | creation = Maybe.map (withTitle text) model.creation }
                 |> withNoCmd
 
-        WriteCreateDescription string ->
-            { model | descriptionCreate = string }
+        WriteCreateDescription text ->
+            { model | creation = Maybe.map (withDescription text) model.creation }
                 |> withNoCmd
 
-        WriteModifyTitle string ->
-            { model | titleModify = string }
+        WriteModifyTitle text ->
+            { model
+                | answers =
+                    SelectableItemList.map
+                        identity
+                        (mapSecond (withTitle text))
+                        model.answers
+            }
                 |> withNoCmd
 
-        WriteModifyDescription string ->
-            { model | descriptionModify = string }
+        WriteModifyDescription text ->
+            { model
+                | answers =
+                    SelectableItemList.map identity
+                        (mapSecond (withDescription text))
+                        model.answers
+            }
                 |> withNoCmd
 
         PerformReload ->
@@ -127,55 +141,38 @@ update msg model =
                         |> Task.Extra.execute
                     ]
 
-        PerformCreateMode bool ->
-            { model | creating = bool }
-                |> withNoCmd
+        PerformStartCreate ->
+            ( { model | creation = Just { title = "", description = "" } }, Cmd.none )
 
-        PerformModifyMode maybeId ->
-            case maybeId of
-                Just id ->
-                    case model.state of
-                        Loaded serverAnswers ->
-                            let
-                                answerSingleton =
-                                    List.filter (\ans -> ans.idAnswer == id) serverAnswers
+        PerformStopCreate ->
+            ( { model | creation = Nothing }, Cmd.none )
 
-                                probablyAnswer =
-                                    List.head answerSingleton
+        PerformStartModify index ->
+            ( { model
+                | answers =
+                    SelectableItemList.select Tuple.first
+                        (\answer ->
+                            ( answer
+                            , { title = answer.title
+                              , description = answer.description
+                              }
+                            )
+                        )
+                        index
+                        model.answers
+              }
+            , Cmd.none
+            )
 
-                                title =
-                                    case probablyAnswer of
-                                        Just answer ->
-                                            answer.title
-
-                                        Nothing ->
-                                            ""
-
-                                desc =
-                                    case probablyAnswer of
-                                        Just answer ->
-                                            answer.description
-
-                                        Nothing ->
-                                            ""
-                            in
-                            { model | modifying = Just id, titleModify = title, descriptionModify = desc }
-                                |> withNoCmd
-
-                        _ ->
-                            { model | modifying = Nothing, titleModify = "", descriptionModify = "" }
-                                |> withNoCmd
-
-                _ ->
-                    { model | modifying = Nothing, titleModify = "", descriptionModify = "" }
-                        |> withNoCmd
+        PerformStopModify ->
+            ( { model | answers = SelectableItemList.unselect Tuple.first model.answers }, Cmd.none )
 
         PerformCreate clientAnswer ->
             let
                 viewer =
                     Session.viewerCredentials model.viewer
             in
-            { model | creating = False, titleCreate = "", descriptionCreate = "" }
+            { model | creation = Nothing }
                 |> withCmds
                     [ Api.Answers.create viewer model.question clientAnswer identity
                         |> Task.mapError
@@ -196,7 +193,7 @@ update msg model =
                 viewer =
                     Session.viewerCredentials model.viewer
             in
-            { model | modifying = Nothing, titleModify = "", descriptionModify = "" }
+            { model | answers = SelectableItemList.unselect Tuple.first model.answers }
                 |> withCmds
                     [ Api.Answers.update viewer (AnswerDiscriminator serverAnswer.idPoll serverAnswer.idQuestion serverAnswer.idAnswer) clientAnswer identity
                         |> Task.mapError
@@ -234,15 +231,24 @@ update msg model =
                     ]
 
         GotAnswerList serverAnswerList ->
-            { model | state = Loaded serverAnswerList }
+            let
+                -- We do not want to update the answers unless they have changed.
+                newAnswers =
+                    if SelectableItemList.toList identity Tuple.first model.answers == serverAnswerList then
+                        model.answers
+
+                    else
+                        List.sortBy .idAnswer serverAnswerList |> SelectableItemList.fromList
+            in
+            { model | answers = newAnswers }
                 |> withNoCmd
 
         GotInvalidCredentials ->
-            { model | state = Error model.viewer }
+            { model | answers = SelectableItemList.empty }
                 |> withNoCmd
 
         GotError ->
-            { model | state = Error model.viewer }
+            { model | answers = SelectableItemList.empty }
                 |> withNoCmd
 
 
@@ -262,81 +268,37 @@ view model =
 answerHeader : Model -> Html Message
 answerHeader model =
     let
-        header =
-            if model.creating then
-                newAnswerInput model
+        text =
+            case SelectableItemList.length model.answers of
+                0 ->
+                    "Press the \"Add Answer\" button to get started!"
 
-            else
-                div
-                    [ Attribute.class "flex flex-row"
-                    ]
-                    [ span
-                        [ Attribute.class "font-archivo font-semibold text-gray-600 p-4 pb-0" ]
-                        [ Html.text (headerText model.state) ]
-                    , div [ Attribute.class "flex-grow" ] []
-                    , newAnswerButton
-                    ]
+                _ ->
+                    "Here are the answers for this question!"
     in
-    header
-
-
-headerText : AnswersState -> String
-headerText state =
-    let
-        empty =
-            "Press the \"Add Answer\" button to get started!"
-
-        notEmpty =
-            "Here are the answers for this question!"
-    in
-    case state of
-        Loading ->
-            "Loading answers..."
-
-        Loaded serverAnswers ->
-            if List.length serverAnswers == 0 then
-                empty
-
-            else
-                notEmpty
-
-        Error _ ->
-            "An error has occurred. Please try again later"
+    Maybe.map (\data -> newAnswerInput data) model.creation
+        |> Maybe.withDefault
+            (div
+                [ Attribute.class "flex flex-row"
+                ]
+                [ span
+                    [ Attribute.class "font-archivo font-semibold text-gray-600 p-4 pb-0" ]
+                    [ Html.text text ]
+                , div [ Attribute.class "flex-grow" ] []
+                , newAnswerButton
+                ]
+            )
 
 
 showAnswerList : Model -> Html Message
 showAnswerList model =
-    case model.state of
-        Loaded serverAnswers ->
-            div [ Attribute.class "flex-col" ]
-                (List.sortBy .idAnswer serverAnswers
-                    |> List.indexedMap
-                        (\index answer ->
-                            answerOrEdit
-                                index
-                                model.titleModify
-                                model.descriptionModify
-                                answer
-                                model.modifying
-                        )
-                )
-
-        _ ->
-            div [] []
-
-
-answerOrEdit : Int -> String -> String -> ServerAnswer -> Maybe Int -> Html Message
-answerOrEdit index title desc answer maybeModify =
-    case maybeModify of
-        Just id ->
-            if answer.idAnswer == id then
-                modifyAnswerInput title desc answer
-
-            else
-                showAnswer index answer
-
-        Nothing ->
-            showAnswer index answer
+    div [ Attribute.class "flex-col" ]
+        (SelectableItemList.indexedMap
+            (\index answer -> showAnswer index answer)
+            (\_ ( answer, data ) -> modifyAnswerInput data.title data.description answer)
+            model.answers
+            |> SelectableItemList.flatten
+        )
 
 
 showAnswer : Int -> ServerAnswer -> Html Message
@@ -357,16 +319,16 @@ showAnswer index answer =
                     answer.description
             ]
         , div [ Attribute.class "flex-grow" ] []
-        , div [] [ modifyAnswerButton answer ]
+        , div [] [ modifyAnswerButton index ]
         , div [] [ deleteAnswerButton answer ]
         ]
 
 
-newAnswerInput : Model -> Html Message
-newAnswerInput model =
+newAnswerInput : AnswerData -> Html Message
+newAnswerInput data =
     let
         created =
-            ClientAnswer model.titleCreate model.descriptionCreate
+            ClientAnswer data.title data.description
     in
     div
         [ Attribute.class "flex flex-row flex-wrap items-center"
@@ -380,7 +342,7 @@ newAnswerInput model =
             , Attribute.autofocus True
             , Attribute.class "flex-grow"
             , Attribute.class "mr-3"
-            , Attribute.value model.titleCreate
+            , Attribute.value data.title
             ]
             []
         , Input.input
@@ -389,12 +351,12 @@ newAnswerInput model =
             , Attribute.placeholder "📄️  New answer description..."
             , Attribute.class "flex flex-grow"
             , Attribute.class "mr-3"
-            , Attribute.value model.descriptionCreate
+            , Attribute.value data.description
             ]
             []
         , Html.div [ Attribute.class "flex flex-row items-center" ]
             [ Html.button
-                [ Event.onClick <| PerformCreateMode False
+                [ Event.onClick PerformStopCreate
                 , Attribute.class "flex flex-end"
                 , Attribute.class "pr-3 font-bold text-gray-500 hover:text-gray-600"
                 ]
@@ -441,7 +403,7 @@ modifyAnswerInput title desc answer =
             []
         , Html.div [ Attribute.class "flex flex-row items-center" ]
             [ Html.button
-                [ Event.onClick <| PerformModifyMode Nothing
+                [ Event.onClick PerformStopModify
                 , Attribute.class "flex-end"
                 , Attribute.class "mr-3 font-bold text-gray-500 hover:text-gray-600"
                 ]
@@ -459,7 +421,7 @@ modifyAnswerInput title desc answer =
 newAnswerButton : Html Message
 newAnswerButton =
     Html.button
-        [ Event.onClick <| PerformCreateMode True
+        [ Event.onClick PerformStartCreate
         , Attribute.class "flex-end"
         , Attribute.class "font-bold"
         , Attribute.class "text-right px-8 text-seaside-600"
@@ -467,12 +429,12 @@ newAnswerButton =
         [ Html.text "Add Answer" ]
 
 
-modifyAnswerButton : ServerAnswer -> Html Message
-modifyAnswerButton answer =
+modifyAnswerButton : Int -> Html Message
+modifyAnswerButton index =
     Html.img
         [ Attribute.src "/icon/pencil.svg"
         , Attribute.class "h-6 w-6 cursor-pointer"
-        , Event.onClick <| PerformModifyMode (Just answer.idAnswer)
+        , Event.onClick <| PerformStartModify index
         ]
         []
 

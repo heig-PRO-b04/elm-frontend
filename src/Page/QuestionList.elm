@@ -23,6 +23,7 @@ import Picasso.FloatingButton
 import Picasso.Input as Input
 import Random
 import Route
+import SelectableItemList
 import Session exposing (Viewer)
 import Task exposing (Task)
 import Task.Extra
@@ -1073,12 +1074,7 @@ viewQuestionDetails maybeModifying mode _ question =
                                             (\( attrs, contents ) -> Html.option (attrs ++ ifSelected n) contents) notSelect
 
                                         numAns =
-                                            case model.state of
-                                                Answers.Loaded serverAnswers ->
-                                                    List.length serverAnswers
-
-                                                _ ->
-                                                    0
+                                            SelectableItemList.length model.answers
 
                                         optionRange =
                                             List.range 0 numAns

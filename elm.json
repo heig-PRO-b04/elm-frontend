@@ -16,6 +16,7 @@
             "elm/svg": "1.0.1",
             "elm/time": "1.0.0",
             "elm/url": "1.0.0",
+            "elm-community/maybe-extra": "5.2.0",
             "norpan/elm-html5-drag-drop": "3.1.4",
             "pablohirafuji/elm-qrcode": "3.3.1",
             "terezka/line-charts": "2.0.0"
