@@ -210,7 +210,7 @@ anyQuestion pollDiscriminator credentials =
         |> Api.withPath "mod/"
         |> Api.withPath (String.fromInt (Api.moderatorId credentials))
         |> Api.withPath "/poll/"
-        |> Api.withPath (String.fromInt pollDiscriminator.idPoll)
+        |> Api.withPath (String.fromInt pollDiscriminator)
         |> Api.withPath "/question"
 
 
@@ -218,7 +218,7 @@ someQuestion : QuestionDiscriminator -> Credentials -> Api.Endpoint
 someQuestion questionDiscriminator credentials =
     let
         pollDiscriminator =
-            PollDiscriminator questionDiscriminator.idPoll
+            questionDiscriminator.idPoll
     in
     anyQuestion pollDiscriminator credentials
         |> Api.withPath ("/" ++ String.fromInt questionDiscriminator.idQuestion)

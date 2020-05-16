@@ -59,7 +59,7 @@ subscriptions model =
                 [ Sub.map SessionMessage (Sessions.subscriptions sessionModel)
                 , Sub.map StatisticsMessage (Statistics.subscriptions statisticsModel)
                 , Sub.map QuestionMessage (Questions.subscriptions questionsModel)
-                , Time.every (1000 * 20) (always (LoadPoll { idPoll = poll.idPoll }))
+                , Time.every (1000 * 20) (always (LoadPoll poll.idPoll))
                 ]
 
         Editing poll questionsModel sessionModel statisticsModel ->
@@ -67,7 +67,7 @@ subscriptions model =
                 [ Sub.map SessionMessage (Sessions.subscriptions sessionModel)
                 , Sub.map StatisticsMessage (Statistics.subscriptions statisticsModel)
                 , Sub.map QuestionMessage (Questions.subscriptions questionsModel)
-                , Time.every (1000 * 20) (always (LoadPoll { idPoll = poll.idPoll }))
+                , Time.every (1000 * 20) (always (LoadPoll poll.idPoll))
                 ]
 
         _ ->
@@ -176,7 +176,7 @@ update message model =
                         |> withCmd
                             [ Api.Polls.create
                                 (Session.viewerCredentials model.viewer)
-                                (ClientPoll model.titleInput)
+                                model.titleInput
                                 RequestNavigateToPoll
                                 |> Task.mapError (always <| GotError CreateError)
                                 |> Task.Extra.execute
@@ -194,8 +194,8 @@ update message model =
                         |> withCmd
                             [ Api.Polls.update
                                 (Session.viewerCredentials model.viewer)
-                                (PollDiscriminator poll.idPoll)
-                                (ClientPoll model.titleInput)
+                                poll.idPoll
+                                model.titleInput
                                 GotNewPoll
                                 |> Task.mapError (always <| GotError UpdateError)
                                 |> Task.Extra.execute
@@ -206,7 +206,7 @@ update message model =
                 |> withCmd
                     [ Route.replaceUrl
                         (Session.viewerNavKey model.viewer)
-                        (Route.DisplayPoll (PollDiscriminator poll.idPoll))
+                        (Route.DisplayPoll poll.idPoll)
                     ]
 
         GotError error ->
@@ -218,7 +218,7 @@ update message model =
                     Questions.init model.viewer poll
 
                 ( sessionModel, sessionCmd ) =
-                    Sessions.init model.viewer poll
+                    Sessions.init model.viewer poll.idPoll
 
                 ( statisticsModel, statisticsCmd ) =
                     Statistics.init model.viewer poll

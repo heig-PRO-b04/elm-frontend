@@ -8,6 +8,7 @@ module Page.Poll.Session exposing
     , update
     )
 
+import Api.Polls
 import Api.Sessions as Api
 import Cmd exposing (withCmd, withNoCmd)
 import Html exposing (Html, div, text)
@@ -34,9 +35,9 @@ type alias Model =
     }
 
 
-init : Viewer -> { p | idPoll : Int } -> ( Model, Cmd Message )
+init : Viewer -> Api.Polls.PollDiscriminator -> ( Model, Cmd Message )
 init viewer discriminator =
-    { viewer = viewer, idPoll = discriminator.idPoll, session = Nothing }
+    { viewer = viewer, idPoll = discriminator, session = Nothing }
         |> withCmd [ Cmd.succeed RequestSession ]
 
 
@@ -152,7 +153,7 @@ moderatorOpenView session =
                 [ Html.text "Your poll is open and live ! Announce the emoji code to your participants to let them join, or "
                 , Html.a
                     [ Attribute.class "font-semibold underline cursor-pointer text-seaside-500"
-                    , Route.href <| Route.LivePoll { idPoll = session.idPoll }
+                    , Route.href <| Route.LivePoll session.idPoll
                     , Attribute.target "_blank"
                     ]
                     [ Html.text "open up the participant view in a new window." ]

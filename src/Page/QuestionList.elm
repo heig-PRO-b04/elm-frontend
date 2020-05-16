@@ -577,7 +577,7 @@ taskCreate : Viewer -> ServerPoll -> ClientQuestion -> Task Api.Questions.Questi
 taskCreate viewer poll question =
     Api.Questions.create
         (Session.viewerCredentials viewer)
-        { idPoll = poll.idPoll }
+        poll.idPoll
         question
         identity
 
@@ -602,7 +602,7 @@ taskUpdate viewer server client =
 taskAll : Viewer -> ServerPoll -> Task Api.Questions.QuestionError (List ServerQuestion)
 taskAll viewer poll =
     Api.Questions.getQuestionList (Session.viewerCredentials viewer)
-        { idPoll = poll.idPoll }
+        poll.idPoll
         identity
 
 

@@ -127,7 +127,7 @@ update message model =
         NowDeletePoll poll ->
             model
                 |> withCmd
-                    [ Api.Polls.delete (Session.viewerCredentials model.viewer) (PollDiscriminator poll.idPoll) NowRequestPolls
+                    [ Api.Polls.delete (Session.viewerCredentials model.viewer) poll.idPoll NowRequestPolls
                         |> Task.mapError
                             (\error ->
                                 case error of
@@ -148,7 +148,7 @@ update message model =
                 |> withCmd
                     [ Route.replaceUrl
                         (Session.viewerNavKey model.viewer)
-                        (Route.DisplayPoll { idPoll = poll.idPoll })
+                        (Route.DisplayPoll poll.idPoll)
                     ]
 
 

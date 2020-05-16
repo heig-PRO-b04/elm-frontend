@@ -46,11 +46,11 @@ type alias ServerPoll =
 
 
 type alias ClientPoll =
-    { title : String }
+    String
 
 
 type alias PollDiscriminator =
-    { idPoll : Int }
+    Int
 
 
 {-| A command that will try to request the list of polls existing for a logged
@@ -146,7 +146,7 @@ create credentials clientPoll transform =
     Api.post
         { body =
             Json.Encode.object
-                [ ( "title", Json.Encode.string clientPoll.title ) ]
+                [ ( "title", Json.Encode.string clientPoll ) ]
         , endpoint = endpoint
         , decoder = pollDecoder
         }
@@ -173,7 +173,7 @@ update credentials pollDiscriminator clientPoll transform =
     Api.put
         { body =
             Json.Encode.object
-                [ ( "title", Json.Encode.string clientPoll.title ) ]
+                [ ( "title", Json.Encode.string clientPoll ) ]
         , endpoint = endpoint
         , decoder = pollDecoder
         }
@@ -200,7 +200,7 @@ anyPoll credentials =
 somePoll : PollDiscriminator -> Credentials -> Api.Endpoint
 somePoll pollDiscriminator credentials =
     anyPoll credentials
-        |> Api.withPath ("/" ++ String.fromInt pollDiscriminator.idPoll)
+        |> Api.withPath ("/" ++ String.fromInt pollDiscriminator)
 
 
 pollDecoder : Decoder ServerPoll
@@ -219,4 +219,4 @@ pollListDecoder =
 
 urlParser : Url.Parser.Parser (PollDiscriminator -> a) a
 urlParser =
-    Url.Parser.map PollDiscriminator int
+    int
