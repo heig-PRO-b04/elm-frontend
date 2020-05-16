@@ -54,12 +54,16 @@ type MenuState
     | MenuClosed
 
 
+type alias Username =
+    String
+
+
 type Display
     = NoInfo
     | NoInfoStatic
     | ReadyToLogin
-    | LoggedInClosed { username : String }
-    | LoggedInOpen { username : String }
+    | LoggedInClosed Username
+    | LoggedInOpen Username
 
 
 init : Route -> Session -> Model
@@ -124,10 +128,10 @@ display (Model route session state) =
                 Just credentials ->
                     case state of
                         MenuClosed ->
-                            LoggedInClosed { username = Api.username credentials }
+                            LoggedInClosed <| Api.username credentials
 
                         MenuOpen ->
-                            LoggedInOpen { username = Api.username credentials }
+                            LoggedInOpen <| Api.username credentials
 
                 Nothing ->
                     ReadyToLogin
@@ -199,11 +203,11 @@ filler =
     div [ class "flex-grow" ] []
 
 
-tailAuthenticated : Bool -> { username : String } -> List (Html Message)
-tailAuthenticated open data =
+tailAuthenticated : Bool -> Username -> List (Html Message)
+tailAuthenticated open username =
     let
         button =
-            menuButton data.username open []
+            menuButton username open []
     in
     [ button ]
 
