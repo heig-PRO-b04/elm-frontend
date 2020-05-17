@@ -57,7 +57,7 @@ type alias Model =
     , questions : Array ( ServerQuestion, Expansion )
     , visibility : Visibility
     , visibilityTrayOpen : Bool
-    , input : Maybe String
+    , input : Maybe ( String, QuestionVisibility )
     , modifying : Maybe ( ServerQuestion, ClientQuestion )
     , dragDrop : Html5.DragDrop.Model ServerQuestion DropIndex
     , seed : Random.Seed
@@ -89,6 +89,7 @@ init viewer poll =
 
 type Message
     = WriteNewTitle String
+    | WriteNewVisibility QuestionVisibility
     | WriteModify ServerQuestion ClientQuestion
     | SelectVisibility Visibility
     | SelectVisibilityTray
@@ -131,7 +132,10 @@ update : Message -> Model -> ( Model, Cmd Message )
 update message model =
     case message of
         WriteNewTitle title ->
-            ( { model | input = Maybe.map (always title) model.input }, Cmd.none )
+            ( { model | input = Maybe.map (Tuple.mapFirst (always title)) model.input }, Cmd.none )
+
+        WriteNewVisibility visibility ->
+            ( { model | input = Maybe.map (Tuple.mapSecond (always visibility)) model.input }, Cmd.none )
 
         WriteModify serverQuestion clientQuestion ->
             ( { model | modifying = Just ( serverQuestion, clientQuestion ) }, Cmd.none )
@@ -146,7 +150,7 @@ update message model =
             let
                 state =
                     if visible then
-                        Just ""
+                        Just ( "", Visible )
 
                     else
                         Nothing
@@ -1148,17 +1152,39 @@ viewQuestionStatistics question model =
         |> Html.map (\msg -> MsgStatistics question msg)
 
 
-viewInput : String -> Html Message
-viewInput current =
+viewInput : ( String, QuestionVisibility ) -> Html Message
+viewInput ( current, visibility ) =
     let
         created =
             { title = current
             , details = ""
-            , visibility = Api.Questions.Hidden
+            , visibility = visibility
             , index = 0.5
             , answersMin = 0
             , answersMax = 0
             }
+
+        text =
+            case visibility of
+                Visible ->
+                    "🚀 New visible question..."
+
+                _ ->
+                    "🚀 New hidden question..."
+
+        switchAttributes =
+            case visibility of
+                Visible ->
+                    [ Attribute.class "h-8 w-8 hover:scale-110 transform duration-200 ml-8 cursor-pointer"
+                    , Attribute.src "/icon/visibility-hide.svg"
+                    , Event.onClick <| WriteNewVisibility Hidden
+                    ]
+
+                _ ->
+                    [ Attribute.class "h-8 w-8 hover:scale-110 transform duration-200 ml-8 cursor-pointer"
+                    , Attribute.src "/icon/visibility-show.svg"
+                    , Event.onClick <| WriteNewVisibility Visible
+                    ]
     in
     Html.tr [ Attribute.class "border-b active:shadow-inner" ]
         [ Html.td
@@ -1166,12 +1192,13 @@ viewInput current =
             [ Input.input
                 [ Event.onInput WriteNewTitle
                 , onEnterDown <| PerformCreate created
-                , Attribute.placeholder "🚀 New question..."
+                , Attribute.placeholder text
                 , Attribute.autofocus True
                 , Attribute.class "w-full"
                 , Attribute.value current
                 ]
                 []
+            , Html.img switchAttributes []
             , Html.button
                 [ Event.onClick <| PerformCreateMode False
                 , Attribute.class "font-bold"
