@@ -9,6 +9,7 @@ import Json.Decode
 import Page.Account as Prof
 import Page.Authenticate as Auth
 import Page.BadCredentials as Disc
+import Page.Help as Help
 import Page.Home as Home
 import Page.Logout as Quit
 import Page.Poll as DisplayPoll
@@ -36,6 +37,7 @@ type PageModel
     | DiscModel Disc.Model
     | QuitModel Quit.Model
     | ProfModel Prof.Model
+    | HelpModel Help.Model
     | PollModel Poll.Model
     | DisplayPollModel DisplayPoll.Model
     | LiveModel Live.Model
@@ -99,6 +101,9 @@ toSession model =
 
         ProfModel m ->
             Prof.toSession m
+
+        HelpModel m ->
+            Help.toSession m
 
         PollModel m ->
             Session.toSession m.viewer
@@ -167,6 +172,10 @@ view model =
                     Prof.view profModel
                         |> List.map (Html.map ProfMessage)
 
+                HelpModel helpModel ->
+                    Help.view helpModel
+                        |> List.map (Html.map HelpMessage)
+
                 PollModel pollModel ->
                     Poll.view pollModel
                         |> List.map (Html.map PollMessage)
@@ -196,6 +205,7 @@ type Message
     | DiscMessage Disc.Message
     | AuthMessage Auth.Message
     | ProfMessage Prof.Message
+    | HelpMessage Help.Message
     | PollMessage Poll.Message
     | DisplayPollMessage DisplayPoll.Message
     | LiveMessage Live.Message
@@ -263,6 +273,14 @@ update msg model =
                 Prof.update
                 profMsg
                 profModel
+
+        ( HelpMessage helpMsg, HelpModel helpModel ) ->
+            updateWith
+                HelpMessage
+                (embed model HelpModel)
+                Help.update
+                helpMsg
+                helpModel
 
         ( PollMessage pollMsg, PollModel pollModel ) ->
             updateWith
@@ -379,6 +397,12 @@ changeRouteTo route model =
 
                 Nothing ->
                     changeRouteTo (Just Route.Home) model
+
+        Just Route.Help ->
+            initWith
+                HelpMessage
+                (embed newModel HelpModel)
+                (Help.init session)
 
         Just Route.Polls ->
             case Session.toViewer session of
