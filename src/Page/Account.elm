@@ -188,7 +188,7 @@ updateUsernameInfo model =
     , Html.span [ Attribute.class "font-bold" ] [ Html.text "update your username" ]
     , Html.text " and set it to "
     , Html.span [ Attribute.class "font-semibold" ] [ Html.text model.nextUsername ]
-    , Html.text ". Please enter your current password below to confirm this deletion :"
+    , Html.text ". Please enter your current password below to confirm this update :"
     ]
 
 
@@ -205,7 +205,7 @@ updatePasswordInfo model =
     , Html.text " and set it to "
     , Html.span [ Attribute.class "font-semibold text-seaside-600" ] [ Html.text hidden ]
     , Html.text ". "
-    , Html.text "Please enter your current password below to confirm this deletion :"
+    , Html.text "Please enter your current password below to confirm this update :"
     ]
 
 
