@@ -7,106 +7,256 @@ module Page.Help exposing
     , view
     )
 
-import Cmd.Extra exposing (withNoCmd)
-import Html exposing (Html, div)
+import Html exposing (Html)
 import Html.Attributes as Attribute
-import Picasso.Text exposing (styledH3)
+import Html.Events as Event
 import Session exposing (Session)
+import Set exposing (Set)
 
 
-type alias Message =
-    Never
+
+-- MODEL
 
 
 type alias Model =
-    Session
+    { session : Session
+    , open : Set Int
+    }
+
+
+type alias Step =
+    { imageUrl : String
+    , number : Int
+    , description : String
+    }
 
 
 toSession : Model -> Session
 toSession =
-    identity
+    .session
 
 
 init : Session -> ( Model, Cmd Message )
 init session =
-    ( session, Cmd.none )
+    ( { session = session, open = Set.empty }, Cmd.none )
+
+
+
+-- UPDATE
+
+
+type Message
+    = Toggle Int
 
 
 update : Message -> Model -> ( Model, Cmd Message )
-update _ model =
-    model
-        |> withNoCmd
+update (Toggle index) model =
+    let
+        new =
+            if Set.member index model.open then
+                Set.remove index model.open
+
+            else
+                Set.insert index model.open
+    in
+    ( { model | open = new }, Cmd.none )
+
+
+
+-- VIEW
 
 
 view : Model -> List (Html Message)
-view _ =
+view model =
     [ Html.div
-        [ Attribute.class "flex flex-col"
-        , Attribute.class "m-auto mt-4 md:mt-16 mb-4 md:mb-16"
+        [ Attribute.class "m-auto mt-4 md:mt-16 mb-4 md:mb-16"
 
         -- Card appearance
-        , Attribute.class "bg-white shadow px-8 pb-8"
+        , Attribute.class "bg-white shadow-xl overflow-hidden"
         , Attribute.class "md:rounded-lg md:w-1/2 md:max-w-l"
         ]
-        [ one
-        , two
-        , three
+        [ viewTitle
+        , viewTripleStep ( stepOne, stepTwo, stepThree )
+        , section 0 "How do I manage polls ?" model.open sectionDescription
+        , section 1 "How can I organize questions ?" model.open sectionDescription
+        , section 2 "How do poll statistics work ?" model.open sectionDescription
+        , section 3 "How do participants vote ? " model.open sectionDescription
         ]
     ]
 
 
-one : Html Message
-one =
-    rightImg "1. Lorem ipsum" "img/newPoll.png" "Lorem ipsum dolor sit amet, consectetur adipiscing elit. In ac diam ac nisi posuere mollis vel quis enim. Aliquam eu ipsum diam. Cras neque neque, suscipit quis quam sed, tincidunt fermentum ipsum. Sed quis efficitur urna. Praesent euismod euismod turpis vel ullamcorper. Nunc interdum nec augue non ullamcorper. Phasellus imperdiet ut erat a fermentum."
+stepOne : Step
+stepOne =
+    { imageUrl = "https://via.placeholder.com/150/E1F5FE/E1F5FE"
+    , number = 1
+    , description = "Create a poll"
+    }
 
 
-two : Html Message
-two =
-    leftImg "2. Lorem ipsum" "img/newPoll.png" "Lorem ipsum dolor sit amet, consectetur adipiscing elit. In ac diam ac nisi posuere mollis vel quis enim. Aliquam eu ipsum diam. Cras neque neque, suscipit quis quam sed, tincidunt fermentum ipsum. Sed quis efficitur urna. Praesent euismod euismod turpis vel ullamcorper. Nunc interdum nec augue non ullamcorper. Phasellus imperdiet ut erat a fermentum."
+stepTwo : Step
+stepTwo =
+    { imageUrl = "https://via.placeholder.com/150/E1F5FE/E1F5FE"
+    , number = 2
+    , description = "Add a question"
+    }
 
 
-three : Html Message
-three =
-    rightImg "3. Lorem ipsum" "img/github.jpg" "Lorem ipsum dolor sit amet, consectetur adipiscing elit. In ac diam ac nisi posuere mollis vel quis enim. Aliquam eu ipsum diam. Cras neque neque, suscipit quis quam sed, tincidunt fermentum ipsum. Sed quis efficitur urna. Praesent euismod euismod turpis vel ullamcorper. Nunc interdum nec augue non ullamcorper. Phasellus imperdiet ut erat a fermentum."
+stepThree : Step
+stepThree =
+    { imageUrl = "https://via.placeholder.com/150/E1F5FE/E1F5FE"
+    , number = 3
+    , description = "Open your poll"
+    }
 
 
-rightImg : String -> String -> String -> Html Message
-rightImg title source text =
-    nextToEachOther title (Html.text text) (sideImage source)
+
+-- DISPLAYING STEPS
 
 
-leftImg : String -> String -> String -> Html Message
-leftImg title source text =
-    nextToEachOther title (sideImage source) (Html.text text)
-
-
-nextToEachOther : String -> Html Message -> Html Message -> Html Message
-nextToEachOther title left right =
-    div
-        [ Attribute.class "flex flex-col md:flex-row items-center"
-        , Attribute.class "pt-4"
-        ]
-        [ left
-        , right
-        ]
-        |> withTitle title
-
-
-withTitle : String -> Html Message -> Html Message
-withTitle title html =
-    div
-        [ Attribute.class "flex flex-col"
-        , Attribute.class "pt-8"
-        ]
-        [ styledH3 title
-        , html
+viewTitle : Html Message
+viewTitle =
+    Html.div [ Attribute.class "p-8" ]
+        [ Html.span [ Attribute.class "block font-archivo text-3xl font-bold" ] [ Html.text "How to get started" ]
+        , Html.span [ Attribute.class "block font-archivo text-xl text-gray-500" ] [ Html.text "To get started, all you need is a poll and some questions. This help section contains some additional information about more advanced features of the application." ]
         ]
 
 
-sideImage : String -> Html Message
-sideImage source =
-    Html.img
-        [ Attribute.src source
-        , Attribute.class "p-4"
+viewStep : Step -> Html Message
+viewStep step =
+    Html.div
+        [ Attribute.class "shadow rounded-lg overflow-hidden border-2 bg-gray-100 border-gray-100"
+        , Attribute.class "flex flex-col"
         ]
-        []
+        [ Html.img
+            [ Attribute.class "object-cover rounded-lg overflow-hidden w-56 h-56"
+            , Attribute.src step.imageUrl
+            ]
+            []
+        , Html.div [ Attribute.class "font-archivo font-bold font-xl p-2 w-full" ]
+            [ Html.span [ Attribute.class "text-gray-500" ] [ Html.text <| String.fromInt step.number ++ ". " ]
+            , Html.text step.description
+            ]
+        ]
+
+
+viewTripleStep : ( Step, Step, Step ) -> Html Message
+viewTripleStep ( first, second, third ) =
+    Html.div
+        [ Attribute.class "flex flex-row justify-between px-8 pb-8" ]
+        [ viewStep first
+        , viewStep second
+        , viewStep third
+        ]
+
+
+section : Int -> String -> Set Int -> List (Html Message) -> Html Message
+section index title allOpen contents =
+    let
+        open =
+            Set.member index allOpen
+
+        tail =
+            if open then
+                [ Attribute.class "transform duration-200 opacity-100 scale-100 pt-8 h-auto" ]
+
+            else
+                [ Attribute.class "transform duration-200 opacity-0 scale-95 h-0" ]
+
+        background =
+            if open then
+                Attribute.class "bg-white"
+
+            else
+                Attribute.class "bg-gray-100 hover:bg-gray-200"
+
+        arrow =
+            if open then
+                Attribute.class "transform duration-200 rotate-90"
+
+            else
+                Attribute.class "transform duration-200 rotate-0"
+    in
+    Html.div
+        [ Attribute.class "select-none cursor-pointer p-8 border-t  "
+        , Attribute.class "transform duration-200"
+        , background
+        , Event.onClick <| Toggle index
+        ]
+        [ Html.div [ Attribute.class "flex flex-row justify-between" ]
+            [ Html.span
+                [ Attribute.class "text-xl md:text-2xl font-semibold font-archivo text-gray-600" ]
+                [ Html.text title ]
+            , Html.img [ arrow, Attribute.class "w-8 h-8", Attribute.src "/icon/chevron-right.svg" ] []
+            ]
+        , Html.div tail contents
+        ]
+
+
+sectionDescription : List (Html Message)
+sectionDescription =
+    [ sectionDescriptionTitle "This is my title"
+    , sectionDescriptionText "Lorem ipsum dolor sit amet. You know the rest. Lorem ipsum dolor sit amet. You know the rest. Lorem ipsum dolor sit amet. You know the rest. Lorem ipsum dolor sit amet. You know the rest."
+    , sectionDescriptionIllustration 1 "Legend" stepTwo.imageUrl
+    , sectionDescriptionText "Lorem ipsum dolor sit amet. You know the rest. Lorem ipsum dolor sit amet. You know the rest. Lorem ipsum dolor sit amet. You know the rest. Lorem ipsum dolor sit amet. You know the rest."
+    , sectionDescriptionCard "Pro Tip : Drag and Drop 🚀"
+        [ Html.text "This is some simple text. It can be"
+        , Html.span [ Attribute.class "font-semibold" ] [ Html.text " rich " ]
+        , Html.text "rich or whatever, and contains just a pro tip. "
+        , Html.text "This is some simple text. It can be"
+        , Html.span [ Attribute.class "font-semibold" ] [ Html.text " rich " ]
+        , Html.text "rich or whatever, and contains just a pro tip. "
+        , Html.text "This is some simple text. It can be"
+        , Html.span [ Attribute.class "font-semibold" ] [ Html.text " rich " ]
+        , Html.text "rich or whatever, and contains just a pro tip. "
+        , Html.text "This is some simple text. It can be"
+        , Html.span [ Attribute.class "font-semibold" ] [ Html.text " rich " ]
+        , Html.text "rich or whatever, and contains just a pro tip. "
+        ]
+    ]
+
+
+sectionDescriptionCard : String -> List (Html Message) -> Html Message
+sectionDescriptionCard title text =
+    Html.div
+        [ Attribute.class "border-seaside-100 border-2 bg-seaside-050 text-black font-archivo rounded-lg p-4" ]
+        [ Html.span [ Attribute.class "block font-semibold text-gray-600" ] [ Html.text title ]
+        , Html.span [ Attribute.class "font-light text-gray-800" ] text
+        ]
+
+
+sectionDescriptionTitle : String -> Html Message
+sectionDescriptionTitle title =
+    Html.span
+        [ Attribute.class "text-gray-500 font-archivo text-xl font-semibold"
+        , Attribute.class "block pb-8"
+        ]
+        [ Html.text title ]
+
+
+sectionDescriptionText : String -> Html Message
+sectionDescriptionText description =
+    Html.span
+        [ Attribute.class "text-gray-500 font-archivo"
+        , Attribute.class "block pb-8"
+        ]
+        [ Html.text description ]
+
+
+sectionDescriptionIllustration : Int -> String -> String -> Html Message
+sectionDescriptionIllustration number description url =
+    Html.div [ Attribute.class "flex flex-row justify-center pb-8" ]
+        [ Html.div
+            [ Attribute.class "shadow rounded-lg overflow-hidden border-2 bg-seaside-100 border-seaside-100"
+            , Attribute.class "flex flex-col"
+            ]
+            [ Html.img
+                [ Attribute.class "object-cover rounded-lg overflow-hidden w-56 h-56"
+                , Attribute.src url
+                ]
+                []
+            , Html.div [ Attribute.class "font-archivo font-bold font-xl p-2 w-full text-seaside-A700" ]
+                [ Html.span [ Attribute.class "text-seaside-A700 opacity-50" ] [ Html.text <| String.fromInt number ++ ". " ]
+                , Html.text description
+                ]
+            ]
+        ]
