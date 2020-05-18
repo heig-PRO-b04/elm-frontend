@@ -72,7 +72,7 @@ view model =
         [ Attribute.class "m-auto mt-4 md:mt-16 mb-4 md:mb-16"
 
         -- Card appearance
-        , Attribute.class "bg-white shadow overflow-hidden"
+        , Attribute.class "bg-white shadow-xl overflow-hidden"
         , Attribute.class "md:rounded-lg md:w-1/2 md:max-w-l"
         ]
         [ viewTitle
@@ -162,6 +162,13 @@ section index title allOpen contents =
             else
                 [ Attribute.class "transform duration-200 opacity-0 scale-95 h-0" ]
 
+        background =
+            if open then
+                Attribute.class "bg-white"
+
+            else
+                Attribute.class "bg-gray-100 hover:bg-gray-200"
+
         arrow =
             if open then
                 Attribute.class "transform duration-200 rotate-90"
@@ -171,7 +178,8 @@ section index title allOpen contents =
     in
     Html.div
         [ Attribute.class "select-none cursor-pointer p-8 border-t  "
-        , Attribute.class "bg-gray-100 hover:bg-gray-200 transform duration-200"
+        , Attribute.class "transform duration-200"
+        , background
         , Event.onClick <| Toggle index
         ]
         [ Html.div [ Attribute.class "flex flex-row justify-between" ]
