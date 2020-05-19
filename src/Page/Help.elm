@@ -10,6 +10,7 @@ module Page.Help exposing
 import Html exposing (Html)
 import Html.Attributes as Attribute
 import Html.Events as Event
+import Page.Help.Content as Content exposing (SectionContent(..))
 import Session exposing (Session)
 import Set exposing (Set)
 
@@ -77,10 +78,10 @@ view model =
         ]
         [ viewTitle
         , viewTripleStep ( stepOne, stepTwo, stepThree )
-        , section 0 "How do I manage polls ?" model.open sectionDescription
-        , section 1 "How can I organize questions ?" model.open sectionDescription
-        , section 2 "How do poll statistics work ?" model.open sectionDescription
-        , section 3 "How do participants vote ? " model.open sectionDescription
+        , section 0 "How do I manage polls ?" model.open <| List.map sectionContent Content.managingPolls
+        , section 1 "How can I organize questions ?" model.open <| List.map sectionContent Content.organizingQuestions
+        , section 2 "How do poll statistics work ?" model.open <| List.map sectionContent Content.statistics
+        , section 3 "How do participants vote ? " model.open <| List.map sectionContent Content.voting
         ]
     ]
 
@@ -142,9 +143,11 @@ viewStep step =
 viewTripleStep : ( Step, Step, Step ) -> Html Message
 viewTripleStep ( first, second, third ) =
     Html.div
-        [ Attribute.class "flex flex-row justify-between px-8 pb-8" ]
+        [ Attribute.class "flex flex-col xl:flex-row items-center justify-between px-8 pb-8" ]
         [ viewStep first
+        , Html.div [ Attribute.class "mt-4 xl:ml-4" ] []
         , viewStep second
+        , Html.div [ Attribute.class "mt-4 xl:ml-4" ] []
         , viewStep third
         ]
 
@@ -192,27 +195,20 @@ section index title allOpen contents =
         ]
 
 
-sectionDescription : List (Html Message)
-sectionDescription =
-    [ sectionDescriptionTitle "This is my title"
-    , sectionDescriptionText "Lorem ipsum dolor sit amet. You know the rest. Lorem ipsum dolor sit amet. You know the rest. Lorem ipsum dolor sit amet. You know the rest. Lorem ipsum dolor sit amet. You know the rest."
-    , sectionDescriptionIllustration 1 "Legend" stepTwo.imageUrl
-    , sectionDescriptionText "Lorem ipsum dolor sit amet. You know the rest. Lorem ipsum dolor sit amet. You know the rest. Lorem ipsum dolor sit amet. You know the rest. Lorem ipsum dolor sit amet. You know the rest."
-    , sectionDescriptionCard "Pro Tip : Drag and Drop 🚀"
-        [ Html.text "This is some simple text. It can be"
-        , Html.span [ Attribute.class "font-semibold" ] [ Html.text " rich " ]
-        , Html.text "rich or whatever, and contains just a pro tip. "
-        , Html.text "This is some simple text. It can be"
-        , Html.span [ Attribute.class "font-semibold" ] [ Html.text " rich " ]
-        , Html.text "rich or whatever, and contains just a pro tip. "
-        , Html.text "This is some simple text. It can be"
-        , Html.span [ Attribute.class "font-semibold" ] [ Html.text " rich " ]
-        , Html.text "rich or whatever, and contains just a pro tip. "
-        , Html.text "This is some simple text. It can be"
-        , Html.span [ Attribute.class "font-semibold" ] [ Html.text " rich " ]
-        , Html.text "rich or whatever, and contains just a pro tip. "
-        ]
-    ]
+sectionContent : SectionContent Message -> Html Message
+sectionContent content =
+    case content of
+        SectionTip title html ->
+            sectionDescriptionCard title html
+
+        SectionTitle title ->
+            sectionDescriptionTitle title
+
+        SectionIllustration number title url ->
+            sectionDescriptionIllustration number title url
+
+        SectionDescription html ->
+            sectionDescriptionText html
 
 
 sectionDescriptionCard : String -> List (Html Message) -> Html Message
