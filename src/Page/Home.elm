@@ -8,13 +8,16 @@ module Page.Home exposing
     )
 
 import Cmd.Extra exposing (withNoCmd)
-import Html exposing (Html, a, br, div, img, text)
-import Html.Attributes exposing (class, href, src)
+import Html exposing (Html)
+import Html.Attributes as Attribute
+import Html.Events as Event
+import Picasso.Button
+import Route
 import Session exposing (Session)
 
 
-type alias Message =
-    Never
+type Message
+    = GoToSignIn
 
 
 type alias Model =
@@ -32,29 +35,81 @@ init session =
 
 
 update : Message -> Model -> ( Model, Cmd Message )
-update _ model =
-    model
-        |> withNoCmd
+update message model =
+    case message of
+        GoToSignIn ->
+            ( model
+            , Route.replaceUrl
+                (Session.sessionNavKey model)
+                Route.Registration
+            )
 
 
 view : Model -> List (Html Message)
 view _ =
-    [ footer
+    [ callToAction
+    , mobileInfo
+    , footer
     ]
 
 
-footer : Html Never
+callToAction : Html Message
+callToAction =
+    Html.div
+        [ Attribute.class "shadow bg-white md:rounded-lg max-w-full mt-8 md:mt-48 md:mx-48 py-4 px-16 md:py-8 md:px-8 mx-auto"
+        , Attribute.class "flex flex-row justify-between"
+        ]
+        [ Html.div [ Attribute.class "pt-12" ]
+            [ Html.h1
+                [ Attribute.class "text-4xl font-semibold text-gray-800" ]
+                [ Html.span [ Attribute.class "block" ] [ Html.text "Real-time polls for" ]
+                , Html.span [ Attribute.class "block" ] [ Html.text "conferences and schools" ]
+                ]
+            , Html.div
+                [ Attribute.class "pt-8 pb-12" ]
+                [ Picasso.Button.button
+                    (Picasso.Button.filled
+                        ++ Picasso.Button.elevated
+                        ++ [ Attribute.class "rounded-full text-xl"
+                           , Event.onClick GoToSignIn
+                           ]
+                    )
+                    [ Html.text "Register now"
+                    , Html.img [ Attribute.class "inline-block pl-4", Attribute.src "/icon/arrow-right.svg" ] []
+                    ]
+                ]
+            ]
+        , Html.div [ Attribute.class "hidden xl:block w-48 bg-seaside-200" ] []
+        ]
+
+
+mobileInfo : Html Message
+mobileInfo =
+    Html.div
+        [ Attribute.class "shadow bg-gray-100 md:rounded-lg max-w-full mt-4 md:mt-8 md:mx-48 mb-24 md:mb-48 py-4 px-16 md:py-8 md:px-8 mx-auto text-xl text-gray-500" ]
+        [ Html.h2
+            [ Attribute.class "text-2xl font-semibold text-gray-700" ]
+            [ Html.text "Got a mobile device ?" ]
+        , Html.span [] [ Html.text "You can download the participant app from " ]
+        , Html.a [ Attribute.href "https://play.google.com/store/apps/details?id=ch.heigvd.pro.b04.android", Attribute.class "text-seaside-400 underline" ] [ Html.text "Google Play" ]
+        , Html.span [] [ Html.text "." ]
+        ]
+
+
+footer : Html Message
 footer =
     Html.footer
-        [ class "fixed bottom-0 bg-white shadow pl-2 pr-8 md:pr-16 py-2 w-full"
+        [ Attribute.class "fixed bottom-0 bg-white shadow pl-2 pr-8 md:pr-16 py-2 w-full"
         ]
-        [ div
-            [ class "flex flex-row items-center" ]
-            [ img [ src "/img/github.jpg", class "h-16" ] []
-            , div [ class "ml-4" ]
-                [ text "This project was done at HEIG-VD as part of the PRO class."
-                , br [] []
-                , a [ href "https://github.com/heig-PRO-b04", class "text-seaside-500" ] [ text "Check it out on GitHub." ]
+        [ Html.div
+            [ Attribute.class "flex flex-row items-center" ]
+            [ Html.img [ Attribute.src "/img/github.jpg", Attribute.class "h-16" ] []
+            , Html.div [ Attribute.class "ml-4" ]
+                [ Html.text "This project was done at HEIG-VD as part of the PRO class."
+                , Html.br [] []
+                , Html.a
+                    [ Attribute.href "https://github.com/heig-PRO-b04", Attribute.class "text-seaside-500" ]
+                    [ Html.text "Check it out on GitHub." ]
                 ]
             ]
         ]
