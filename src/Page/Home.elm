@@ -7,7 +7,6 @@ module Page.Home exposing
     , view
     )
 
-import Cmd.Extra exposing (withNoCmd)
 import Html exposing (Html)
 import Html.Attributes as Attribute
 import Html.Events as Event
