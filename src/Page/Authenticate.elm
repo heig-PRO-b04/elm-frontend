@@ -76,7 +76,7 @@ loginMessage state =
             Just "These credentials are not valid, sorry !"
 
         BadNetwork ->
-            Just "There was a network issue. Try again later ?"
+            Just "There was a network issue. Try again with a different username or check your connection ?"
 
         _ ->
             Nothing
@@ -264,7 +264,7 @@ inputEmail : String -> Html Message
 inputEmail content =
     Input.inputWithTitle "Username:"
         [ onInput WriteNewUsername
-        , placeholder "i-am-ironman"
+        , placeholder "john.appleseed (min. 4 characters)"
         , Attribute.autofocus True
         , value content
         ]
@@ -278,7 +278,7 @@ inputPassword content =
         [ onInput WriteNewPassword
         , onEnterDown ClickPerform
         , type_ "password"
-        , placeholder "g3n3r4l_k4n0b1"
+        , placeholder "superpassword (min. 4 characters)"
         , value content
         ]
         []
