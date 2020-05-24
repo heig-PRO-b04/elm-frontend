@@ -205,11 +205,8 @@ filler =
 
 tailAuthenticated : Bool -> Username -> List (Html Message)
 tailAuthenticated open username =
-    let
-        button =
-            menuButton username open []
-    in
-    [ button ]
+    List.singleton <|
+        menuButton username open []
 
 
 menuButton :
@@ -221,10 +218,10 @@ menuButton username open attributes =
     let
         visibility =
             if open then
-                class "block"
+                class "block opacity-100 scale-100"
 
             else
-                class "hidden"
+                class "invisible opacity-0 scale-95"
 
         listItem route message =
             Html.button
@@ -247,7 +244,8 @@ menuButton username open attributes =
             , icon
             ]
         , div
-            [ class "absolute mt-2 right-0"
+            [ class "transform duration-200 origin-top-right"
+            , class "absolute mt-2 right-0"
             , class "rounded-md bg-white shadow-2xl"
             , class "border-2 border-seaside-050"
             , class "overflow-hidden"
