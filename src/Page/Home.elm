@@ -55,7 +55,7 @@ view _ =
 callToAction : Html Message
 callToAction =
     Html.div
-        [ Attribute.class "shadow bg-white md:rounded-lg max-w-full mt-8 md:mt-48 md:mx-48 py-4 px-16 md:py-8 md:px-8 mx-auto"
+        [ Attribute.class "shadow bg-white md:rounded-lg max-w-full mt-8 lg:mt-48 lg:mx-48 py-4 px-16 lg:py-8 lg:px-8 mx-auto"
         , Attribute.class "flex flex-row justify-between"
         ]
         [ Html.div [ Attribute.class "pt-12" ]
@@ -78,14 +78,14 @@ callToAction =
                     ]
                 ]
             ]
-        , Html.div [ Attribute.class "hidden xl:block w-48 bg-seaside-200" ] []
+        , Html.img [ Attribute.class "hidden md:block self-center mr-16 w-48 h-48", Attribute.src "/img/logo.png" ] []
         ]
 
 
 mobileInfo : Html Message
 mobileInfo =
     Html.div
-        [ Attribute.class "shadow bg-gray-100 md:rounded-lg max-w-full mt-4 md:mt-8 md:mx-48 mb-24 md:mb-48 py-4 px-16 md:py-8 md:px-8 mx-auto text-xl text-gray-500" ]
+        [ Attribute.class "shadow bg-gray-100 md:rounded-lg max-w-full mt-4 lg:mt-8 lg:mx-48 mb-24 lg:mb-48 py-4 px-16 lg:py-8 lg:px-8 mx-auto text-xl text-gray-500" ]
         [ Html.h2
             [ Attribute.class "text-2xl font-semibold text-gray-700" ]
             [ Html.text "Got a mobile device ?" ]
