@@ -88,7 +88,7 @@ view model =
 
 stepOne : Step
 stepOne =
-    { imageUrl = "https://via.placeholder.com/150/E1F5FE/E1F5FE"
+    { imageUrl = "/help/create-poll.gif"
     , number = 1
     , description = "Create a poll"
     }
@@ -96,7 +96,7 @@ stepOne =
 
 stepTwo : Step
 stepTwo =
-    { imageUrl = "https://via.placeholder.com/150/E1F5FE/E1F5FE"
+    { imageUrl = "/help/create-question.gif"
     , number = 2
     , description = "Add a question"
     }
@@ -104,7 +104,7 @@ stepTwo =
 
 stepThree : Step
 stepThree =
-    { imageUrl = "https://via.placeholder.com/150/E1F5FE/E1F5FE"
+    { imageUrl = "/help/open-poll.gif"
     , number = 3
     , description = "Open your poll"
     }
@@ -129,7 +129,7 @@ viewStep step =
         , Attribute.class "flex flex-col"
         ]
         [ Html.img
-            [ Attribute.class "object-cover rounded-lg overflow-hidden w-56 h-56"
+            [ Attribute.class "object-cover rounded-lg overflow-hidden w-56 h-32 transform duration-200"
             , Attribute.src step.imageUrl
             ]
             []
