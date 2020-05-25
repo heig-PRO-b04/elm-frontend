@@ -737,17 +737,24 @@ viewVisibilityTray visible selected =
                 , Event.onClick <| SelectVisibility visibility
                 ]
                 [ Html.text text ]
-    in
-    if not visible then
-        Html.div [] []
 
-    else
-        Html.div
-            [ Attribute.class "block absolute shadow-xl bg-white right-0 w-48 z-10 mt-2 rounded-lg overflow-hidden border-2 border-seaside-050" ]
-            [ row "Visible + Hidden" Visibility.Active
-            , row "Archived" Visibility.Archived
-            , row "All" Visibility.All
-            ]
+        menuAnimation =
+            if not visible then
+                Attribute.class "invisible opacity-0 scale-95"
+
+            else
+                Attribute.class "block opacity-100 scale-100"
+    in
+    Html.div
+        [ menuAnimation
+        , Attribute.class "transform duration-200 origin-top-right"
+        , Attribute.class "shadow-xl w-48 z-10 bg-white rounded-lg overflow-hidden"
+        , Attribute.class "absolute right-0 mt-2 border-2 border-seaside-050"
+        ]
+        [ row "Visible + Hidden" Visibility.Active
+        , row "Archived" Visibility.Archived
+        , row "All" Visibility.All
+        ]
 
 
 viewQuestion :
