@@ -40,6 +40,9 @@ jobs:
       - name: Await frontend
         run: |
           python3 integration-tests/await-website.py
-      - name: Run a simple integration test
+      - name: Run a full use-case test
         run: |
-          python3 integration-tests/src/simpletest.py
+          python3 integration-tests/src/register_full.py
+      - name: Run a profile update test
+        run: |
+          python3 integration-tests/src/register_update_full.py
