@@ -102,12 +102,9 @@ def register():
 #                                    MAIN                                            #
 # ================================================================================== #
 
-print("account :         " + account)
-print("password :        " + password)
-print("poll title :      " + pollTitle)
-print("question title :  " + questionTitle)
-print("question detauls: " + questionDetail)
-print("answer title :    " + answerTitle)
-print("answer details :  " + answerDetail)
+print("account :          " + account)
+print("password :         " + password)
+print("updated account :  " + account + "_updated")
+print("updated password : " + password + "_updated")
 
 register()

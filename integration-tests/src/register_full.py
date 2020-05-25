@@ -44,6 +44,13 @@ def register():
     driver = webdriver.Firefox(options=options)
     driver.implicitly_wait(10)
 
+    
+    print("poll title :      " + pollTitle)
+    print("question title :  " + questionTitle)
+    print("question detauls: " + questionDetail)
+    print("answer title :    " + answerTitle)
+    print("answer details :  " + answerDetail)
+
     try:
         # =============== register ============== #
         driver.get(url) # Open login url
@@ -136,10 +143,5 @@ def register():
 
 print("account :         " + account)
 print("password :        " + password)
-print("poll title :      " + pollTitle)
-print("question title :  " + questionTitle)
-print("question detauls: " + questionDetail)
-print("answer title :    " + answerTitle)
-print("answer details :  " + answerDetail)
 
 register()
