@@ -1,6 +1,7 @@
 import random
 import time
 import string
+import traceback
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -88,9 +89,9 @@ def login():
         driver.find_element(By.XPATH, "html/body/div/input").send_keys(password + "_updated") # Enter password
         driver.find_element(By.XPATH, "html/body/div/div/button[text() = 'Confirm']").click() # Confirm deletion
         
-    except Exception as e:
+    except Exception:
         driver.quit() # Quit driver
-        print(e)
+        print(traceback.format_exc())
         exit(1) # something went wrong
     else:
         driver.quit() # Quit driver
