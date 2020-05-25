@@ -5,9 +5,6 @@ module Picasso.Input exposing (input, inputWithTitle)
 
 # Constructors
 
-If you want to use Route-based hrefs for navigation, it is highly recommended
-that you use an `a` based button.
-
 @docs input, inputWithTitle
 
 -}

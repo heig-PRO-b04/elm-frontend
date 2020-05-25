@@ -9,7 +9,7 @@ module Page.Logout exposing
 
 # TEA
 
-@docs Model, Message
+@docs Model
 @docs update, view
 
 
