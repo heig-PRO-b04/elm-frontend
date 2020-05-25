@@ -246,7 +246,7 @@ update msg model =
             let
                 -- We do not want to update the answers unless they have changed.
                 newAnswers =
-                    if SelectableItemList.toList identity Tuple.first model.answers == serverAnswerList then
+                    if SelectableItemList.toList identity Tuple.first model.answers == List.sortBy .idAnswer serverAnswerList then
                         model.answers
 
                     else

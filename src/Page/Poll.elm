@@ -247,6 +247,8 @@ update message model =
                     updated
                         |> withCmds
                             [ Cmd.Extra.succeed <| RequestNavigateToPoll poll
+
+                            -- We can safely dismiss other messages here.
                             ]
 
                 LoadingExisting ->
@@ -260,17 +262,17 @@ update message model =
                 Ready _ _ _ _ ->
                     { model | titleInput = poll.title }
                         |> withCmds
-                            [ Cmd.map QuestionMessage questionCmd
-                            , Cmd.map SessionMessage sessionCmd
-                            , Cmd.map StatisticsMessage statisticsCmd
+                            [ Cmd.map QuestionMessage Cmd.none
+                            , Cmd.map SessionMessage Cmd.none
+                            , Cmd.map StatisticsMessage Cmd.none
                             ]
 
                 Editing _ _ _ _ ->
                     model
                         |> withCmds
-                            [ Cmd.map QuestionMessage questionCmd
-                            , Cmd.map SessionMessage sessionCmd
-                            , Cmd.map StatisticsMessage statisticsCmd
+                            [ Cmd.map QuestionMessage Cmd.none
+                            , Cmd.map SessionMessage Cmd.none
+                            , Cmd.map StatisticsMessage Cmd.none
                             ]
 
 
