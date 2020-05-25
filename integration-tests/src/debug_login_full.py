@@ -18,10 +18,11 @@ def randomString(stringLength=4):
 #                                  CONSTANTS                                         #
 # ================================================================================== #
 
-url = "http://localhost:1234"
+url = "https://rockin.app"
+geckodriver = "C:\\Users\\matt989253\\Google Drive\\Perso\\Scripts\\Python\\Utils\\geckodriver.exe"
 
-account = randomString(10)
-password = randomString(10)
+account = "matthieu"
+password = "123456"
 pollTitle = randomString(10)
 questionTitle = randomString(10)
 questionDetail = randomString(10)
@@ -35,22 +36,22 @@ headless = True # set as true to run the driver in the background)
 #                                  FUNCTIONS                                         #
 # ================================================================================== #
 
-def register():
+def login():
     options = webdriver.FirefoxOptions()
 
     if headless:
         options.add_argument('-headless')
 
-    driver = webdriver.Firefox(options=options)
+    driver = webdriver.Firefox(executable_path=geckodriver, options=options)
     driver.implicitly_wait(10)
 
     try:
-        # =============== register ============== #
+        # =============== login ============== #
         driver.get(url) # Open login url
-        driver.find_element(By.XPATH, "html/body/header/a[text() = 'Create an Account']").click() # Click on authorise button
+        driver.find_element(By.XPATH, "html/body/header/a[text() = 'Sign In']").click() # Click on authorise button
         driver.find_element(By.XPATH, "(html/body/div/div/div/input)[1]").send_keys(account) # Enter account name
         driver.find_element(By.XPATH, "(html/body/div/div/div/input)[2]").send_keys(password) # Enter password
-        driver.find_element(By.XPATH, "html/body/div/button[text() = 'Create account']").click() # Click on create account button
+        driver.find_element(By.XPATH, "html/body/div/button[text() = 'Sign-in']").click() # Click on create account button
 
         driver.find_element(By.XPATH, "html/body/header/div/button/div[text() = '" + account + "']") # Locate the account button to ensure the operation was successful
 
@@ -71,10 +72,10 @@ def register():
         attr4 = driver.find_element(By.XPATH, "(html/body/div/div/div/p/div/div/div/img)[4]").get_attribute("src") # 4th emoji image
         emoji4 = attr4[len(attr4) - 5] # 4th emoji code
 
-        print("Code :           "+ emoji1 + emoji2 + emoji3 + emoji4) # print the code
+        print("Code :            "+ emoji1 + emoji2 + emoji3 + emoji4) # print the code
 
         # =============== Create a question =============== #
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);") # Scroll to bottom of page to prevent "New Question" fab from obscuring elements
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         driver.find_element(By.XPATH, "html/body/button/div/div[text() = 'New question']").click() # Click on "New Question"
         driver.find_element(By.XPATH, "html/body/div/table/tbody/tr/td/input").send_keys(questionTitle) # Enter the question title
         driver.find_element(By.XPATH, "html/body/div/table/tbody/tr/td/img").click() # Click on "Set hidden question"
@@ -141,4 +142,4 @@ print("question detauls: " + questionDetail)
 print("answer title :    " + answerTitle)
 print("answer details :  " + answerDetail)
 
-register()
+login()

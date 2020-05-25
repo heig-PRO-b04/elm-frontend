@@ -18,10 +18,11 @@ def randomString(stringLength=4):
 #                                  CONSTANTS                                         #
 # ================================================================================== #
 
-url = "http://localhost:1234"
+url = "https://rockin.app"
+geckodriver = "C:\\Users\\matt989253\\Google Drive\\Perso\\Scripts\\Python\\Utils\\geckodriver.exe"
 
-account = randomString(10)
-password = randomString(10)
+account = "matthieu"
+password = "123456"
 pollTitle = randomString(10)
 questionTitle = randomString(10)
 questionDetail = randomString(10)
@@ -35,22 +36,22 @@ headless = True # set as true to run the driver in the background)
 #                                  FUNCTIONS                                         #
 # ================================================================================== #
 
-def register():
+def login():
     options = webdriver.FirefoxOptions()
 
     if headless:
         options.add_argument('-headless')
 
-    driver = webdriver.Firefox(options=options)
+    driver = webdriver.Firefox(executable_path=geckodriver, options=options)
     driver.implicitly_wait(10)
 
     try:
-        # =============== register ============== #
+        # =============== login ============== #
         driver.get(url) # Open login url
-        driver.find_element(By.XPATH, "html/body/header/a[text() = 'Create an Account']").click() # Click on authorise button
+        driver.find_element(By.XPATH, "html/body/header/a[text() = 'Sign In']").click() # Click on "Sign In" button
         driver.find_element(By.XPATH, "(html/body/div/div/div/input)[1]").send_keys(account) # Enter account name
         driver.find_element(By.XPATH, "(html/body/div/div/div/input)[2]").send_keys(password) # Enter password
-        driver.find_element(By.XPATH, "html/body/div/button[text() = 'Create account']").click() # Click on create account button
+        driver.find_element(By.XPATH, "html/body/div/button[text() = 'Sign-in']").click() # Click on "Sign-in" button
 
         # =============== Update username =============== #
         driver.find_element(By.XPATH, "html/body/header/div/button/div[text() = '" + account + "']").click() # Locate the account button and click on it
@@ -66,7 +67,7 @@ def register():
         driver.find_element(By.XPATH, "(html/body/div/div/div/input)[2]").send_keys(password) # Enter password
         driver.find_element(By.XPATH, "html/body/div/button[text() = 'Sign-in']").click() # Click on "Sign-in" button
 
-        # =============== Update password =============== #
+        # =============== Update profile =============== #
         driver.find_element(By.XPATH, "html/body/header/div/button/div[text() = '" + account + "_updated']").click() # Locate the account button and click on it
         driver.find_element(By.XPATH, "html/body/header/div/div/button/h3[text() = 'My Profile']").click() # Click on "My Profile"
         driver.find_element(By.XPATH, "html/body/div/input[2]").send_keys(password + "_updated") # Enter new username
@@ -89,7 +90,7 @@ def register():
         driver.find_element(By.XPATH, "html/body/div/input").send_keys(password + "_updated") # Enter password
         driver.find_element(By.XPATH, "html/body/div/div/button[text() = 'Confirm']").click() # Confirm deletion
         
-    except Exception:
+    except Exception as e:
         driver.quit() # Quit driver
         print(traceback.format_exc())
         exit(1) # something went wrong
@@ -110,4 +111,4 @@ print("question detauls: " + questionDetail)
 print("answer title :    " + answerTitle)
 print("answer details :  " + answerDetail)
 
-register()
+login()
