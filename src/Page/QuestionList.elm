@@ -172,13 +172,10 @@ update message model =
         PerformCreate question ->
             let
                 lower =
-                    Array.get (Array.length model.questions - 1) model.questions
-                        |> Maybe.map (\( q, _ ) -> q)
-                        |> Maybe.map .index
-                        |> Maybe.withDefault 0
+                    0
 
                 upper =
-                    Array.get (Array.length model.questions) model.questions
+                    Array.get 0 model.questions
                         |> Maybe.map (\( q, _ ) -> q)
                         |> Maybe.map .index
                         |> Maybe.withDefault 1
