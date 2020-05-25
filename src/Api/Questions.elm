@@ -97,6 +97,9 @@ getQuestionList credentials pollDiscriminator transform =
         |> Task.map transform
 
 
+{-| A command that will try to request a specific question for a specific poll, for a logged
+in moderator, and tell what the issue was if it did not work.
+-}
 getQuestion : Credentials -> QuestionDiscriminator -> (ServerQuestion -> a) -> Task QuestionError a
 getQuestion credentials questionDiscriminator transform =
     let

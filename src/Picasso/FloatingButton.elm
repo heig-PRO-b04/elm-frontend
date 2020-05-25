@@ -37,11 +37,15 @@ base =
 -- HTML TAGS
 
 
+{-| Builds a new floating button element with base styling.
+-}
 button : List (Html.Attribute msg) -> List (Html msg) -> Html msg
 button attrs html =
     Html.button (base ++ attrs) [ div [ class "flex flew-row items-center" ] html ]
 
 
+{-| Builds a new link-based floating button element with base styling.
+-}
 a : List (Html.Attribute msg) -> List (Html msg) -> Html msg
 a attrs html =
     Html.a (base ++ attrs) [ div [ class "flex flew-row items-center" ] html ]

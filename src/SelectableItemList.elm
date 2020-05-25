@@ -45,21 +45,29 @@ type SelectableItemList a b
     = SelectableItemList (List a) (Maybe b) (List a)
 
 
+{-| Builds an empty selectable item list with Nothing selected
+-}
 empty : SelectableItemList a b
 empty =
     SelectableItemList [] Nothing []
 
 
+{-| Builds a selectable ite, list with just one element that is selected
+-}
 singleton : b -> SelectableItemList a b
 singleton item =
     SelectableItemList [] (Just item) []
 
 
+{-| Builds a selectable item list from an existing list with no selected element
+-}
 fromList : List a -> SelectableItemList a b
 fromList existing =
     SelectableItemList existing Nothing []
 
 
+{-| Maps both the contents of a selectable item list and the selected element given two transformation functions
+-}
 map : (a -> c) -> (b -> d) -> SelectableItemList a b -> SelectableItemList c d
 map f g (SelectableItemList start selectable end) =
     SelectableItemList
@@ -92,11 +100,16 @@ indexedMap f g (SelectableItemList start selectable end) =
     SelectableItemList indexedStart indexedSelectable indexedEnd
 
 
+{-| Returns the selected element if it exists
+-}
 selected : SelectableItemList a b -> Maybe b
 selected (SelectableItemList _ selectable _) =
     selectable
 
 
+{-| Selects an element of the selectable item list by transforming it into the selected type,
+and de-transforming a potentially pre-selected element and adding back to the rest of the list
+-}
 select : (b -> a) -> (a -> b) -> Int -> SelectableItemList a b -> SelectableItemList a b
 select g f index list =
     let
@@ -133,11 +146,15 @@ toList f g (SelectableItemList start selectable end) =
         |> List.append (List.map f start)
 
 
+{-| Flattens the selectable item list into a list if the selected element is of the same type as the non-selected ones
+-}
 flatten : SelectableItemList a a -> List a
 flatten =
     toList identity identity
 
 
+{-| Computes the length of the selectable item list
+-}
 length : SelectableItemList a b -> Int
 length list =
     toList (always ()) (always ()) list

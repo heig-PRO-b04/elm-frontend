@@ -163,6 +163,9 @@ sessionEndpoint discriminator credentials =
 -- EXPOSED API
 
 
+{-| A command that will try to request the session for a specific poll, for a logged
+in moderator, and tell what the issue was if it did not work.
+-}
 getSession :
     Credentials
     -> (ServerSession -> a)
@@ -189,6 +192,9 @@ getSession credentials transform discriminator =
         |> Task.map transform
 
 
+{-| A command that will try send an updated session for a specific poll, for a logged
+in moderator, and tell what the issue was if it did not work.
+-}
 putSession :
     Credentials
     -> ClientSession

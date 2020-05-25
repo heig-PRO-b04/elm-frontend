@@ -84,6 +84,9 @@ getPollList credentials transform =
         |> Task.map transform
 
 
+{-| A command that will try to request a specific poll existing for a logged
+in moderator, and tell what the issue was if it did not work.
+-}
 getPoll : Credentials -> PollDiscriminator -> (ServerPoll -> a) -> Task PollError a
 getPoll credentials pollDiscriminator transform =
     let

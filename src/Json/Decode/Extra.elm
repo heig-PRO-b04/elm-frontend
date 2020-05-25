@@ -12,7 +12,9 @@ module Json.Decode.Extra exposing (map9)
 import Json.Decode as Decode exposing (Decoder, andThen)
 
 
-{-| -}
+{-| Try nine decoders and then combine the result. We can use this to decode
+objects with many fields
+-}
 map9 :
     (a -> b -> c -> d -> e -> f -> g -> h -> i -> value)
     -> Decoder a

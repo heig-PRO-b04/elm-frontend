@@ -44,11 +44,15 @@ type Session
     | LoggedIn Nav.Key Credentials
 
 
+{-| Builds a session for a non-logged in user
+-}
 guest : Nav.Key -> Session
 guest =
     Guest
 
 
+{-| Builds a session for a logged in user
+-}
 withCredentials : Credentials -> Session -> Session
 withCredentials credentials session =
     case session of
@@ -63,6 +67,8 @@ withCredentials credentials session =
 -- SESSION EXTRACT
 
 
+{-| Returns the Navigation Key for a session
+-}
 sessionNavKey : Session -> Nav.Key
 sessionNavKey session =
     case session of
@@ -73,6 +79,8 @@ sessionNavKey session =
             key
 
 
+{-| Returns the session credentials, if they exist
+-}
 sessionCredentials : Session -> Maybe Credentials
 sessionCredentials session =
     case session of
@@ -83,6 +91,8 @@ sessionCredentials session =
             Just cred
 
 
+{-| Function that tells if the session is for a logged in user
+-}
 isLoggedIn : Session -> Bool
 isLoggedIn session =
     case session of
@@ -101,6 +111,8 @@ type Viewer
     = Viewer Nav.Key Credentials
 
 
+{-| Builds a viewer from the session, if possible
+-}
 toViewer : Session -> Maybe Viewer
 toViewer session =
     case session of
@@ -111,16 +123,22 @@ toViewer session =
             Nothing
 
 
+{-| Builds a session from a viewer
+-}
 toSession : Viewer -> Session
 toSession (Viewer key credentials) =
     LoggedIn key credentials
 
 
+{-| Returns the credentials for a viewer
+-}
 viewerCredentials : Viewer -> Credentials
 viewerCredentials (Viewer _ credentials) =
     credentials
 
 
+{-| Returns the navigation key for a viewer
+-}
 viewerNavKey : Viewer -> Nav.Key
 viewerNavKey (Viewer key _) =
     key

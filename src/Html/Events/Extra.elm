@@ -14,7 +14,8 @@ import Html.Events as Events
 import Json.Decode
 
 
-{-| -}
+{-| Function that will trigger an event when the down key is pressed
+-}
 onEnterDown : msg -> Html.Attribute msg
 onEnterDown action =
     Events.on "keydown" (ifIsEnter action)

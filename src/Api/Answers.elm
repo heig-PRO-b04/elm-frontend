@@ -84,6 +84,9 @@ getAnswerList credentials questionDiscriminator transform =
         |> Task.map transform
 
 
+{-| A command that will try to get a specific answer for a question, for a logged in moderator
+and tell what the issue was if it did not work
+-}
 getAnswer : Credentials -> AnswerDiscriminator -> (ServerAnswer -> a) -> Task AnswerError a
 getAnswer credentials answerDiscriminator transform =
     let
