@@ -1,5 +1,5 @@
 const storageKey = "credentials";
-const flags = localStorage.getItem(storageKey);
+const flags = localStorage.getItem(storageKey) || "{}";
 
 const path = window.location.href;
 
