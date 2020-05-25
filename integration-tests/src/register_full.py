@@ -106,6 +106,7 @@ def register():
         driver.find_element(By.XPATH, "html/body/header/div/div/button/h3[text() = 'My Polls']").click() # Click on "My Polls"
 
         # =============== Delete the poll =============== #
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);") # Scroll to bottom of page to prevent "New Poll" fab from obscuring elements
         if driver.find_element(By.XPATH, "html/body/div/table/tbody/tr/td").text != pollTitle: # First poll isn't the right one
             driver.quit()
             print("First poll isn't the one we just created")

@@ -90,7 +90,7 @@ def login():
         driver.find_element(By.XPATH, "html/body/div/input").send_keys(password + "_updated") # Enter password
         driver.find_element(By.XPATH, "html/body/div/div/button[text() = 'Confirm']").click() # Confirm deletion
         
-    except Exception as e:
+    except Exception:
         driver.quit() # Quit driver
         print(traceback.format_exc())
         exit(1) # something went wrong
