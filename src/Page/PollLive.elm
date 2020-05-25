@@ -1,12 +1,24 @@
 module Page.PollLive exposing
-    ( Message
-    , Model
-    , init
+    ( Model, Message
+    , update, view
+    , init, toSession
     , subscriptions
-    , toSession
-    , update
-    , view
     )
+
+{-| A page module that displays the participant view for a poll (Emoji code and QR code)
+
+
+# TEA
+
+@docs Model, Message
+@docs update, view
+
+
+# functions
+
+@docs init, toSession
+
+-}
 
 import Api.Polls exposing (PollDiscriminator)
 import Html exposing (Html)

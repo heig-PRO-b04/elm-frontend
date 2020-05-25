@@ -1,10 +1,21 @@
 module Page.Help.Content exposing
     ( SectionContent(..)
-    , managingPolls
-    , organizingQuestions
-    , statistics
-    , voting
+    , managingPolls, organizingQuestions, statistics, voting
     )
+
+{-| A module that provides a clear way to manage content of the Help pages
+
+
+# types
+
+@docs SectionContent
+
+
+# content
+
+@docs managingPolls, organizingQuestions, statistics, voting
+
+-}
 
 import Html exposing (Html)
 import Html.Attributes as Attribute

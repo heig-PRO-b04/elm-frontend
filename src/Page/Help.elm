@@ -1,11 +1,23 @@
 module Page.Help exposing
-    ( Message
-    , Model
-    , init
-    , toSession
-    , update
-    , view
+    ( Model, Message
+    , update, view
+    , init, toSession
     )
+
+{-| A page module that displays a tutorial on how to use the web app
+
+
+# TEA
+
+@docs Model, Message
+@docs update, view
+
+
+# functions
+
+@docs init, toSession
+
+-}
 
 import Html exposing (Html)
 import Html.Attributes as Attribute

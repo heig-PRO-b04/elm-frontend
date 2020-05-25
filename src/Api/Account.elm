@@ -1,9 +1,23 @@
 module Api.Account exposing
-    ( Error(..)
+    ( updateUsername, updatePassword
     , deleteAccount
-    , updatePassword
-    , updateUsername
+    , Error(..)
     )
+
+{-| A module that provides ways to modify a moderator account
+
+
+# Endpoints
+
+@docs updateUsername, updatePassword
+@docs deleteAccount
+
+
+# Types
+
+@docs Error
+
+-}
 
 import Api exposing (Credentials)
 import Http
@@ -30,7 +44,7 @@ type alias PasswordConfirmation =
 -- API
 
 
-{-| Deletes the moderator account associated with the provided identifier. A password must be
+{-| Deletes the moderator account associated with the provided identifier. A password must bes
 specified, to ensure the user "approval" of the deletion request.
 -}
 deleteAccount :

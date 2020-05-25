@@ -1,11 +1,24 @@
 module Page.QuestionList exposing
-    ( Message
-    , Model
-    , init
-    , subscriptions
-    , update
-    , view
+    ( Model, Message
+    , update, view
+    , init, subscriptions
     )
+
+{-| A page sub-module that displays a poll's questions,
+and calls another submodule to display's a question's answers when necessary
+
+
+# TEA
+
+@docs Model, Message
+@docs update, view
+
+
+# functions
+
+@docs init, subscriptions
+
+-}
 
 import Api.Polls exposing (ServerPoll)
 import Api.Questions exposing (ClientQuestion, QuestionVisibility(..), ServerQuestion)

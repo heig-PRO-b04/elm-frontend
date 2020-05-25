@@ -1,11 +1,10 @@
 module Cmd.Extra exposing
-    ( withNoCmd
+    ( withCmds, withNoCmd
     , succeed
     , addCmd
     , initWith
     , updateWith
     , andThen
-    , withCmds
     )
 
 {-| A few utilities for the update functions of the applications, documents and
@@ -14,7 +13,7 @@ everything that works with commands essentially.
 
 # Commands
 
-@docs withCmd, withNoCmd
+@docs withCmds, withNoCmd
 @docs succeed
 @docs addCmd
 

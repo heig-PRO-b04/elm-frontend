@@ -1,11 +1,23 @@
 module Page.Home exposing
-    ( Message
-    , Model
-    , init
-    , toSession
-    , update
-    , view
+    ( Model, Message
+    , update, view
+    , init, toSession
     )
+
+{-| A page module that displays the home page of the web app
+
+
+# TEA
+
+@docs Model, Message
+@docs update, view
+
+
+# functions
+
+@docs init, toSession
+
+-}
 
 import Html exposing (Html)
 import Html.Attributes as Attribute

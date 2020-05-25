@@ -1,5 +1,14 @@
 module Json.Decode.Extra exposing (map9)
 
+{-| A module that provides additional Json Decoding capabilities
+
+
+# functions
+
+@docs map9
+
+-}
+
 import Json.Decode as Decode exposing (Decoder, andThen)
 
 

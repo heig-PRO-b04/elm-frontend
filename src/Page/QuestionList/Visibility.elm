@@ -3,6 +3,20 @@ module Page.QuestionList.Visibility exposing
     , display
     )
 
+{-| A module that helps to decide if a question should be displayed
+
+
+# types
+
+@docs Visibility
+
+
+# functions
+
+@docs display
+
+-}
+
 import Api.Questions as Api
 
 

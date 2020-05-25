@@ -1,7 +1,16 @@
-module Picasso.Input exposing
-    ( input
-    , inputWithTitle
-    )
+module Picasso.Input exposing (input, inputWithTitle)
+
+{-| A module that provides basic input elements
+
+
+# Constructors
+
+If you want to use Route-based hrefs for navigation, it is highly recommended
+that you use an `a` based button.
+
+@docs input, inputWithTitle
+
+-}
 
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class)

@@ -1,9 +1,21 @@
 module Api.Statistics exposing
-    ( AnswerStatistics
-    , QuestionStatistics
-    , StatisticsError(..)
+    ( AnswerStatistics, QuestionStatistics, StatisticsError(..)
     , getStatisticsForPoll
     )
+
+{-| A module that provides ways to request and parse general statistics from the backend
+
+
+# Types
+
+@docs AnswerStatistics, QuestionStatistics, StatisticsError
+
+
+# Endpoints
+
+@docs getStatisticsForPoll
+
+-}
 
 import Api exposing (Credentials)
 import Http

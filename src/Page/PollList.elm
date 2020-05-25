@@ -1,11 +1,23 @@
 module Page.PollList exposing
-    ( Message
-    , Model
-    , init
-    , subscriptions
-    , update
-    , view
+    ( Model, Message
+    , update, view
+    , init, subscriptions
     )
+
+{-| A page module that displays a user's list of existing polls
+
+
+# TEA
+
+@docs Model, Message
+@docs update, view
+
+
+# functions
+
+@docs init, subscriptions
+
+-}
 
 import Api.Polls exposing (ServerPoll)
 import Api.Sessions

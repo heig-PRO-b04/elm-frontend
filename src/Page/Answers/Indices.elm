@@ -1,5 +1,14 @@
 module Page.Answers.Indices exposing (forIndex)
 
+{-| A module that provides a way to transform a list index integer to it's alphabetical equivalent
+
+
+# functions
+
+@docs forIndex
+
+-}
+
 
 alphabet : String
 alphabet =

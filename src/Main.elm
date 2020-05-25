@@ -1,5 +1,11 @@
 module Main exposing (main)
 
+{-| The main module of the SPA, the heart of the project
+
+@docs main
+
+-}
+
 import Api
 import Browser
 import Browser.Navigation as Nav

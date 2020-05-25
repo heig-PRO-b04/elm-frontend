@@ -1,12 +1,23 @@
 module Page.Poll exposing
-    ( Message
-    , Model
-    , initCreate
-    , initDisplay
-    , subscriptions
-    , update
-    , view
+    ( Model, Message
+    , update, view
+    , initCreate, initDisplay, subscriptions
     )
+
+{-| A page module that displays a Poll and calls sub-models to display questions, session and statistics
+
+
+# TEA
+
+@docs Model, Message
+@docs update, view
+
+
+# functions
+
+@docs initCreate, initDisplay, subscriptions
+
+-}
 
 import Api.Polls exposing (PollDiscriminator, ServerPoll)
 import Cmd.Extra exposing (withCmds, withNoCmd)

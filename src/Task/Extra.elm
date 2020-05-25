@@ -1,5 +1,14 @@
 module Task.Extra exposing (execute)
 
+{-| A module that provides extra Task functions
+
+
+# Tasks
+
+@docs execute
+
+-}
+
 import Task exposing (Task)
 
 

@@ -1,8 +1,16 @@
-module Picasso.Text exposing
-    ( styledH1
-    , styledH2
-    , styledH3
-    )
+module Picasso.Text exposing (styledH1, styledH2, styledH3)
+
+{-| A module that provides basic text elements
+
+
+# Constructors
+
+If you want to use Route-based hrefs for navigation, it is highly recommended
+that you use an `a` based button.
+
+@docs styledH1, styledH2, styledH3
+
+-}
 
 import Html exposing (Html, h1, h2, h3, text)
 import Html.Attributes exposing (class)

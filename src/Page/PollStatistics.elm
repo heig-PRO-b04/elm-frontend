@@ -1,11 +1,23 @@
 module Page.PollStatistics exposing
-    ( Message
-    , Model
-    , init
-    , subscriptions
-    , update
-    , view
+    ( Model, Message
+    , update, view
+    , init, subscriptions
     )
+
+{-| A page sub-module that displays a poll's global statistics
+
+
+# TEA
+
+@docs Model, Message
+@docs update, view
+
+
+# functions
+
+@docs init, subscriptions
+
+-}
 
 import Api.Polls exposing (ServerPoll)
 import Api.Statistics as Api
