@@ -1,12 +1,29 @@
 module Page.Poll.Session exposing
-    ( Message
-    , Model
-    , init
-    , moderatorView
-    , participantView
-    , subscriptions
+    ( Model, Message
     , update
+    , moderatorView, participantView
+    , init, subscriptions
     )
+
+{-| A page sub-module that displays session information for moderators or participants
+
+
+# TEA
+
+@docs Model, Message
+@docs update
+
+
+# views
+
+@docs moderatorView, participantView
+
+
+# functions
+
+@docs init, subscriptions
+
+-}
 
 import Api.Polls
 import Api.Sessions as Api

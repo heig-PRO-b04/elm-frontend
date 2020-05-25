@@ -1,12 +1,23 @@
 module Page.Account exposing
-    ( Message
-    , Model
-    , init
-    , subscriptions
-    , toSession
-    , update
-    , view
+    ( Model, Message
+    , update, view
+    , init, subscriptions, toSession
     )
+
+{-| A page module that displays a user's account info and ways to modify these infos
+
+
+# TEA
+
+@docs Model, Message
+@docs update, view
+
+
+# functions
+
+@docs init, subscriptions, toSession
+
+-}
 
 import Api as BaseApi
 import Api.Account as Api

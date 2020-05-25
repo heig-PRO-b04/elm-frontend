@@ -1,8 +1,10 @@
-module Picasso.Text exposing
-    ( styledH1
-    , styledH2
-    , styledH3
-    )
+module Picasso.Text exposing (styledH1, styledH2, styledH3)
+
+{-| A module that provides basic text elements
+
+@docs styledH1, styledH2, styledH3
+
+-}
 
 import Html exposing (Html, h1, h2, h3, text)
 import Html.Attributes exposing (class)

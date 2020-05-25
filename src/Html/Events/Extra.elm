@@ -1,5 +1,14 @@
 module Html.Events.Extra exposing (onEnterDown)
 
+{-| A module that provides additional Html events
+
+
+# Events
+
+@docs onEnterDown
+
+-}
+
 import Html
 import Html.Events as Events
 import Json.Decode

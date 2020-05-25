@@ -1,5 +1,14 @@
 module List.Extra exposing (grouped)
 
+{-| A module that provides additional List functions
+
+
+# functions
+
+@docs grouped
+
+-}
+
 
 grouped : Int -> List a -> List (List a)
 grouped size list =

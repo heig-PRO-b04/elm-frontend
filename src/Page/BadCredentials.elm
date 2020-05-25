@@ -1,11 +1,23 @@
 module Page.BadCredentials exposing
-    ( Message
-    , Model
-    , init
-    , toSession
-    , update
-    , view
+    ( Model, Message
+    , update, view
+    , init, toSession
     )
+
+{-| A page module that displays a message when a user's credentials are not valid anymore
+
+
+# TEA
+
+@docs Model, Message
+@docs update, view
+
+
+# functions
+
+@docs init, toSession
+
+-}
 
 import Cmd.Extra exposing (withCmds)
 import Html exposing (Html, br, div, text)

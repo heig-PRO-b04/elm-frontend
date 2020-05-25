@@ -1,7 +1,13 @@
-module Picasso.Input exposing
-    ( input
-    , inputWithTitle
-    )
+module Picasso.Input exposing (input, inputWithTitle)
+
+{-| A module that provides basic input elements
+
+
+# Constructors
+
+@docs input, inputWithTitle
+
+-}
 
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class)

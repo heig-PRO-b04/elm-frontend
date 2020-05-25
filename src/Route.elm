@@ -1,10 +1,21 @@
 module Route exposing
     ( Route(..)
-    , badCredentials
-    , fromUrl
-    , href
-    , replaceUrl
+    , href, fromUrl, replaceUrl, badCredentials
     )
+
+{-| A module that enables routing
+
+
+# types
+
+@docs Route
+
+
+# helpers
+
+@docs href, fromUrl, replaceUrl, badCredentials
+
+-}
 
 import Api.Polls exposing (PollDiscriminator)
 import Browser.Navigation as Nav

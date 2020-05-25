@@ -1,12 +1,21 @@
 module Api.Sessions exposing
-    ( ClientSession
-    , Emoji(..)
-    , ServerSession
-    , SessionError(..)
-    , SessionStatus(..)
-    , getSession
-    , putSession
+    ( Emoji(..), ServerSession, ClientSession, SessionStatus(..), SessionError(..)
+    , getSession, putSession
     )
+
+{-| A module that provides ways to interact with a poll Session
+
+
+# Types
+
+@docs Emoji, ServerSession, ClientSession, SessionStatus, SessionError
+
+
+# Endpoints
+
+@docs getSession, putSession
+
+-}
 
 import Api exposing (Credentials)
 import Http

@@ -1,5 +1,17 @@
 module Picasso.FloatingButton exposing (a, button)
 
+{-| A module that provides floating button elements
+
+
+# Constructors
+
+If you want to use Route-based hrefs for navigation, it is highly recommended
+that you use an `a` based button.
+
+@docs a, button
+
+-}
+
 import Html exposing (Html, div)
 import Html.Attributes exposing (class)
 

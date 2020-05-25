@@ -1,5 +1,14 @@
 module Page.PollStatistics.Charts exposing (answersChart)
 
+{-| A page sub-module that displays line graph statistics
+
+
+# views
+
+@docs answersChart
+
+-}
+
 import Api.Statistics as Api
 import Array exposing (Array)
 import Html exposing (Html)

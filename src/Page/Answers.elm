@@ -1,11 +1,23 @@
 module Page.Answers exposing
-    ( Message
-    , Model
-    , init
-    , subscriptions
-    , update
-    , view
+    ( Model, Message
+    , update, view
+    , init, subscriptions
     )
+
+{-| A page sub-module that displays a question's answers
+
+
+# TEA
+
+@docs Model, Message
+@docs update, view
+
+
+# functions
+
+@docs init, subscriptions
+
+-}
 
 import Api.Answers exposing (AnswerDiscriminator, ClientAnswer, ServerAnswer)
 import Api.Questions exposing (QuestionDiscriminator, QuestionVisibility(..))

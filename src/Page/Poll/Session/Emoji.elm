@@ -1,5 +1,14 @@
 module Page.Poll.Session.Emoji exposing (img)
 
+{-| A module that provides emoji images for the session code
+
+
+# functions
+
+@docs img
+
+-}
+
 import Api.Sessions
 import Html exposing (Html)
 import Html.Attributes exposing (class)

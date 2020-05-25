@@ -1,10 +1,23 @@
 module Page.Logout exposing
     ( Model
-    , init
-    , toSession
-    , update
-    , view
+    , update, view
+    , init, toSession
     )
+
+{-| A page module that displays nothing, logs the user out, and redirects him to the home page
+
+
+# TEA
+
+@docs Model
+@docs update, view
+
+
+# functions
+
+@docs init, toSession
+
+-}
 
 import Api
 import Cmd.Extra exposing (withCmds, withNoCmd)

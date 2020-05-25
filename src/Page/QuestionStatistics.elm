@@ -1,11 +1,23 @@
 module Page.QuestionStatistics exposing
-    ( Message
-    , Model
-    , init
-    , subscriptions
-    , update
-    , view
+    ( Model, Message
+    , update, view
+    , init, subscriptions
     )
+
+{-| A page sub-module that displays a specific question's statistics
+
+
+# TEA
+
+@docs Model, Message
+@docs update, view
+
+
+# functions
+
+@docs init, subscriptions
+
+-}
 
 import Api exposing (Credentials)
 import Api.QuestionStatistics as Api

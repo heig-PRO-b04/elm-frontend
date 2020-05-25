@@ -3,6 +3,20 @@ module Page.PollList.Sorting exposing
     , ordering
     )
 
+{-| A module that provide list sorting utilities
+
+
+# types
+
+@docs Order
+
+
+# functions
+
+@docs ordering
+
+-}
+
 import Api.Polls as Api
 
 
