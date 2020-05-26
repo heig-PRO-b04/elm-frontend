@@ -1130,6 +1130,15 @@ viewQuestionDetails maybeModifying mode _ question =
                                         ]
                                         (selectGenerator question.answersMax)
                                     ]
+                                , Html.span
+                                    [ Attribute.class "mt-3 ml-4 font-archivo font-semibold text-red-500 text-sm"
+                                    , if question.answersMax < question.answersMin && question.answersMax /= 0 then
+                                        Attribute.class "block"
+
+                                      else
+                                        Attribute.class "hidden"
+                                    ]
+                                    [ Html.text "Woops. Min. answers should be smaller than max. answers, right ?" ]
                                 ]
                             , Html.div [ Attribute.class "flex-grow" ] []
                             ]
