@@ -123,6 +123,9 @@ type Message
     | MsgDragDrop (Html5.DragDrop.Msg ServerQuestion DropIndex)
 
 
+{-| Tells the sub-pages (answers and statistics) to refresh at the same interval as this page when displayed,
+and to not refresh when not displayed
+-}
 subscriptions : Model -> Sub Message
 subscriptions model =
     Array.toList model.questions

@@ -72,6 +72,8 @@ update message model =
             ( model, cmdRetrievePollStatistics model.viewer model.poll )
 
 
+{-| Refreshes the statistics for the whole poll at a fixed rate of 'updateFrequency' (currently 5 seconds)
+-}
 subscriptions : Model -> Sub Message
 subscriptions _ =
     Time.every (updateFrequency * 1000) (always PerformReload)

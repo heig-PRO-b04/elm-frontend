@@ -34,6 +34,8 @@ type Model
     = SessionInfo Viewer Page.Poll.Session.Model
 
 
+{-| Returns the page's viewer's session
+-}
 toSession : Model -> Session
 toSession (SessionInfo viewer _) =
     Session.toSession viewer
@@ -68,6 +70,8 @@ update (SessionMsg message) (SessionInfo viewer session) =
     ( SessionInfo viewer sessionModel, Cmd.map SessionMsg cmd )
 
 
+{-| Refreshes the Session information page at the same rate as the Session page from the moderator view
+-}
 subscriptions : Model -> Sub Message
 subscriptions (SessionInfo _ session) =
     Page.Poll.Session.subscriptions session

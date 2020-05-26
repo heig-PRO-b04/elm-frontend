@@ -57,6 +57,9 @@ init viewer =
     )
 
 
+{-| Returns the session of the logged in user.
+As this is a logged in only page, it is guaranteed to exist.
+-}
 toSession : Model -> Session
 toSession model =
     Session.toSession model.viewer
@@ -89,6 +92,8 @@ type Message
     | NowDisconnect
 
 
+{-| Doesn't refresh the informations on the page
+-}
 subscriptions : Model -> Sub Message
 subscriptions _ =
     Sub.none

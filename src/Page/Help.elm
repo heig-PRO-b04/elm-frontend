@@ -44,6 +44,8 @@ type alias Step =
     }
 
 
+{-| Returns the session of the page model
+-}
 toSession : Model -> Session
 toSession =
     .session

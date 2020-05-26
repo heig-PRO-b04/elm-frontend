@@ -37,6 +37,8 @@ type Message
     = Redirect
 
 
+{-| Returns the session of the page
+-}
 toSession : Model -> Session
 toSession =
     identity
