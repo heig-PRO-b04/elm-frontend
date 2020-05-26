@@ -91,6 +91,8 @@ type alias Model =
     }
 
 
+{-| An init function to use when a user wishes to use the page to log in
+-}
 initLogin : Session -> ( Model, Cmd Message )
 initLogin session =
     { session = session
@@ -102,6 +104,8 @@ initLogin session =
         |> withNoCmd
 
 
+{-| An init function to use when a user wishes to use the page to register
+-}
 initRegistration : Session -> ( Model, Cmd Message )
 initRegistration session =
     { session = session

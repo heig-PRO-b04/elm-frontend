@@ -66,16 +66,22 @@ type Display
     | LoggedInOpen Username
 
 
+{-| Populates the navigation bar with a route and a session
+-}
 init : Route -> Session -> Model
 init route session =
     Model route session MenuClosed
 
 
+{-| Populates the navigation bar with a new route
+-}
 withRoute : Route -> Model -> Model
 withRoute route (Model _ session state) =
     Model route session state
 
 
+{-| Populates the navigation bar with a new session
+-}
 withSession : Session -> Model -> Model
 withSession session (Model route _ state) =
     Model route session state

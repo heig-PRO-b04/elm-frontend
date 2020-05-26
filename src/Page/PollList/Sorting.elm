@@ -25,6 +25,8 @@ type Order
     | TitleDes
 
 
+{-| Returns an ordering for two comparable elements
+-}
 ordering : Order -> Api.ServerPoll -> Api.ServerPoll -> Basics.Order
 ordering order a b =
     case order of

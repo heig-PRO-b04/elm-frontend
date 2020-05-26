@@ -26,6 +26,8 @@ base =
     ]
 
 
+{-| Builds a new input box with based styling combined with arguments
+-}
 input : List (Html.Attribute msg) -> List (Html msg) -> Html msg
 input attrs html =
     Html.input (base ++ attrs) html
@@ -40,6 +42,8 @@ title withContents =
         [ text withContents ]
 
 
+{-| Builds a new input box with based styling combined with arguments preceded with a title text
+-}
 inputWithTitle : String -> List (Html.Attribute msg) -> List (Html msg) -> Html msg
 inputWithTitle withContents attrs html =
     div

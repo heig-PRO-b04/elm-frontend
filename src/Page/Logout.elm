@@ -30,6 +30,8 @@ type alias Model =
     Session
 
 
+{-| Returns the session of the logout page
+-}
 toSession : Model -> Session
 toSession =
     identity

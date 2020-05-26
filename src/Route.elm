@@ -25,6 +25,8 @@ import Url exposing (Url)
 import Url.Parser as Parser exposing ((</>), Parser, oneOf, s)
 
 
+{-| A type representing all possible routes on the app
+-}
 type Route
     = Home
     | Login
@@ -43,16 +45,22 @@ type Route
 -- PUBLIC HELPERS
 
 
+{-| Builds a route from an Html href
+-}
 href : Route -> Html.Attribute msg
 href page =
     Html.Attributes.href (routeToString page)
 
 
+{-| Builds a route by trying to parse an url
+-}
 fromUrl : Url -> Maybe Route
 fromUrl url =
     Parser.parse parser url
 
 
+{-| Changes the url at the browser navigation level
+-}
 replaceUrl : Nav.Key -> Route -> Cmd msg
 replaceUrl key route =
     Nav.replaceUrl key (routeToString route)

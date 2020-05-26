@@ -14,6 +14,8 @@ import Html exposing (Html)
 import Html.Attributes exposing (class)
 
 
+{-| Builds an emoji image corresponding to an emoji code in Hexadecimal
+-}
 img : List (Html.Attribute msg) -> List (Html msg) -> Api.Sessions.Emoji -> Html msg
 img attrs html emoji =
     Html.img

@@ -96,6 +96,8 @@ update msg model =
             { model | session = session } |> withNoCmd
 
 
+{-| Refreshes the view at a fixed interval of 1 second
+-}
 subscriptions : Model -> Sub Message
 subscriptions _ =
     Time.every 1000 (always <| RequestSession)
@@ -123,6 +125,8 @@ code emojis =
 -- MODERATOR VIEW
 
 
+{-| The view representing the session status for the moderator page
+-}
 moderatorView : Model -> List (Html Message)
 moderatorView model =
     case model.session of
@@ -217,6 +221,8 @@ moderatorQuarantinedView =
 -- PARTICIPANT VIEW
 
 
+{-| The view representing the session status and codes for the particiants
+-}
 participantView : Model -> List (Html Message)
 participantView model =
     [ div

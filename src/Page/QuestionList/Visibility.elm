@@ -26,6 +26,9 @@ type Visibility
     | Archived
 
 
+{-| Predicate that decides if a question should be displayed or not
+given it's visibility status and the user's choice of questions do display
+-}
 display : Visibility -> Api.ServerQuestion -> Bool
 display visibility question =
     case visibility of

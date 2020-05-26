@@ -35,6 +35,8 @@ type alias Model =
     Session
 
 
+{-| Returns the session of the home page
+-}
 toSession : Model -> Session
 toSession =
     identity

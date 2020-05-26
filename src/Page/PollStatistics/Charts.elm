@@ -45,6 +45,8 @@ color number =
 -- VIEW
 
 
+{-| Builds a line chart representing answers for a specific question in real time
+-}
 answersChart : Api.QuestionStatistics -> Html msg
 answersChart question =
     let

@@ -62,6 +62,8 @@ type alias Model =
     }
 
 
+{-| Refreshes the page at a fixed interval given the current displaying state of the page, every 20 seconds in most cases
+-}
 subscriptions : Model -> Sub Message
 subscriptions model =
     case model.state of
@@ -85,6 +87,8 @@ subscriptions model =
             Sub.none
 
 
+{-| An init function to use when loading the page to create a new poll
+-}
 initCreate : Viewer -> ( Model, Cmd Message )
 initCreate viewer =
     { viewer = viewer
@@ -95,6 +99,8 @@ initCreate viewer =
         |> withNoCmd
 
 
+{-| An init function to use when loading the page to display an existing poll
+-}
 initDisplay : Viewer -> PollDiscriminator -> ( Model, Cmd Message )
 initDisplay viewer pollDiscriminator =
     { viewer = viewer

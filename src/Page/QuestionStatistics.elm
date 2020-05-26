@@ -100,6 +100,8 @@ type Message
     | GotError Api.StatisticsError
 
 
+{-| Refreshes the statistics page for a question at a fixed frequency (currently of 15 seconds)
+-}
 subscriptions : Model -> Sub Message
 subscriptions _ =
     Time.every (frequency * 1000) (always RequestUpdate)

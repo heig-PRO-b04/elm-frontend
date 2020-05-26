@@ -97,6 +97,8 @@ type Message
     | GotError
 
 
+{-| Refreshes the answers page at a fixed interval of 10 seconds
+-}
 subscriptions : Model -> Sub Message
 subscriptions _ =
     Time.every (10 * 1000) (always PerformReload)

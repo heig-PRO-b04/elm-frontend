@@ -28,6 +28,8 @@ type SectionContent msg
     | SectionTip String (List (Html msg))
 
 
+{-| Represents the help section about managing polls
+-}
 managingPolls : List (SectionContent msg)
 managingPolls =
     [ SectionTitle "What's a poll ?"
@@ -46,6 +48,8 @@ managingPolls =
     ]
 
 
+{-| Represents the help section about organizing questions
+-}
 organizingQuestions : List (SectionContent msg)
 organizingQuestions =
     [ SectionTitle "What's a question ?"
@@ -64,6 +68,8 @@ organizingQuestions =
     ]
 
 
+{-| Represents the help section about statistics
+-}
 statistics : List (SectionContent msg)
 statistics =
     [ SectionTitle "I see two types of statistics. Why ?"
@@ -76,6 +82,8 @@ statistics =
     ]
 
 
+{-| Represents the help section about voting
+-}
 voting : List (SectionContent msg)
 voting =
     [ SectionTitle "The Android companion app"
